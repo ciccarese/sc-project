@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SC-Project — Archivio Progetti</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#020407;--bg1:#060c10;--bg2:#0a1018;--border:rgba(0,210,255,.08);--border2:rgba(0,210,255,.14);--cyan:#00d2ff;--cyan-faint:rgba(0,210,255,.06);--amber:#f0a500;--green:#00e878;--green-dim:rgba(0,232,120,.08);--purple:#a855f7;--text:#a8b8c8;--text2:#6a7f90;--white:#e2ecf4;--mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',sans-serif;--display:'Syne',sans-serif}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+.topbar{position:relative;z-index:100;background:var(--bg1);border-bottom:1px solid var(--border2);padding:0 48px;display:flex;justify-content:space-between;align-items:center;height:44px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--text2)}
+.topbar-brand{color:var(--cyan);font-weight:600;letter-spacing:.2em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.topbar-brand::before{content:'';width:6px;height:6px;background:var(--cyan);border-radius:50%;box-shadow:0 0 10px var(--cyan);animation:blink 2.4s ease infinite}
+@keyframes blink{0%,90%,100%{opacity:1}50%{opacity:.2}}
+.topbar-right{display:flex;align-items:center;gap:20px}
+.status-pill{display:flex;align-items:center;gap:6px;background:var(--green-dim);border:1px solid rgba(0,232,120,.2);color:var(--green);padding:3px 10px;border-radius:20px;font-size:10px;letter-spacing:.15em}
+.status-dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.hero{position:relative;z-index:10;padding:64px 48px 52px;background:linear-gradient(180deg,var(--bg1) 0%,transparent 100%);border-bottom:1px solid var(--border2)}
+.hero-inner{max-width:1160px;margin:0 auto}
+.hero-eyebrow{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--cyan);margin-bottom:16px}
+.hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--cyan)}
+.hero-title{font-family:var(--display);font-size:clamp(32px,5vw,64px);font-weight:800;color:var(--white);line-height:1.05;letter-spacing:-.02em;margin-bottom:16px}
+.hero-title .accent{color:var(--cyan)}
+.hero-desc{font-size:16px;color:var(--text);max-width:600px;line-height:1.8;margin-bottom:28px}
+.hero-stats{display:flex;gap:32px;flex-wrap:wrap}
+.stat{font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:.1em}
+.stat span{display:block;font-size:22px;font-weight:700;color:var(--cyan);font-family:var(--display);letter-spacing:-.02em;margin-bottom:2px}
+.main{position:relative;z-index:10;max-width:1160px;margin:0 auto;padding:52px 48px}
+.toolbar{display:flex;align-items:center;gap:16px;margin-bottom:36px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:220px}
+#searchInput{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;color:var(--white);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .2s}
+#searchInput:focus{border-color:rgba(0,210,255,.4)}
+#searchInput::placeholder{color:var(--text2)}
+.filter-label{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text2)}
+.section-hd{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+.section-num{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:.2em;background:var(--cyan-faint);border:1px solid rgba(0,210,255,.2);padding:4px 10px;border-radius:4px}
+.section-line{flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
+h2{font-family:var(--display);font-size:22px;font-weight:800;color:var(--white)}
+.projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.project-card{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;overflow:hidden;text-decoration:none;display:block;transition:border-color .2s,transform .15s}
+.project-card:hover{border-color:rgba(0,210,255,.4);transform:translateY(-2px)}
+.card-top-bar{height:3px;background:linear-gradient(90deg,var(--cyan),var(--green))}
+.project-card:nth-child(3n+2) .card-top-bar{background:linear-gradient(90deg,var(--amber),var(--cyan))}
+.project-card:nth-child(3n+3) .card-top-bar{background:linear-gradient(90deg,var(--purple),var(--amber))}
+.card-body{padding:22px}
+.card-icon{font-size:28px;margin-bottom:14px;display:block}
+.card-name{font-family:var(--display);font-size:17px;font-weight:800;color:var(--white);margin-bottom:6px;line-height:1.2;word-break:break-word}
+.card-filename{font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:.1em;margin-bottom:14px}
+.card-meta{display:flex;justify-content:space-between;align-items:center;padding:12px 22px;border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text2)}
+.card-type{color:var(--cyan);letter-spacing:.12em;text-transform:uppercase}
+.card-arrow{color:var(--cyan);font-size:14px;transition:transform .2s}
+.project-card:hover .card-arrow{transform:translateX(4px)}
+.empty-state{text-align:center;padding:80px 20px;border:1px dashed var(--border2);border-radius:10px;background:var(--bg2);grid-column:1/-1}
+.empty-icon{font-size:48px;margin-bottom:20px;opacity:.5}
+.empty-title{font-family:var(--display);font-size:20px;font-weight:800;color:var(--white);margin-bottom:10px}
+.empty-desc{font-family:var(--mono);font-size:12px;color:var(--text2);letter-spacing:.08em;line-height:1.8}
+.loading{text-align:center;padding:60px;font-family:var(--mono);font-size:12px;color:var(--text2);letter-spacing:.15em;grid-column:1/-1}
+footer{position:relative;z-index:10;background:var(--bg1);border-top:1px solid var(--border2);padding:24px 48px;margin-top:60px}
+.footer-inner{max-width:1160px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;color:var(--text2)}
+.footer-brand{color:var(--cyan);letter-spacing:.2em;text-transform:uppercase}
+@media(max-width:768px){.topbar,.hero,.main{padding-left:20px;padding-right:20px}.projects-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-brand">Ciccarese · SC-Project</div>
+  <div class="topbar-right">
+    <span id="topbar-date"></span>
+    <div class="status-pill"><div class="status-dot"></div>Archivio Attivo</div>
+  </div>
+</div>
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">SC-Project · Archivio Digitale</div>
+    <h1 class="hero-title">Progetti <span class="accent">→</span></h1>
+    <p class="hero-desc">Indice di tutti i progetti web. Clicca su una card per aprire la pagina.</p>
+    <div class="hero-stats">
+      <div class="stat"><span id="stat-count">—</span>Progetti</div>
+      <div class="stat"><span id="stat-updated">—</span>Ultimo aggiornamento</div>
+    </div>
+  </div>
+</section>
+<main class="main">
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Cerca progetto..." oninput="filterCards()">
+    </div>
+    <span class="filter-label" id="count-label"></span>
+  </div>
+  <div class="section-hd">
+    <span class="section-num">PROGETTI /</span>
+    <div class="section-line"></div>
+    <h2>Tutti i file</h2>
+  </div>
+  <div id="grid" class="projects-grid">
+    <div class="loading">Caricamento in corso...</div>
+  </div>
+</main>
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Ciccarese · SC-Project</div>
+    <span>ciccarese.github.io/sc-project</span>
+    <span id="footer-year"></span>
+  </div>
+</footer>
+<script>
+const API='https://api.github.com/repos/ciccarese/sc-project/contents/progetti';
+const BASE='https://ciccarese.github.io/sc-project/progetti/';
+const ICONS={html:'🌐',pdf:'📄',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',svg:'🖼️',xlsx:'📊',csv:'📊',zip:'📦'};
+const LABELS={html:'Web page',pdf:'PDF',jpg:'Immagine',jpeg:'Immagine',png:'Immagine',svg:'Vettoriale',xlsx:'Excel',csv:'CSV',zip:'Archivio'};
+function ttl(f){return f.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).trim();}
+function ext(f){return(f.split('.').pop()||'').toLowerCase();}
+function card(f){const e=ext(f.name),t=ttl(f.name);return '<a class="project-card" href="'+BASE+f.name+'" target="_blank" data-name="'+f.name.toLowerCase()+' '+t.toLowerCase()+'"><div class="card-top-bar"></div><div class="card-body"><span class="card-icon">'+(ICONS[e]||'📁')+'</span><div class="card-name">'+t+'</div><div class="card-filename">'+f.name+'</div></div><div class="card-meta"><span class="card-type">'+(LABELS[e]||'File')+'</span><span class="card-arrow">→</span></div></a>';}
+function filterCards(){const q=document.getElementById('searchInput').value.toLowerCase();let v=0;document.querySelectorAll('.project-card').forEach(c=>{const m=!q||c.dataset.name.includes(q);c.style.display=m?'':'none';if(m)v++;});document.getElementById('count-label').textContent=q?v+' risultati':'';}
+async function load(){const grid=document.getElementById('grid');try{const r=await fetch(API);if(!r.ok)throw new Error('HTTP '+r.status);const files=await r.json();const web=files.filter(f=>f.type==='file'&&!f.name.startsWith('.')&&!f.name.endsWith('.md'));document.getElementById('stat-count').textContent=web.length;if(!web.length){grid.innerHTML='<div class="empty-state"><div class="empty-icon">📂</div><div class="empty-title">Nessun file ancora</div><div class="empty-desc">Carica i file nella cartella progetti/ e appariranno qui automaticamente.</div></div>';return;}grid.innerHTML=web.map(card).join('');}catch(e){grid.innerHTML='<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Errore</div><div class="empty-desc">'+e.message+'</div></div>';}}
+const now=new Date();
+document.getElementById('topbar-date').textContent=now.toLocaleDateString('it-IT');
+document.getElementById('footer-year').textContent='© '+now.getFullYear();
+document.getElementById('stat-updated').textContent=now.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+load();
+</script>
+</body>
+</html>
