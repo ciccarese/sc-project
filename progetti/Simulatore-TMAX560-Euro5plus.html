@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T-MAX 560 · Simulatore Omologazione Euro 5+</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#141a24; --panel2:#1b232f; --panel3:#222c3a; --line:#2a3340;
+    --txt:#e9eef5; --muted:#8b98a8; --accent:#3da9fc; --accent2:#7c5cff;
+    --ok:#2ec27e; --warn:#f5a524; --bad:#f4516c; --temp:#ff7a45; --emis:#3da9fc;
+    --radius:14px; --font:'Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,rgba(124,92,255,.10),transparent),var(--bg);color:var(--txt);font-family:var(--font);line-height:1.55}
+  .wrap{max-width:1240px;margin:0 auto;padding:26px 22px 90px}
+  a{color:var(--accent);text-decoration:none}
+  /* HERO */
+  .hero{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .hero h1{font-size:1.7rem;margin:0;font-weight:700;letter-spacing:.2px}
+  .hero .sub{color:var(--muted);font-size:.95rem;margin-top:6px;max-width:640px}
+  .pill{display:inline-flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:7px 15px;font-size:.82rem;color:var(--muted)}
+  nav.toc{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px}
+  nav.toc a{background:var(--panel2);border:1px solid var(--line);padding:7px 13px;border-radius:9px;font-size:.82rem;color:var(--txt)}
+  nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-top:22px}
+  section h2{font-size:1.18rem;margin:0 0 4px;font-weight:660}
+  section .hint{color:var(--muted);font-size:.88rem;margin:0 0 16px;max-width:860px}
+  /* LOGIC cards */
+  .logic{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .lcard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .lcard .ic{font-size:1.5rem}
+  .lcard h3{margin:8px 0 6px;font-size:.98rem}
+  .lcard p{margin:0;font-size:.85rem;color:var(--muted)}
+  .lcard b{color:var(--txt)}
+  /* SIMULATOR */
+  .sim{display:grid;grid-template-columns:1.05fr 1fr;gap:22px}
+  @media(max-width:920px){.sim{grid-template-columns:1fr}}
+  .controls{display:flex;flex-direction:column;gap:18px}
+  .group{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .group h4{margin:0 0 14px;font-size:.82rem;text-transform:uppercase;letter-spacing:.7px;color:var(--accent);display:flex;align-items:center;gap:8px}
+  .ctrl{margin-bottom:15px}
+  .ctrl:last-child{margin-bottom:0}
+  .ctrl .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .ctrl label{font-size:.86rem;font-weight:500}
+  .ctrl .v{font-variant-numeric:tabular-nums;font-weight:680;color:var(--txt);font-size:.9rem}
+  .ctrl .v small{color:var(--muted);font-weight:400}
+  input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:6px;background:var(--panel3);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:3px solid #0b0e14;box-shadow:0 0 0 1px var(--accent)}
+  input[type=range].t::-webkit-slider-thumb{background:var(--temp);box-shadow:0 0 0 1px var(--temp)}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:64px;background:var(--panel3);border:1px solid var(--line);color:var(--muted);padding:8px 6px;border-radius:8px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:.15s}
+  .seg button.on{background:rgba(61,169,252,.16);border-color:var(--accent);color:var(--accent);font-weight:600}
+  .hl{font-size:.72rem;color:var(--muted);margin-top:5px;font-style:italic}
+  /* RESULTS */
+  .results{position:sticky;top:14px;align-self:start;display:flex;flex-direction:column;gap:16px}
+  .verdict{border-radius:14px;padding:18px 20px;text-align:center;font-weight:700;font-size:1.15rem;border:1px solid}
+  .verdict.ok{background:linear-gradient(180deg,rgba(46,194,126,.18),rgba(46,194,126,.06));color:var(--ok);border-color:rgba(46,194,126,.4)}
+  .verdict.bad{background:linear-gradient(180deg,rgba(244,81,108,.18),rgba(244,81,108,.06));color:var(--bad);border-color:rgba(244,81,108,.4)}
+  .verdict small{display:block;font-weight:500;font-size:.8rem;margin-top:5px;opacity:.85}
+  .gauges{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .gauge{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .gauge .gl{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .gauge .gv{font-size:1.5rem;font-weight:720;margin-top:2px;font-variant-numeric:tabular-nums}
+  .gauge .gs{font-size:.76rem;color:var(--muted)}
+  .meter{height:7px;border-radius:6px;background:var(--panel3);margin-top:9px;position:relative;overflow:hidden}
+  .meter > i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;transition:width .35s,background .35s}
+  .meter .lim{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;opacity:.65}
+  .pollbars{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:15px}
+  .pb{display:grid;grid-template-columns:42px 1fr 86px;align-items:center;gap:10px;margin-bottom:9px;font-size:.84rem}
+  .pb:last-child{margin-bottom:0}
+  .pb .track{height:16px;background:var(--panel3);border-radius:5px;position:relative;overflow:hidden}
+  .pb .track > i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;transition:.35s}
+  .pb .track .lim{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.6}
+  .pb .pv{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+  /* scatter */
+  .scatter{position:relative;width:100%;height:360px;background:var(--panel2);border-radius:12px;border:1px solid var(--line)}
+  .scatter svg{width:100%;height:100%}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:.8rem;color:var(--muted)}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  /* sensitivity */
+  .sens{display:flex;flex-direction:column;gap:8px}
+  .srow{display:grid;grid-template-columns:200px 1fr 1fr;align-items:center;gap:10px;font-size:.84rem}
+  .srow .nm{color:var(--txt)}
+  .sbar{height:20px;background:var(--panel2);border-radius:5px;position:relative;overflow:hidden;border:1px solid var(--line)}
+  .sbar > i{position:absolute;top:0;bottom:0}
+  .sbar .mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted);opacity:.5}
+  /* competitor */
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th,td{text-align:left;padding:10px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-size:.74rem;text-transform:uppercase;letter-spacing:.4px}
+  .chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.74rem;font-weight:600}
+  .chip.ok{background:rgba(46,194,126,.15);color:var(--ok)}
+  .chip.warn{background:rgba(245,165,36,.15);color:var(--warn)}
+  .chip.sc{background:rgba(124,92,255,.18);color:#a991ff}
+  .note{background:rgba(61,169,252,.08);border:1px solid rgba(61,169,252,.28);border-radius:12px;padding:14px 16px;font-size:.85rem;margin-top:8px}
+  .foot{color:var(--muted);font-size:.78rem;margin-top:30px;text-align:center;line-height:1.7}
+  code{background:var(--panel2);padding:1px 6px;border-radius:4px}
+  .btnbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .btn{background:var(--panel3);border:1px solid var(--line);color:var(--txt);padding:9px 14px;border-radius:9px;cursor:pointer;font-size:.84rem;font-family:inherit}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:rgba(124,92,255,.18);border-color:var(--accent2);color:#bca9ff;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <h1>🛠️ Simulatore Omologazione · Yamaha T-MAX 560 Euro 5+</h1>
+      <div class="sub">Piattaforma di simulazione tecnica: modifica ogni parametro di scarico e calibrazione, e anticipa <b style="color:var(--emis)">emissioni</b>, <b style="color:var(--temp)">temperatura catalizzatore</b> e <b>contropressione</b> prima di andare al banco. Modello fisico ancorato alle 10 prove reali.</div>
+    </div>
+    <div class="pill">⚙️ <span id="pillStatus">simulazione live</span></div>
+  </div>
+
+  <nav class="toc">
+    <a href="#logica">Perché funziona così</a>
+    <a href="#sim">Simulatore</a>
+    <a href="#mappa">Mappa trade-off</a>
+    <a href="#leve">Quali leve tirare</a>
+    <a href="#concorrenza">Concorrenza</a>
+    <a href="#metodo">Metodo & limiti</a>
+  </nav>
+
+  <!-- LOGICA -->
+  <section id="logica">
+    <h2>Perché l'omologazione si gioca su due fronti in conflitto</h2>
+    <p class="hint">Per omologare devi passare <b>contemporaneamente</b> il test emissioni (il critico è l'NMHC) e mantenere il catalizzatore sotto la temperatura a cui è stato invecchiato per la durabilità. Il problema è che le due cose tirano in direzioni opposte.</p>
+    <div class="logic">
+      <div class="lcard"><div class="ic">🎯</div><h3>NMHC è il collo di bottiglia</h3><p>Idrocarburi non metanici. Si formano soprattutto nei <b>primi secondi a freddo</b>, quando il catalizzatore non ha ancora raggiunto la temperatura di "light-off" (~250-300°C). Tutto ciò che accende prima il catalizzatore abbatte l'NMHC.</p></div>
+      <div class="lcard"><div class="ic">🌡️</div><h3>La temperatura è un vincolo di legge</h3><p>Il catalizzatore è stato invecchiato (durabilità, Reg. UE 168/2013) a <b>835°C</b>. In uso reale non può superarla, e per la legge di Arrhenius il degrado <b>raddoppia ogni ~15-20°C</b>: serve margine, non basta "stare sotto".</p></div>
+      <div class="lcard"><div class="ic">⚖️</div><h3>Il conflitto</h3><p>Avvicinare/scaldare il catalizzatore → <b>ottimo per l'NMHC</b> ma lo porta verso gli 835°C. Allontanarlo/raffreddarlo → <b>sicuro in temperatura</b> ma l'NMHC peggiora. La config emissivamente migliore (collettori corti) è risultata non omologabile per temperatura.</p></div>
+      <div class="lcard"><div class="ic">🔓</div><h3>Come si rompe il conflitto</h3><p>Con le leve che migliorano la conversione <b>senza</b> alzare il picco: più <b>carico PGM</b>, <b>doppio stadio</b> (pre-cat che accende prima), <b>aria secondaria</b> a freddo, e la geometria giusta dei collettori. È quello che questo simulatore ti aiuta a trovare.</p></div>
+    </div>
+  </section>
+
+  <!-- SIMULATOR -->
+  <section id="sim">
+    <h2>Simulatore configurazione</h2>
+    <p class="hint">Muovi gli slider e i selettori: i risultati si aggiornano in tempo reale. Parti dalla configurazione di omologazione (Y44-H) e cerca margine su tutti e tre i fronti.</p>
+    <div class="btnbar" style="margin-bottom:16px">
+      <button class="btn primary" id="presetH">⭐ Config omologazione (Y44-H)</button>
+      <button class="btn" id="presetF">Collettori corti (Y44-F)</button>
+      <button class="btn" id="presetOpt">🚀 Ottimo suggerito</button>
+      <button class="btn" id="resetBtn">↺ Reset</button>
+    </div>
+    <div class="sim">
+      <div class="controls" id="controls"><!-- generato --></div>
+      <div class="results">
+        <div class="verdict" id="verdict">—</div>
+        <div class="gauges">
+          <div class="gauge"><div class="gl">NMHC (emissioni)</div><div class="gv" id="gNmhc">—</div><div class="gs" id="gNmhcS">% del limite 68 mg/km</div><div class="meter"><i id="mNmhc"></i><div class="lim" style="left:100%"></div></div></div>
+          <div class="gauge"><div class="gl">Temp. catalizzatore</div><div class="gv" id="gTemp">—</div><div class="gs" id="gTempS">1° brick · soglia 785°C</div><div class="meter"><i id="mTemp"></i><div class="lim" id="limTemp"></div></div></div>
+        </div>
+        <div class="pollbars">
+          <div style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Tutti gli inquinanti (% del limite)</div>
+          <div id="polls"></div>
+        </div>
+        <div class="gauge"><div class="gl">Contropressione vs OEM</div><div class="gv" id="gBp">—</div><div class="gs">deve restare ≈ OEM (±15%) per l'omologazione rumore/flusso</div><div class="meter"><i id="mBp"></i><div class="lim" style="left:66.6%"></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAPPA -->
+  <section id="mappa">
+    <h2>Mappa trade-off: dove cade la tua configurazione</h2>
+    <p class="hint">Il punto viola <b>◆ si muove live</b> mentre simuli. I cerchi sono le prove reali. La <b style="color:var(--ok)">zona verde</b> in basso a sinistra è la finestra omologabile: NMHC &lt; 100% e temperatura sotto la soglia di sicurezza.</p>
+    <div class="scatter" id="scatter"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <!-- LEVE -->
+  <section id="leve">
+    <h2>Quali leve tirare adesso</h2>
+    <p class="hint">Sensibilità calcolata sulla configurazione attuale: di quanto cambia l'<b style="color:var(--emis)">NMHC</b> (barra blu, a sinistra = migliora) e la <b style="color:var(--temp)">temperatura</b> (barra arancio) se spingi ciascun parametro verso il suo massimo. Cerca le leve che migliorano l'NMHC <b>senza</b> scaldare.</p>
+    <div class="sens" id="sens"></div>
+    <div class="note" id="advice"></div>
+  </section>
+
+  <!-- CONCORRENZA -->
+  <section id="concorrenza">
+    <h2>Cosa fa la concorrenza (e dove SC può vincere)</h2>
+    <p class="hint">Analisi delle strategie dei principali produttori di scarichi aftermarket omologati Euro 5/5+. I dati di temperatura interni dei loro catalizzatori non sono pubblici: confronto le scelte progettuali note.</p>
+    <div style="overflow-x:auto"><table id="compTbl"></table></div>
+    <div class="note" id="compNote"></div>
+  </section>
+
+  <!-- METODO -->
+  <section id="metodo">
+    <h2>Metodo, logica del modello e limiti</h2>
+    <p class="hint">Trasparenza totale su come il simulatore calcola i risultati.</p>
+    <div class="logic">
+      <div class="lcard"><div class="ic">🔢</div><h3>Modello "grey-box"</h3><p>Non è una scatola nera né un'AI: ogni parametro ha un effetto <b>fisicamente documentato</b> su emissioni e temperatura, con coefficienti <b>calibrati per riprodurre le 10 prove reali</b> (Y44-A…H). Forma fisica + ancoraggio ai dati veri.</p></div>
+      <div class="lcard"><div class="ic">🌡️</div><h3>Temperatura ancorata</h3><p>La relazione collettori→temperatura è presa direttamente dalle 2 prove SRC misurate (590mm→811°C, 875mm→705°C). Gli altri parametri modulano questo riferimento secondo la fisica nota.</p></div>
+      <div class="lcard"><div class="ic">⚠️</div><h3>È uno strumento di screening</h3><p>Serve a <b>dare priorità</b> e scartare le strade perdenti <b>prima</b> del banco, non a sostituire la prova. Più prove reali aggiungi, più il modello si affina. Le combinazioni mai testate sono stime.</p></div>
+      <div class="lcard"><div class="ic">🧪</div><h3>Dato mancante chiave</h3><p>La temperatura di Y44-H 800mm è <b>interpolata</b>, non misurata. Il prossimo test al banco da fare è proprio la misura SRC su Y44-H per validare il margine termico della config finale.</p></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    Emissioni: report omologazione Minarelli S.p.A. (EU5+) · Temperature: test SRC · Invecchiamento Catagen SCP004 (Tref 835°C, 30.5h ≈ 35.000 km).<br>
+    Metodo durabilità: Bench Aging (Reg. UE 168/2013 · 134/2014). Modello fisico-statistico di screening calibrato su 10 prove reali.<br>
+    Generato dal Team di Agenti · SC Project. Aggiorna i dati reali con <code>estrai_dataset.py</code>.
+  </div>
+</div>
+
+<script>
+const REAL={
+  "limiti_mg_km": {
+    "CO": 1000,
+    "HC": 100,
+    "NMHC": 68,
+    "NOx": 60
+  },
+  "prove": [
+    {
+      "prova": 1,
+      "codice": "Y44-B",
+      "data": "2025-11-25",
+      "file": "01-Tmax-20251125-Emission EU5+_Y44-B.pdf",
+      "collettori_mm": 875,
+      "collettori": "Lunghi (racing)",
+      "cat_codice": "LD931201103-10KA",
+      "cat": "Ø93 - 300 celle",
+      "diametro": 93,
+      "celle": 300,
+      "tipo_cat": "Mono-stadio",
+      "invecchiato": false,
+      "emis_mg_km": {
+        "CO": 267.3,
+        "HC": 80.1,
+        "NMHC": 77.6,
+        "NOx": 53.8,
+        "CO2": 107.1
+      },
+      "perc_limite": {
+        "CO": 26.7,
+        "HC": 80.1,
+        "NMHC": 114.1,
+        "NOx": 89.7
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": false,
+      "temp": {
+        "cat1_1brick": 705.0,
+        "cat2_2brick": 707.0,
+        "fonte": "stimata",
+        "margine_1brick": 114.0,
+        "margine_2brick": 128.0,
+        "passa_temp": true
+      },
+      "passa": false
+    },
+    {
+      "prova": 2,
+      "codice": "Y44-A",
+      "data": "2025-11-25",
+      "file": "02-Tmax-20251125-Emission EU5+_Y44-A.pdf",
+      "collettori_mm": 875,
+      "collettori": "Lunghi (racing)",
+      "cat_codice": "LD76.31201103-OM",
+      "cat": "Ø76 - 300 celle (replica OEM)",
+      "diametro": 76,
+      "celle": 300,
+      "tipo_cat": "Mono-stadio",
+      "invecchiato": false,
+      "emis_mg_km": {
+        "CO": 287.8,
+        "HC": 80.1,
+        "NMHC": 76.1,
+        "NOx": 50.3,
+        "CO2": 106.4
+      },
+      "perc_limite": {
+        "CO": 28.8,
+        "HC": 80.1,
+        "NMHC": 111.9,
+        "NOx": 83.8
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": false,
+      "temp": {
+        "cat1_1brick": 705.0,
+        "cat2_2brick": 707.0,
+        "fonte": "stimata",
+        "margine_1brick": 114.0,
+        "margine_2brick": 128.0,
+        "passa_temp": true
+      },
+      "passa": false
+    },
+    {
+      "prova": 3,
+      "codice": "Y44-C",
+      "data": "2025-12-04",
+      "file": "03-Tmax-20251204-Emission EU5+_Y44-C.pdf",
+      "collettori_mm": 875,
+      "collettori": "Lunghi (racing)",
+      "cat_codice": "LD761301204-15AB",
+      "cat": "Ø76 - 400 celle",
+      "diametro": 76,
+      "celle": 400,
+      "tipo_cat": "Mono-stadio",
+      "invecchiato": false,
+      "emis_mg_km": {
+        "CO": 311.6,
+        "HC": 102.2,
+        "NMHC": 97.7,
+        "NOx": 44.9,
+        "CO2": 106.6
+      },
+      "perc_limite": {
+        "CO": 31.2,
+        "HC": 102.2,
+        "NMHC": 143.7,
+        "NOx": 74.8
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": false,
+      "temp": {
+        "cat1_1brick": 705.0,
+        "cat2_2brick": 707.0,
+        "fonte": "stimata",
+        "margine_1brick": 114.0,
+        "margine_2brick": 128.0,
+        "passa_temp": true
+      },
+      "passa": false
+    },
+    {
+      "prova": 4,
+      "codice": "Y44-D",
+      "data": "2025-12-04",
+      "file": "04-Tmax-20251204-Emission EU5+_Y44-D.pdf",
+      "collettori_mm": 590,
+      "collettori": "OEM",
+      "cat_codice": "OEM",
+      "cat": "OEM",
+      "diametro": 0,
+      "celle": 0,
+      "tipo_cat": "OEM",
+      "invecchiato": false,
+      "emis_mg_km": {
+        "CO": 247.0,
+        "HC": 50.6,
+        "NMHC": 46.4,
+        "NOx": 15.7,
+        "CO2": 104.2
+      },
+      "perc_limite": {
+        "CO": 24.7,
+        "HC": 50.6,
+        "NMHC": 68.2,
+        "NOx": 26.2
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 811.0,
+        "cat2_2brick": 813.0,
+        "fonte": "stimata",
+        "margine_1brick": 8.0,
+        "margine_2brick": 22.0,
+        "passa_temp": false
+      },
+      "passa": false
+    },
+    {
+      "prova": 5,
+      "codice": "Y44-E",
+      "data": "2026-01-27",
+      "file": "05-Tmax-20260127-Emission EU5+_Y44-E.pdf",
+      "collettori_mm": 590,
+      "collettori": "Corti",
+      "cat_codice": "LD76.31201103-OM",
+      "cat": "Ø76 - 300 celle (replica OEM)",
+      "diametro": 76,
+      "celle": 300,
+      "tipo_cat": "Mono-stadio",
+      "invecchiato": false,
+      "emis_mg_km": {
+        "CO": 381.5,
+        "HC": 69.9,
+        "NMHC": 65.7,
+        "NOx": 24.6,
+        "CO2": 106.6
+      },
+      "perc_limite": {
+        "CO": 38.1,
+        "HC": 69.9,
+        "NMHC": 96.6,
+        "NOx": 41.0
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 811.0,
+        "cat2_2brick": 813.0,
+        "fonte": "stimata",
+        "margine_1brick": 8.0,
+        "margine_2brick": 22.0,
+        "passa_temp": false
+      },
+      "passa": false
+    },
+    {
+      "prova": 6,
+      "codice": "Y44-F",
+      "data": "2026-03-03",
+      "file": "06-Tmax-20260303-Emission EU5+_Y44-F.pdf",
+      "collettori_mm": 590,
+      "collettori": "Corti",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "emis_mg_km": {
+        "CO": 387.1,
+        "HC": 49.3,
+        "NMHC": 45.7,
+        "NOx": 18.7,
+        "CO2": 106.1
+      },
+      "perc_limite": {
+        "CO": 38.7,
+        "HC": 49.3,
+        "NMHC": 67.2,
+        "NOx": 31.2
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 811.0,
+        "cat2_2brick": 813.0,
+        "fonte": "misurata",
+        "margine_1brick": 8.0,
+        "margine_2brick": 22.0,
+        "passa_temp": false
+      },
+      "passa": false
+    },
+    {
+      "prova": 7,
+      "codice": "Y44-F",
+      "data": "2026-03-03",
+      "file": "07-Tmax-20260303-Emission EU5+_Y44-F.pdf",
+      "collettori_mm": 590,
+      "collettori": "Corti",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "emis_mg_km": {
+        "CO": 426.4,
+        "HC": 42.9,
+        "NMHC": 39.7,
+        "NOx": 20.0,
+        "CO2": 106.4
+      },
+      "perc_limite": {
+        "CO": 42.6,
+        "HC": 42.9,
+        "NMHC": 58.4,
+        "NOx": 33.3
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 811.0,
+        "cat2_2brick": 813.0,
+        "fonte": "misurata",
+        "margine_1brick": 8.0,
+        "margine_2brick": 22.0,
+        "passa_temp": false
+      },
+      "passa": false
+    },
+    {
+      "prova": 8,
+      "codice": "Y44-G",
+      "data": "2026-03-16",
+      "file": "08-Tmax-20260316-Emission EU5+_Y44-G.pdf",
+      "collettori_mm": 875,
+      "collettori": "Lunghi (racing)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "emis_mg_km": {
+        "CO": 286.1,
+        "HC": 63.4,
+        "NMHC": 58.3,
+        "NOx": 48.2,
+        "CO2": 106.3
+      },
+      "perc_limite": {
+        "CO": 28.6,
+        "HC": 63.4,
+        "NMHC": 85.7,
+        "NOx": 80.3
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 705.0,
+        "cat2_2brick": 709.0,
+        "fonte": "misurata",
+        "margine_1brick": 114.0,
+        "margine_2brick": 126.0,
+        "passa_temp": true
+      },
+      "passa": true
+    },
+    {
+      "prova": 9,
+      "codice": "Y44-H",
+      "data": "2026-04-21",
+      "file": "09-Tmax-20260421-Emission EU5+_Y44-H.pdf",
+      "collettori_mm": 800,
+      "collettori": "Medi (omolog.)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "emis_mg_km": {
+        "CO": 262.1,
+        "HC": 55.3,
+        "NMHC": 51.3,
+        "NOx": 29.4,
+        "CO2": 107.3
+      },
+      "perc_limite": {
+        "CO": 26.2,
+        "HC": 55.3,
+        "NMHC": 75.4,
+        "NOx": 49.0
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 733.0,
+        "cat2_2brick": 735.0,
+        "fonte": "stimata",
+        "margine_1brick": 86.0,
+        "margine_2brick": 100.0,
+        "passa_temp": true
+      },
+      "passa": true
+    },
+    {
+      "prova": 10,
+      "codice": "Y44-H",
+      "data": "2026-04-22",
+      "file": "10-Tmax-20260422-Emission EU5+_Y44-H.pdf",
+      "collettori_mm": 800,
+      "collettori": "Medi (omolog.)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio (post-invecchiamento)",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": true,
+      "emis_mg_km": {
+        "CO": 273.3,
+        "HC": 52.3,
+        "NMHC": 48.9,
+        "NOx": 21.6,
+        "CO2": 107.3
+      },
+      "perc_limite": {
+        "CO": 27.3,
+        "HC": 52.3,
+        "NMHC": 71.9,
+        "NOx": 36.0
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 733.0,
+        "cat2_2brick": 735.0,
+        "fonte": "stimata",
+        "margine_1brick": 86.0,
+        "margine_2brick": 100.0,
+        "passa_temp": true
+      },
+      "passa": true
+    }
+  ],
+  "temp_riferimenti": {
+    "T_invecchiamento_2brick": 835,
+    "T_invecchiamento_1brick": 819,
+    "margine_sicurezza": 50,
+    "soglia_sicura": 785
+  },
+  "fonte": "Report omologazione Minarelli S.p.A. (EU5+) + test SRC temperatura - estratti automaticamente"
+};
+const LIMITI={CO:1000,HC:100,NMHC:68,NOx:60};
+const T_AGE=835, SOGLIA=785;   // soglia sicura = 835 - 50
+// --- Riferimento (config omologazione Y44-H) ---
+const REF={coll:800,catdia:76,cpsi:300,pgm:100,tipo:'doppio',lambda:1.00,sai:false,insul:'nessuno',aged:false,primdia:30};
+const REFOUT={NMHC:75,CO:26,HC:55,NOx:49,temp:733,bp:100}; // valori % e °C alla config di riferimento
+
+// stato corrente
+let S={...REF};
+
+// ---------- MODELLO FISICO (grey-box, documentato) ----------
+function simula(s){
+  // ----- TEMPERATURA 1° brick (°C) -----
+  let T = REFOUT.temp;
+  T += -0.372*(s.coll-800);          // collettori: ancorato a dati SRC (590->811, 875->705)
+  T += (1-s.lambda)*300;             // ricco = piu caldo (post-combustione)
+  T += s.sai ? 25 : 0;               // aria secondaria: esotermia nel cat
+  T += -1.4*(s.catdia-76);           // cat piu grande = piu massa termica = piu freddo
+  T += 0.03*(s.cpsi-300);            // celle dense = leggermente piu caldo
+  T += s.insul==='fasciatura'?28 : s.insul==='doppia'?16 : 0; // calore trattenuto
+  T += s.aged ? 6 : 0;               // invecchiato: esotermia spostata
+  T += -0.25*(s.primdia-30);         // primario largo = piu disperso = piu fresco
+
+  // ----- NMHC (% del limite) -----
+  const fColl = (15.4+0.0807*s.coll)/79.96;        // ancorato F(590)/G(875), ref 800=75
+  const fLam  = 1 + 9*Math.max(0,1-s.lambda) + 5*Math.max(0,s.lambda-1); // finestra TWC stretta
+  const fSai  = s.sai ? 0.70 : 1.0;                // aria secondaria abbatte HC a freddo
+  const fPgm  = Math.pow(100/s.pgm,0.30);          // piu metalli preziosi = piu conversione
+  const fCpsi = Math.pow(300/s.cpsi,0.15);         // piu celle = piu superficie + light-off
+  const fDia  = Math.pow(s.catdia/76,0.05);        // piu grande = light-off leggermente piu lento
+  const fTipo = s.tipo==='doppio'?1.0 : 1.50;      // mono-stadio penalizza il freddo
+  const fIns  = s.insul==='fasciatura'?0.93 : s.insul==='doppia'?0.96 : 1.0; // calore trattenuto aiuta
+  const fAge  = s.aged?1.05:1.0;
+  let NMHC = REFOUT.NMHC * fColl*fLam*fSai*fPgm*fCpsi*fDia*fTipo*fIns*fAge;
+
+  // ----- altri inquinanti (% limite) — split su lambda, conversione condivisa -----
+  const conv = fSai*fPgm*fCpsi*fTipo*fIns;         // efficienza conversione catalizzatore
+  const rich = Math.max(0,1-s.lambda), lean=Math.max(0,s.lambda-1);
+  let CO  = REFOUT.CO  * conv * (1 + 22*rich + 3*lean);   // ricco: tanto CO
+  let HC  = REFOUT.HC  * conv * (1 + 9*rich + 4*lean);
+  let NOx = REFOUT.NOx * (1 + 14*lean - 7*rich) * Math.pow(100/s.pgm,0.15)*(s.tipo==='doppio'?0.95:1.05);
+  NOx=Math.max(NOx,3);
+  CO*=fColl*0.6+0.4; HC*=fColl*0.6+0.4;            // geometria: effetto piu debole su CO/HC
+
+  // ----- CONTROPRESSIONE (% OEM) -----
+  let BP = 100 * Math.pow(30/s.primdia,2) * Math.pow(s.cpsi/300,0.5) * Math.pow(76/s.catdia,1.6) * Math.pow(s.coll/800,0.2) * (s.tipo==='doppio'?1.06:1.0);
+
+  return {NMHC,CO,HC,NOx,temp:Math.round(T),bp:Math.round(BP)};
+}
+
+function esito(o){
+  const emis = o.NMHC<=100 && o.CO<=100 && o.HC<=100 && o.NOx<=100;
+  const temp = o.temp<=SOGLIA;
+  const bp = o.bp>=80 && o.bp<=120;
+  return {emis,temp,bp,full:emis&&temp};
+}
+
+// ---------- UI: controlli ----------
+const colE=p=>p>100?'var(--bad)':p>85?'var(--warn)':'var(--ok)';
+const colT=t=>t>T_AGE?'var(--bad)':t>SOGLIA?'var(--warn)':'var(--ok)';
+const colB=b=>(b<80||b>120)?'var(--bad)':(b<88||b>112)?'var(--warn)':'var(--ok)';
+
+const CONTROLS=[
+  {g:'📐 Geometria scarico',items:[
+    {k:'coll',type:'range',min:500,max:1000,step:10,unit:'mm',label:'Lunghezza collettori primari',hl:'Corti = cat caldo (ottimo NMHC, rischio temp). Lunghi = cat fresco.'},
+    {k:'primdia',type:'range',min:26,max:38,step:1,unit:'mm',label:'Diametro interno primario',hl:'Stretto = piu contropressione e calore. Largo = piu flusso.'},
+  ]},
+  {g:'🧱 Catalizzatore',items:[
+    {k:'catdia',type:'range',min:60,max:100,step:1,unit:'mm Ø',label:'Diametro catalizzatore',hl:'Grande = piu volume/massa = piu freddo e piu capacita, ma light-off piu lento.'},
+    {k:'cpsi',type:'range',min:200,max:600,step:50,unit:'cpsi',label:'Densità celle',hl:'Piu celle = piu superficie e light-off rapido, ma piu contropressione.'},
+    {k:'pgm',type:'range',min:50,max:160,step:10,unit:'g/ft³',label:'Carico metalli preziosi (PGM)',hl:'La leva chimica: piu carico = piu conversione NMHC SENZA scaldare. Costa di piu.'},
+    {k:'tipo',type:'seg',options:[['doppio','Doppio stadio'],['mono','Mono-stadio']],label:'Architettura catalizzatore',hl:'Doppio stadio: il pre-cat accende prima e abbatte l\'NMHC a freddo.'},
+    {k:'aged',type:'seg',options:[[false,'Nuovo'],[true,'Invecchiato']],label:'Stato (durabilità)',hl:'Verifica che passi anche dopo 30h di invecchiamento (35.000 km).'},
+  ]},
+  {g:'🔧 Calibrazione motore (spesso trascurata)',items:[
+    {k:'lambda',type:'range',min:0.93,max:1.06,step:0.01,unit:'λ',label:'Rapporto aria/benzina (Lambda)',hl:'Il TWC converte solo vicino a λ=1. Ricco (<1): piu CO/HC e piu caldo. Magro (>1): piu NOx.'},
+    {k:'sai',type:'seg',options:[[false,'No'],[true,'Sì']],label:'Iniezione aria secondaria (SAI)',hl:'Ossida CO/HC a freddo: forte taglio NMHC, ma aggiunge calore al cat.'},
+  ]},
+  {g:'🛡️ Gestione termica',items:[
+    {k:'insul',type:'seg',options:[['nessuno','Nessuna'],['doppia','Doppia parete'],['fasciatura','Fasciatura']],label:'Isolamento collettori',hl:'Trattiene calore: light-off piu rapido (meglio NMHC) ma alza il picco.'},
+  ]},
+];
+
+function buildControls(){
+  const root=document.getElementById('controls');
+  root.innerHTML=CONTROLS.map(grp=>`<div class="group"><h4>${grp.g}</h4>`+
+    grp.items.map(it=>{
+      if(it.type==='range'){
+        return `<div class="ctrl"><div class="top"><label>${it.label}</label><div class="v" id="v_${it.k}"></div></div>
+          <input type="range" class="${it.k==='lambda'||it.k==='coll'||it.k==='catdia'?'':''}" id="c_${it.k}" min="${it.min}" max="${it.max}" step="${it.step}">
+          <div class="hl">${it.hl}</div></div>`;
+      } else {
+        return `<div class="ctrl"><div class="top"><label>${it.label}</label></div>
+          <div class="seg" id="c_${it.k}">${it.options.map(o=>`<button data-v="${o[0]}">${o[1]}</button>`).join('')}</div>
+          <div class="hl">${it.hl}</div></div>`;
+      }
+    }).join('')+`</div>`).join('');
+  // wire
+  CONTROLS.forEach(grp=>grp.items.forEach(it=>{
+    const el=document.getElementById('c_'+it.k);
+    if(it.type==='range'){el.oninput=()=>{S[it.k]=parseFloat(el.value);render();};}
+    else{el.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      let val=b.dataset.v; if(val==='true')val=true; else if(val==='false')val=false;
+      S[it.k]=val; render();});}
+  }));
+}
+function syncControls(){
+  CONTROLS.forEach(grp=>grp.items.forEach(it=>{
+    const el=document.getElementById('c_'+it.k);
+    if(it.type==='range'){el.value=S[it.k];
+      const vu=document.getElementById('v_'+it.k);
+      let disp=S[it.k]; if(it.k==='lambda')disp=S[it.k].toFixed(2);
+      vu.innerHTML=`${disp} <small>${it.unit}</small>`;}
+    else{el.querySelectorAll('button').forEach(b=>{
+      let val=b.dataset.v; if(val==='true')val=true; else if(val==='false')val=false;
+      b.classList.toggle('on',val===S[it.k]);});}
+  }));
+}
+
+// ---------- RENDER ----------
+function render(){
+  syncControls();
+  const o=simula(S), e=esito(o);
+  // verdict
+  const vd=document.getElementById('verdict');
+  if(e.full){vd.className='verdict ok';vd.innerHTML=`✓ CONFIGURAZIONE OMOLOGABILE<small>passa emissioni e temperatura${e.bp?'':' · ⚠ contropressione fuori range OEM'}</small>`;}
+  else{let why=[]; if(!e.emis)why.push('emissioni'); if(!e.temp)why.push('temperatura');
+    vd.className='verdict bad';vd.innerHTML=`✗ NON OMOLOGABILE<small>fuori limite: ${why.join(' + ')}${!e.bp?' · contropressione':''}</small>`;}
+  // gauges
+  setGauge('Nmhc',o.NMHC.toFixed(0)+'%','m',Math.min(o.NMHC,140)/140*100,colE(o.NMHC));
+  document.getElementById('gNmhcS').textContent=(o.NMHC*0.68).toFixed(1)+' mg/km · limite 68';
+  const tw=Math.min(Math.max((o.temp-650)/(880-650),0),1)*100;
+  document.getElementById('gTemp').textContent=o.temp+'°C';
+  document.getElementById('gTemp').style.color=colT(o.temp);
+  const mt=document.getElementById('mTemp');mt.style.width=tw+'%';mt.style.background=colT(o.temp);
+  document.getElementById('limTemp').style.left=((SOGLIA-650)/(880-650)*100)+'%';
+  document.getElementById('gTempS').textContent='1° brick · soglia '+SOGLIA+'°C · invecch. '+T_AGE+'°C';
+  // bp
+  document.getElementById('gBp').textContent=o.bp+'%';
+  document.getElementById('gBp').style.color=colB(o.bp);
+  const mb=document.getElementById('mBp');mb.style.width=Math.min(o.bp,150)/150*100+'%';mb.style.background=colB(o.bp);
+  // polls
+  const P=[['CO',o.CO],['HC',o.HC],['NMHC',o.NMHC],['NOx',o.NOx]];
+  document.getElementById('polls').innerHTML=P.map(([k,v])=>
+    `<div class="pb"><span>${k}</span><div class="track"><i style="width:${Math.min(v,140)/140*100}%;background:${colE(v)}"></i><div class="lim" style="left:${100/140*100}%"></div></div><span class="pv">${v.toFixed(0)}%</span></div>`).join('');
+  document.getElementById('pillStatus').textContent = e.full?'config omologabile ✓':'cerca la finestra…';
+  renderScatter(o,e);
+  renderSensitivity(o);
+}
+function setGauge(id,val,mpref,w,c){
+  document.getElementById('g'+id).textContent=val;
+  document.getElementById('g'+id).style.color=c;
+  const m=document.getElementById('m'+id);m.style.width=w+'%';m.style.background=c;
+}
+
+// ---------- SCATTER ----------
+function renderScatter(o,e){
+  const W=960,H=360,m={l:58,r:26,t:22,b:46};
+  const xMin=40,xMax=150,yMin=650,yMax=870;
+  const X=v=>m.l+(Math.min(Math.max(v,xMin),xMax)-xMin)/(xMax-xMin)*(W-m.l-m.r);
+  const Y=v=>H-m.b-(Math.min(Math.max(v,yMin),yMax)-yMin)/(yMax-yMin)*(H-m.t-m.b);
+  let s=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">`;
+  s+=`<rect x="${X(xMin)}" y="${Y(SOGLIA)}" width="${X(100)-X(xMin)}" height="${Y(yMin)-Y(SOGLIA)}" fill="rgba(46,194,126,.10)"/>`;
+  for(let v=50;v<=140;v+=10){s+=`<line x1="${X(v)}" y1="${m.t}" x2="${X(v)}" y2="${H-m.b}" stroke="#222c3a"/><text x="${X(v)}" y="${H-m.b+17}" fill="#8b98a8" font-size="10" text-anchor="middle">${v}%</text>`;}
+  for(let v=700;v<=850;v+=50){s+=`<line x1="${m.l}" y1="${Y(v)}" x2="${W-m.r}" y2="${Y(v)}" stroke="#222c3a"/><text x="${m.l-7}" y="${Y(v)+4}" fill="#8b98a8" font-size="10" text-anchor="end">${v}°</text>`;}
+  s+=`<line x1="${X(100)}" y1="${m.t}" x2="${X(100)}" y2="${H-m.b}" stroke="var(--bad)" stroke-width="2" stroke-dasharray="6 4"/><text x="${X(100)+5}" y="${m.t+13}" fill="var(--bad)" font-size="10">NMHC 100%</text>`;
+  s+=`<line x1="${m.l}" y1="${Y(T_AGE)}" x2="${W-m.r}" y2="${Y(T_AGE)}" stroke="var(--bad)" stroke-width="2" stroke-dasharray="6 4"/><text x="${W-m.r-4}" y="${Y(T_AGE)-5}" fill="var(--bad)" font-size="10" text-anchor="end">invecchiamento 835°C</text>`;
+  s+=`<line x1="${m.l}" y1="${Y(SOGLIA)}" x2="${W-m.r}" y2="${Y(SOGLIA)}" stroke="var(--warn)" stroke-width="1.4" stroke-dasharray="3 3"/><text x="${W-m.r-4}" y="${Y(SOGLIA)-4}" fill="var(--warn)" font-size="9.5" text-anchor="end">soglia sicura ${SOGLIA}°C</text>`;
+  (REAL.prove||[]).forEach(p=>{if(!p.temp)return;
+    const x=X(p.perc_limite.NMHC),y=Y(p.temp.cat1_1brick),pass=p.passa;
+    const st=p.temp.fonte==='stimata'?'stroke-dasharray="2 2"':'';
+    s+=`<circle cx="${x}" cy="${y}" r="7" fill="${pass?'var(--ok)':'var(--bad)'}" stroke="#fff" stroke-width="1.1" ${st} opacity=".55"/>`;
+    s+=`<text x="${x}" y="${y-10}" fill="#8b98a8" font-size="9" text-anchor="middle">${p.codice.replace('Y44-','')}</text>`;});
+  // punto live
+  const lx=X(o.NMHC),ly=Y(o.temp);
+  s+=`<line x1="${lx}" y1="${m.t}" x2="${lx}" y2="${H-m.b}" stroke="var(--accent2)" stroke-width="1" opacity=".35"/>`;
+  s+=`<line x1="${m.l}" y1="${ly}" x2="${W-m.r}" y2="${ly}" stroke="var(--accent2)" stroke-width="1" opacity=".35"/>`;
+  s+=`<rect x="${lx-8}" y="${ly-8}" width="16" height="16" transform="rotate(45 ${lx} ${ly})" fill="${e.full?'var(--ok)':'var(--accent2)'}" stroke="#fff" stroke-width="2"/>`;
+  s+=`<text x="${lx}" y="${ly-16}" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">LA TUA CONFIG</text>`;
+  s+=`<text x="${W/2}" y="${H-6}" fill="#8b98a8" font-size="11" text-anchor="middle">NMHC (% limite) → emissioni</text>`;
+  s+=`<text x="14" y="${H/2}" fill="#8b98a8" font-size="11" text-anchor="middle" transform="rotate(-90 14 ${H/2})">Temp. cat. 1° brick (°C) →</text></svg>`;
+  document.getElementById('scatter').innerHTML=s;
+  document.getElementById('legend').innerHTML=
+    `<span><i style="background:var(--accent2)"></i>◆ La tua simulazione (live)</span>`+
+    `<span><i style="background:var(--ok)"></i>Prova reale omologabile</span>`+
+    `<span><i style="background:var(--bad)"></i>Prova reale bocciata</span>`+
+    `<span style="color:var(--ok)">▢ Finestra di omologazione</span>`;
+}
+
+// ---------- SENSIBILITA ----------
+const SENS=[
+  {k:'coll',label:'Collettori → max (1000mm)',set:s=>s.coll=1000},
+  {k:'pgm',label:'PGM → max (160 g/ft³)',set:s=>s.pgm=160},
+  {k:'cpsi',label:'Celle → max (600 cpsi)',set:s=>s.cpsi=600},
+  {k:'catdia',label:'Ø cat → max (100mm)',set:s=>s.catdia=100},
+  {k:'sai',label:'Aria secondaria → ON',set:s=>s.sai=true},
+  {k:'tipo',label:'Doppio stadio',set:s=>s.tipo='doppio'},
+  {k:'insul',label:'Fasciatura collettori',set:s=>s.insul='fasciatura'},
+  {k:'lambda',label:'Lambda → 1.00 (stech.)',set:s=>s.lambda=1.00},
+];
+function renderSensitivity(base){
+  const cur=simula(S);
+  const rows=SENS.map(it=>{
+    const s2={...S}; it.set(s2); const o2=simula(s2);
+    return {label:it.label,dN:o2.NMHC-cur.NMHC,dT:o2.temp-cur.temp};
+  });
+  const maxN=Math.max(8,...rows.map(r=>Math.abs(r.dN)));
+  const maxT=Math.max(8,...rows.map(r=>Math.abs(r.dT)));
+  const bar=(d,max,goodNeg,unit)=>{
+    const w=Math.abs(d)/max*50; const pos=d>=0;
+    const good = goodNeg? d<0 : d<0;
+    const c=Math.abs(d)<0.5?'var(--muted)':(good?'var(--ok)':'var(--bad)');
+    const left=pos?50:50-w;
+    return `<div class="sbar"><div class="mid"></div><i style="left:${left}%;width:${w}%;background:${c}"></i>
+      <span style="position:absolute;${pos?'left:52%':'right:52%'};top:0;font-size:.74rem;line-height:20px;color:${c}">${d>=0?'+':''}${d.toFixed(unit==='°'?0:1)}${unit}</span></div>`;
+  };
+  document.getElementById('sens').innerHTML=
+    `<div class="srow" style="color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.4px"><div>Leva</div><div style="text-align:center">Δ NMHC (← meglio)</div><div style="text-align:center">Δ Temp (← meglio)</div></div>`+
+    rows.map(r=>`<div class="srow"><div class="nm">${r.label}</div>${bar(r.dN,maxN,true,'%')}${bar(r.dT,maxT,true,'°')}</div>`).join('');
+  // consiglio
+  const winners=rows.filter(r=>r.dN<-1 && r.dT<5).sort((a,b)=>a.dN-b.dN);
+  let adv;
+  if(winners.length) adv=`💡 <b>Leve migliori sulla config attuale:</b> ${winners.slice(0,3).map(w=>w.label.split('→')[0].trim()).join(', ')} — abbassano l'NMHC senza scaldare il catalizzatore. Sono le strade da provare al banco per primo.`;
+  else adv=`💡 La configurazione attuale è già vicina all'ottimo su queste leve, oppure ogni miglioramento emissivo costa temperatura. Valuta di aumentare il <b>carico PGM</b> (migliora la conversione senza scaldare) o agire sulla geometria.`;
+  document.getElementById('advice').innerHTML=adv;
+}
+
+// ---------- OTTIMO (ricerca a griglia) ----------
+function trovaOttimo(){
+  let best=null;
+  const colls=[600,700,800,900],dias=[76,84,93],pgms=[100,130,160],cpsis=[300,400,500],lams=[0.99,1.00,1.01],sais=[false,true],insuls=['nessuno','doppia'];
+  for(const coll of colls)for(const catdia of dias)for(const pgm of pgms)for(const cpsi of cpsis)
+   for(const lambda of lams)for(const sai of sais)for(const insul of insuls){
+    const s={...REF,coll,catdia,pgm,cpsi,lambda,sai,insul,tipo:'doppio'};
+    const o=simula(s),e=esito(o);
+    if(e.full&&e.bp){
+      // punteggio = margine combinato (piu lontano dai limiti) - penalita costo PGM
+      const score=(100-o.NMHC)+(SOGLIA-o.temp)*0.5 - (pgm-100)*0.15 - (sai?3:0);
+      if(!best||score>best.score)best={s,o,score};
+    }
+  }
+  return best;
+}
+
+// ---------- PRESET ----------
+function setS(obj){S={...REF,...obj};render();window.scrollTo({top:document.getElementById('sim').offsetTop-10,behavior:'smooth'});}
+document.getElementById('presetH').onclick=()=>setS({});
+document.getElementById('presetF').onclick=()=>setS({coll:590,tipo:'doppio'});
+document.getElementById('resetBtn').onclick=()=>setS({});
+document.getElementById('presetOpt').onclick=()=>{const b=trovaOttimo();
+  if(b){setS(b.s);document.getElementById('pillStatus').textContent='ottimo suggerito caricato';}};
+
+// ---------- CONCORRENZA ----------
+const COMP=[
+  {n:'Akrapovič',pos:'Nel silenziatore (a valle)',cal:'Plug-and-play, no rimappa ECU',str:'Cat lontano dalla testa → temperatura facile da gestire, ma light-off lento',cls:'ok'},
+  {n:'Arrow / LeoVince',pos:'Nel raccordo/linkpipe',cal:'Cat omologato modulare',str:'Cat intermedio, compromesso geometrico standard',cls:'ok'},
+  {n:'MIVV / Spark',pos:'Nel silenziatore',cal:'Plug-and-play',str:'Focus su rumore e peso, cat a valle conservativo',cls:'ok'},
+  {n:'OEM Yamaha',pos:'Close-coupled (vicino testa)',cal:'Doppia lambda + aria secondaria + ECU dedicata',str:'Light-off rapidissimo, gestione termica integrata: il riferimento da battere',cls:'warn'},
+  {n:'SC Project (voi)',pos:'Collettori medi 800mm + doppio stadio',cal:'Calibrazione dedicata possibile',str:'Performance + omologazione: serve bilanciare emissioni/temperatura con PGM e geometria',cls:'sc'},
+];
+function renderComp(){
+  document.getElementById('compTbl').innerHTML=
+    `<thead><tr><th>Produttore</th><th>Posizione catalizzatore</th><th>Calibrazione</th><th>Strategia / implicazione termica</th></tr></thead><tbody>`+
+    COMP.map(c=>`<tr><td><span class="chip ${c.cls}">${c.n}</span></td><td>${c.pos}</td><td>${c.cal}</td><td style="color:var(--muted)">${c.str}</td></tr>`).join('')+`</tbody>`;
+  document.getElementById('compNote').innerHTML=
+    `🎯 <b>Lettura strategica:</b> i grandi marchi aftermarket mettono il catalizzatore <b>nel silenziatore (a valle)</b> per evitare il problema termico — ma pagano in light-off e quindi in margine NMHC, accettabile perché spesso partono da moto con OBD generoso. L'OEM invece usa <b>cat close-coupled + aria secondaria + doppia lambda</b> per vincere a freddo. La strada di SC — collettori medi + doppio stadio vicino — è più ambiziosa: dà più carattere e prestazioni, ma <b>vive o muore sul margine termico</b>. Le leve vincenti per voi: <b>carico PGM più alto</b> (conversione senza scaldare), <b>aria secondaria a freddo</b>, e l'eventuale spostamento fine della posizione catalizzatore.`;
+}
+
+// init
+buildControls();renderComp();render();
+</script>
+</body>
+</html>
