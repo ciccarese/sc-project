@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T-MAX 560 · Simulatore Omologazione Euro 5+</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#141a24; --panel2:#1b232f; --panel3:#222c3a; --line:#2a3340;
+    --txt:#e9eef5; --muted:#8b98a8; --accent:#3da9fc; --accent2:#7c5cff;
+    --ok:#2ec27e; --warn:#f5a524; --bad:#f4516c; --temp:#ff7a45; --emis:#3da9fc;
+    --radius:14px; --font:'Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,rgba(124,92,255,.10),transparent),var(--bg);color:var(--txt);font-family:var(--font);line-height:1.55}
+  .wrap{max-width:1240px;margin:0 auto;padding:26px 22px 90px}
+  a{color:var(--accent);text-decoration:none}
+  /* HERO */
+  .hero{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .hero h1{font-size:1.7rem;margin:0;font-weight:700;letter-spacing:.2px}
+  .hero .sub{color:var(--muted);font-size:.95rem;margin-top:6px;max-width:640px}
+  .pill{display:inline-flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:7px 15px;font-size:.82rem;color:var(--muted)}
+  nav.toc{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px}
+  nav.toc a{background:var(--panel2);border:1px solid var(--line);padding:7px 13px;border-radius:9px;font-size:.82rem;color:var(--txt)}
+  nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-top:22px}
+  section h2{font-size:1.18rem;margin:0 0 4px;font-weight:660}
+  section .hint{color:var(--muted);font-size:.88rem;margin:0 0 16px;max-width:860px}
+  /* LOGIC cards */
+  .logic{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .lcard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .lcard .ic{font-size:1.5rem}
+  .lcard h3{margin:8px 0 6px;font-size:.98rem}
+  .lcard p{margin:0;font-size:.85rem;color:var(--muted)}
+  .lcard b{color:var(--txt)}
+  /* SIMULATOR */
+  .sim{display:grid;grid-template-columns:1.05fr 1fr;gap:22px}
+  @media(max-width:920px){.sim{grid-template-columns:1fr}}
+  .controls{display:flex;flex-direction:column;gap:18px}
+  .group{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .group h4{margin:0 0 14px;font-size:.82rem;text-transform:uppercase;letter-spacing:.7px;color:var(--accent);display:flex;align-items:center;gap:8px}
+  .ctrl{margin-bottom:15px}
+  .ctrl:last-child{margin-bottom:0}
+  .ctrl .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .ctrl label{font-size:.86rem;font-weight:500}
+  .ctrl .v{font-variant-numeric:tabular-nums;font-weight:680;color:var(--txt);font-size:.9rem}
+  .ctrl .v small{color:var(--muted);font-weight:400}
+  input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:6px;background:var(--panel3);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:3px solid #0b0e14;box-shadow:0 0 0 1px var(--accent)}
+  input[type=range].t::-webkit-slider-thumb{background:var(--temp);box-shadow:0 0 0 1px var(--temp)}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:64px;background:var(--panel3);border:1px solid var(--line);color:var(--muted);padding:8px 6px;border-radius:8px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:.15s}
+  .seg button.on{background:rgba(61,169,252,.16);border-color:var(--accent);color:var(--accent);font-weight:600}
+  .hl{font-size:.72rem;color:var(--muted);margin-top:5px;font-style:italic}
+  /* RESULTS */
+  .results{position:sticky;top:14px;align-self:start;display:flex;flex-direction:column;gap:16px}
+  .verdict{border-radius:14px;padding:18px 20px;text-align:center;font-weight:700;font-size:1.15rem;border:1px solid}
+  .verdict.ok{background:linear-gradient(180deg,rgba(46,194,126,.18),rgba(46,194,126,.06));color:var(--ok);border-color:rgba(46,194,126,.4)}
+  .verdict.bad{background:linear-gradient(180deg,rgba(244,81,108,.18),rgba(244,81,108,.06));color:var(--bad);border-color:rgba(244,81,108,.4)}
+  .verdict small{display:block;font-weight:500;font-size:.8rem;margin-top:5px;opacity:.85}
+  .prob{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .probMain{text-align:center;padding-right:16px;border-right:1px solid var(--line)}
+  .probNum{font-size:2.5rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+  .probLbl{font-size:.74rem;color:var(--muted);margin-top:6px;line-height:1.3}
+  .relBox{min-width:0}
+  .relTop{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;color:var(--muted)}
+  .relTop b{font-size:.92rem}
+  .relTxt{font-size:.76rem;color:var(--muted);margin-top:7px;line-height:1.4}
+  .gauges{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .gauge{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .gauge .gl{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .gauge .gv{font-size:1.5rem;font-weight:720;margin-top:2px;font-variant-numeric:tabular-nums}
+  .gauge .gs{font-size:.76rem;color:var(--muted)}
+  .meter{height:7px;border-radius:6px;background:var(--panel3);margin-top:9px;position:relative;overflow:hidden}
+  .meter > i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;transition:width .35s,background .35s}
+  .meter .lim{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;opacity:.65}
+  .pollbars{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:15px}
+  .pb{display:grid;grid-template-columns:42px 1fr 86px;align-items:center;gap:10px;margin-bottom:9px;font-size:.84rem}
+  .pb:last-child{margin-bottom:0}
+  .pb .track{height:16px;background:var(--panel3);border-radius:5px;position:relative;overflow:hidden}
+  .pb .track > i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;transition:.35s}
+  .pb .track .lim{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.6}
+  .pb .pv{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+  /* scatter */
+  .scatter{position:relative;width:100%;height:360px;background:var(--panel2);border-radius:12px;border:1px solid var(--line)}
+  .scatter svg{width:100%;height:100%}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:.8rem;color:var(--muted)}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  /* sensitivity */
+  .sens{display:flex;flex-direction:column;gap:8px}
+  .srow{display:grid;grid-template-columns:200px 1fr 1fr;align-items:center;gap:10px;font-size:.84rem}
+  .srow .nm{color:var(--txt)}
+  .sbar{height:20px;background:var(--panel2);border-radius:5px;position:relative;overflow:hidden;border:1px solid var(--line)}
+  .sbar > i{position:absolute;top:0;bottom:0}
+  .sbar .mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted);opacity:.5}
+  /* competitor */
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th,td{text-align:left;padding:10px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-size:.74rem;text-transform:uppercase;letter-spacing:.4px}
+  /* come funziona */
+  .flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}
+  .fstep{flex:1;min-width:180px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .fstep .fn{width:26px;height:26px;border-radius:50%;background:var(--accent2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem}
+  .fstep h4{margin:9px 0 6px;font-size:.92rem}
+  .fstep p{margin:0;font-size:.82rem;color:var(--muted)}
+  .farr{display:flex;align-items:center;color:var(--accent2);font-size:1.5rem;font-weight:700}
+  @media(max-width:760px){.farr{display:none}}
+  .specbox{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
+  .sptitle{font-size:.86rem;font-weight:600;margin-bottom:12px}
+  .spgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .spgrid div{display:flex;flex-direction:column;gap:2px}
+  .spgrid span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .spgrid b{font-size:.9rem}
+  /* curva di risposta */
+  .curveWrap{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .curve{position:relative;width:100%;height:320px;background:var(--panel2);border-radius:12px;border:1px solid var(--line)}
+  .curve svg{width:100%;height:100%}
+  .compgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:14px}
+  .ccard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .ccard.sc{border-color:var(--accent2);background:linear-gradient(180deg,rgba(124,92,255,.12),rgba(124,92,255,.03))}
+  .ccard .nm{font-weight:700;font-size:1rem}
+  .ccard .row{font-size:.82rem;color:var(--muted)}
+  .ccard .row b{color:var(--txt);font-weight:600}
+  .ccard .lesson{margin-top:auto;font-size:.82rem;background:rgba(46,194,126,.1);border:1px solid rgba(46,194,126,.28);border-radius:8px;padding:8px 10px;color:#9be3c0}
+  .ccard.sc .lesson{background:rgba(124,92,255,.14);border-color:rgba(124,92,255,.34);color:#c3b2ff}
+  .chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.74rem;font-weight:600}
+  .chip.ok{background:rgba(46,194,126,.15);color:var(--ok)}
+  .chip.warn{background:rgba(245,165,36,.15);color:var(--warn)}
+  .chip.sc{background:rgba(124,92,255,.18);color:#a991ff}
+  .note{background:rgba(61,169,252,.08);border:1px solid rgba(61,169,252,.28);border-radius:12px;padding:14px 16px;font-size:.85rem;margin-top:8px}
+  .foot{color:var(--muted);font-size:.78rem;margin-top:30px;text-align:center;line-height:1.7}
+  code{background:var(--panel2);padding:1px 6px;border-radius:4px}
+  .btnbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .btn{background:var(--panel3);border:1px solid var(--line);color:var(--txt);padding:9px 14px;border-radius:9px;cursor:pointer;font-size:.84rem;font-family:inherit}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:rgba(124,92,255,.18);border-color:var(--accent2);color:#bca9ff;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <h1>🛠️ Simulatore Omologazione · Yamaha T-MAX 560 Euro 5+</h1>
+      <div class="sub">Piattaforma di simulazione tecnica: modifica ogni parametro e anticipa <b style="color:var(--emis)">emissioni a fine vita</b> (il vero vincolo di omologazione), <b style="color:var(--temp)">temperatura catalizzatore</b> e <b>contropressione</b> prima di andare al banco. Modello fisico ancorato alle 15 prove reali, inclusa la sessione di omologazione ufficiale.</div>
+    </div>
+    <div class="pill">⚙️ <span id="pillStatus">simulazione live</span></div>
+  </div>
+
+  <nav class="toc">
+    <a href="#logica">Perché funziona così</a>
+    <a href="#comefunziona">Come funziona</a>
+    <a href="#sim">Simulatore</a>
+    <a href="#mappa">Mappa trade-off</a>
+    <a href="#curva">Curva di risposta</a>
+    <a href="#leve">Quali leve tirare</a>
+    <a href="#concorrenza">Concorrenza</a>
+    <a href="#metodo">Metodo & limiti</a>
+  </nav>
+
+  <!-- LOGICA -->
+  <section id="logica">
+    <h2>Perché l'omologazione è stata bloccata: la durabilità del catalizzatore</h2>
+    <p class="hint">A catalizzatore <b>nuovo</b> il T-MAX passava (NMHC 73%, NOx 43%). Ma l'omologazione richiede di passare <b>a fine vita</b>, cioè dopo l'invecchiamento equivalente a 35.000 km. Ed è lì che è caduta: il catalizzatore invecchiato <b>non riesce più a convertire il NOx</b>.</p>
+    <div class="logic">
+      <div class="lcard"><div class="ic">💥</div><h3>Il NOx esplode dopo l'invecchiamento</h3><p>Nei cicli ufficiali post-invecchiamento (pc1/pc2/pc3) il <b>NOx è salito dal 43% al 122-185% del limite</b> e l'NMHC ha sforato (fino al 114%). Il catalizzatore invecchiato perde la capacità di ridurre il NOx: è questa la causa del mancato passaggio.</p></div>
+      <div class="lcard"><div class="ic">🌡️</div><h3>La temperatura invece era OK</h3><p>La config finale Y44-H 800mm gira a <b>738°C misurati</b> sul 1° brick — ben sotto i 785°C di soglia e gli 835°C di invecchiamento. Il problema <b>non era termico</b>: era la durabilità chimica del catalizzatore.</p></div>
+      <div class="lcard"><div class="ic">⏳</div><h3>Cosa significa "fine vita"</h3><p>Il catalizzatore viene invecchiato artificialmente (Catagen, 30.5h a 835°C ≈ 35.000 km) per simulare l'usura. L'omologazione si fa sul catalizzatore <b>invecchiato</b>: i valori a nuovo non bastano se a fine vita si sfora.</p></div>
+      <div class="lcard"><div class="ic">🔓</div><h3>Come si risolve</h3><p>Aumentare la <b>riserva di conversione</b> così che, anche degradata, resti sotto i limiti: più <b>carico PGM</b> (soprattutto <b>Rodio</b> per il NOx), catalizzatore di <b>volume maggiore</b>, e una <b>calibrazione che tiene basso il NOx a nuovo</b> (leggermente ricca). È quello che questo simulatore ti aiuta a trovare.</p></div>
+    </div>
+  </section>
+
+  <!-- COME FUNZIONA -->
+  <section id="comefunziona">
+    <h2>⚙️ Come funziona il simulatore (e come prevede i risultati)</h2>
+    <p class="hint">Il simulatore non "indovina": calcola. Ecco la catena, passo per passo, da quando muovi uno slider a quando leggi il verdetto.</p>
+    <div class="flow" id="flow">
+      <div class="fstep"><div class="fn">1</div><h4>Imposti i parametri</h4><p>Geometria scarico, catalizzatore (volume, celle, PGM, <b>Rodio</b>), calibrazione (lambda, aria secondaria), gestione termica. Sono le stesse cose che cambieresti fisicamente in officina.</p></div>
+      <div class="farr">→</div>
+      <div class="fstep"><div class="fn">2</div><h4>Modello fisico a cat NUOVO</h4><p>Ogni parametro applica un <b>fattore fisico</b> calibrato sulle prove vere (es. collettori più lunghi → cat più freddo → NMHC peggiore). Esce il risultato a catalizzatore nuovo: CO, HC, NMHC, NOx, temperatura, contropressione.</p></div>
+      <div class="farr">→</div>
+      <div class="fstep"><div class="fn">3</div><h4>Invecchiamento (fine vita)</h4><p>Si applica il <b>deterioramento</b> misurato nei cicli ufficiali pc1/pc2/pc3: il NOx peggiora molto (poco Rodio), l'NMHC un po'. Più Rodio/volume = meno degrado. Questo è il valore che conta per l'omologazione.</p></div>
+      <div class="farr">→</div>
+      <div class="fstep"><div class="fn">4</div><h4>Verdetto + probabilità</h4><p>Confronta i valori a fine vita con i limiti. Calcola la <b>probabilità di successo</b> (margine + incertezza) e l'<b>affidabilità</b> (quanto ti stai allontanando dai dati reali). Verde solo se passa davvero.</p></div>
+    </div>
+    <div class="note" style="margin-top:16px">
+      🧠 <b>Da dove vengono i numeri:</b> non è una rete neurale. Ho letto le <b>15 prove reali</b> (sviluppo + omologazione, cat nuovo e invecchiato) e per ogni parametro ho ricavato <b>quanto sposta ciascun risultato</b>, scrivendo formule fisiche e tarandole finché il modello riproduce le prove vere. I parametri mai variati nei test (PGM, Rodio, lambda, aria secondaria) sono <b>estrapolazioni fisiche</b>: per questo l'indicatore di <b>affidabilità</b> cala quando li usi.
+    </div>
+    <div class="specbox" id="specbox">
+      <div class="sptitle">📋 Scheda catalizzatore attuale (dati reali di omologazione)</div>
+      <div class="spgrid">
+        <div><span>Configurazione</span><b>2 stadi · Three-Way</b></div>
+        <div><span>Substrato</span><b>Honeycomb acciaio (metallico)</b></div>
+        <div><span>Densità celle</span><b>300 cells/in²</b></div>
+        <div><span>Carico metalli preziosi</span><b>0,75 g totali</b></div>
+        <div><span>Rapporto Pt:Rh</span><b style="color:var(--bad)">10:3 (poco Rodio)</b></div>
+        <div><span>Conseguenza</span><b style="color:var(--bad)">NOx crolla a fine vita</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIMULATOR -->
+  <section id="sim">
+    <h2>Simulatore configurazione</h2>
+    <p class="hint">Muovi gli slider e i selettori: i risultati si aggiornano in tempo reale. Parti dalla configurazione di omologazione (Y44-H) e cerca margine su tutti e tre i fronti.</p>
+    <div class="btnbar" style="margin-bottom:16px">
+      <button class="btn primary" id="presetH">⭐ Config omologazione (Y44-H)</button>
+      <button class="btn" id="presetF">Collettori corti (Y44-F)</button>
+      <button class="btn" id="presetOpt">🚀 Ottimo suggerito</button>
+      <button class="btn" id="resetBtn">↺ Reset</button>
+    </div>
+    <div class="sim">
+      <div class="controls" id="controls"><!-- generato --></div>
+      <div class="results">
+        <div class="verdict" id="verdict">—</div>
+        <div class="prob" id="probBox">
+          <div class="probMain">
+            <div class="probNum" id="probNum">—</div>
+            <div class="probLbl">probabilità stimata di<br><b>superare l'omologazione</b></div>
+          </div>
+          <div class="relBox">
+            <div class="relTop"><span>Affidabilità della stima</span><b id="relVal">—</b></div>
+            <div class="meter"><i id="relBar"></i></div>
+            <div class="relTxt" id="relTxt"></div>
+          </div>
+        </div>
+        <div class="gauges">
+          <div class="gauge"><div class="gl">NMHC (emissioni)</div><div class="gv" id="gNmhc">—</div><div class="gs" id="gNmhcS">% del limite 68 mg/km</div><div class="meter"><i id="mNmhc"></i><div class="lim" style="left:100%"></div></div></div>
+          <div class="gauge"><div class="gl">Temp. catalizzatore</div><div class="gv" id="gTemp">—</div><div class="gs" id="gTempS">1° brick · soglia 785°C</div><div class="meter"><i id="mTemp"></i><div class="lim" id="limTemp"></div></div></div>
+        </div>
+        <div class="pollbars">
+          <div style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px" id="pollsTitle">Inquinanti (% del limite)</div>
+          <div id="polls"></div>
+        </div>
+        <div class="pollbars" style="border-color:rgba(244,81,108,.35)">
+          <div style="font-size:.78rem;color:var(--bad);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🔻 Durabilità — emissioni a fine vita (post-invecchiamento 35.000 km)</div>
+          <div style="font-size:.74rem;color:var(--muted);margin-bottom:10px">È il vincolo che ha bloccato l'omologazione: l'omologazione richiede che si passi DOPO l'invecchiamento. Nuovo → invecchiato.</div>
+          <div id="durab"></div>
+        </div>
+        <div class="gauge"><div class="gl">Contropressione vs OEM</div><div class="gv" id="gBp">—</div><div class="gs">deve restare ≈ OEM (±15%) per l'omologazione rumore/flusso</div><div class="meter"><i id="mBp"></i><div class="lim" style="left:66.6%"></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAPPA -->
+  <section id="mappa">
+    <h2>Mappa trade-off: dove cade la tua configurazione</h2>
+    <p class="hint">Il punto viola <b>◆ si muove live</b> mentre simuli. I cerchi sono le prove reali. La <b style="color:var(--ok)">zona verde</b> in basso a sinistra è la finestra omologabile: NMHC &lt; 100% e temperatura sotto la soglia di sicurezza.</p>
+    <div class="scatter" id="scatter"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <!-- CURVA DI RISPOSTA -->
+  <section id="curva">
+    <h2>📈 Come cambia il risultato muovendo uno slider</h2>
+    <p class="hint">Scegli un parametro: il grafico mostra come variano le <b>emissioni a fine vita</b> (il vincolo di omologazione) lungo tutto il range di quel parametro, tenendo fermi gli altri. La <b>linea tratteggiata bianca</b> è la tua posizione attuale; la <b>linea rossa</b> è il limite (100%). Dove la curva scende sotto la rossa, passi.</p>
+    <div class="curveWrap">
+      <label class="fld" style="margin:0;min-width:230px"><span>Parametro sull'asse X</span>
+        <select id="curveSel"></select></label>
+      <div style="font-size:.82rem;color:var(--muted)">Le altre impostazioni restano quelle del simulatore qui sopra.</div>
+    </div>
+    <div class="curve" id="curve"></div>
+    <div class="legend" id="curveLegend"></div>
+  </section>
+
+  <!-- LEVE -->
+  <section id="leve">
+    <h2>Quali leve tirare adesso</h2>
+    <p class="hint">Sensibilità sulla config attuale: di quanto cambia il <b style="color:var(--temp)">NOx a fine vita</b> (il vincolo che vi ha bloccato) e l'<b style="color:var(--emis)">NMHC a fine vita</b> se spingi ciascun parametro. Barra a <b>sinistra = migliora</b>. Cerca le leve che abbassano il NOx post-invecchiamento.</p>
+    <div class="sens" id="sens"></div>
+    <div class="note" id="advice"></div>
+  </section>
+
+  <!-- CONCORRENZA -->
+  <section id="concorrenza" style="border-color:rgba(124,92,255,.4)">
+    <h2>🏁 Come risolve la concorrenza il problema della durabilità</h2>
+    <p class="hint">Quadro delle strategie note dei principali produttori di scarichi omologati Euro 5/5+ e dell'OEM. I dati interni dei loro catalizzatori non sono pubblici: sono scelte progettuali documentate o inferite dal mercato. Servono a capire <b>dove vi posizionate e cosa conviene copiare</b>.</p>
+    <div class="compgrid" id="compGrid"></div>
+    <div class="note" id="compNote" style="margin-top:16px"></div>
+  </section>
+
+  <!-- METODO -->
+  <section id="metodo">
+    <h2>Come è stato costruito (in parole semplici) e quanto fidarsi</h2>
+    <p class="hint"><b>Non è una "AI" addestrata</b> (con 15 prove sarebbe impossibile). Ho letto le 15 prove reali osservando <b>quale parametro muove quale risultato</b> (es. cat nuovo→invecchiato = NOx ×3.3), ho scritto ogni effetto come <b>formula fisica</b> e ho <b>calibrato i numeri finché il modello riproduce le prove vere</b>. La <b>"Affidabilità"</b> mostrata nel simulatore cala quando usi parametri mai variati nei test reali (PGM, lambda, aria secondaria): lì il modello <b>estrapola dalla fisica</b>, non dai vostri dati. La <b>"Probabilità di successo"</b> unisce il margine dai limiti con questa incertezza: serve a decidere <b>cosa vale la pena testare al banco</b>, per non sprecare prove.</p>
+    <div class="logic">
+      <div class="lcard"><div class="ic">🔢</div><h3>Modello "grey-box"</h3><p>Non è una scatola nera né un'AI: ogni parametro ha un effetto <b>fisicamente documentato</b>, con coefficienti <b>calibrati per riprodurre le 15 prove reali</b> (sviluppo + sessione omologazione ufficiale, cat nuovo e invecchiato).</p></div>
+      <div class="lcard"><div class="ic">💥</div><h3>Deterioramento ancorato ai dati veri</h3><p>L'effetto dell'invecchiamento è calibrato sui cicli ufficiali pc1/pc2/pc3: a PGM standard il <b>NOx ×3.3</b> e l'<b>NMHC ×1.36</b>. Il carico PGM e il volume del catalizzatore riducono il degrado.</p></div>
+      <div class="lcard"><div class="ic">🌡️</div><h3>Temperatura misurata</h3><p>Ancorata alle 3 prove SRC reali: 590mm→811°C, 800mm→<b>738°C (Y44-H, misurata)</b>, 875mm→705°C. Confermato: la config finale NON aveva problemi di temperatura.</p></div>
+      <div class="lcard"><div class="ic">⚠️</div><h3>È uno strumento di screening</h3><p>Serve a <b>dare priorità</b> prima del banco, non a sostituirlo. I coefficienti di deterioramento dipendono dalla <b>formulazione</b> del catalizzatore: vanno ritarati con prove di invecchiamento su catalizzatori a carico/volume diversi.</p></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    Emissioni: report Minarelli S.p.A. (EU5+) sviluppo + sessione omologazione ufficiale (cicli pc1/pc2/pc3 post-invecchiamento) · Temperature: test SRC (Y44-F/G/H misurati) · Invecchiamento Catagen SCP004 (Tref 835°C, 30.5h ≈ 35.000 km).<br>
+    Metodo durabilità: Bench Aging (Reg. UE 168/2013 · 134/2014). Modello fisico-statistico di screening calibrato su 15 prove reali.<br>
+    Generato dal Team di Agenti · SC Project. Aggiorna i dati reali con <code>estrai_dataset.py</code>.
+  </div>
+</div>
+
+<script>
+const REAL={
+  "limiti_mg_km": {
+    "CO": 1000,
+    "HC": 100,
+    "NMHC": 68,
+    "NOx": 60
+  },
+  "prove": [
+    {
+      "id": "SVIL-01",
+      "prova": 1,
+      "codice": "Y44-B",
+      "data": "2025-11-25",
+      "file": "01-Tmax-20251125-Emission EU5+_Y44-B.pdf",
+      "etichetta_stato": "nuovo (sviluppo)",
+      "collettori_mm": 875,
+      "collettori": "Lunghi (racing)",
+      "cat_codice": "LD931201103-10KA",
+      "cat": "Ø93 - 300 celle",
+      "diametro": 93,
+      "celle": 300,
+      "tipo_cat": "Mono-stadio",
+      "invecchiato": false,
+      "fase": "Sviluppo",
+      "emis_mg_km": {
+        "CO": 267.3,
+        "HC": 80.1,
+        "NMHC": 77.6,
+        "NOx": 53.8,
+        "CO2": 107.1
+      },
+      "perc_limite": {
+        "CO": 26.7,
+        "HC": 80.1,
+        "NMHC": 114.1,
+        "NOx": 89.7
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": false,
+      "temp": {
+        "cat1_1brick": 705.0,
+        "cat2_2brick": 707.0,
+        "fonte": "stimata",
+        "margine_1brick": 114.0,
+        "margine_2brick": 128.0,
+        "passa_temp": true
+      },
+      "passa": false
+    },
+    {
+      "id": "SVIL-02",
+      "prova": 2,
+      "codice": "Y44-A",
+      "data": "2025-11-25",
+      "file": "02-Tmax-20251125-Emission EU5+_Y44-A.pdf",
+      "etichetta_stato": "nuovo (sviluppo)",
+      "collettori_mm": 875,
+      "collettori": "Lunghi (racing)",
+      "cat_codice": "LD76.31201103-OM",
+      "cat": "Ø76 - 300 celle (replica OEM)",
+      "diametro": 76,
+      "celle": 300,
+      "tipo_cat": "Mono-stadio",
+      "invecchiato": false,
+      "fase": "Sviluppo",
+      "emis_mg_km": {
+        "CO": 287.8,
+        "HC": 80.1,
+        "NMHC": 76.1,
+        "NOx": 50.3,
+        "CO2": 106.4
+      },
+      "perc_limite": {
+        "CO": 28.8,
+        "HC": 80.1,
+        "NMHC": 111.9,
+        "NOx": 83.8
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": false,
+      "temp": {
+        "cat1_1brick": 705.0,
+        "cat2_2brick": 707.0,
+        "fonte": "stimata",
+        "margine_1brick": 114.0,
+        "margine_2brick": 128.0,
+        "passa_temp": true
+      },
+      "passa": false
+    },
+    {
+      "id": "SVIL-03",
+      "prova": 3,
+      "codice": "Y44-C",
+      "data": "2025-12-04",
+      "file": "03-Tmax-20251204-Emission EU5+_Y44-C.pdf",
+      "etichetta_stato": "nuovo (sviluppo)",
+      "collettori_mm": 875,
+      "collettori": "Lunghi (racing)",
+      "cat_codice": "LD761301204-15AB",
+      "cat": "Ø76 - 400 celle",
+      "diametro": 76,
+      "celle": 400,
+      "tipo_cat": "Mono-stadio",
+      "invecchiato": false,
+      "fase": "Sviluppo",
+      "emis_mg_km": {
+        "CO": 311.6,
+        "HC": 102.2,
+        "NMHC": 97.7,
+        "NOx": 44.9,
+        "CO2": 106.6
+      },
+      "perc_limite": {
+        "CO": 31.2,
+        "HC": 102.2,
+        "NMHC": 143.7,
+        "NOx": 74.8
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": false,
+      "temp": {
+        "cat1_1brick": 705.0,
+        "cat2_2brick": 707.0,
+        "fonte": "stimata",
+        "margine_1brick": 114.0,
+        "margine_2brick": 128.0,
+        "passa_temp": true
+      },
+      "passa": false
+    },
+    {
+      "id": "SVIL-04",
+      "prova": 4,
+      "codice": "Y44-D",
+      "data": "2025-12-04",
+      "file": "04-Tmax-20251204-Emission EU5+_Y44-D.pdf",
+      "etichetta_stato": "nuovo (sviluppo)",
+      "collettori_mm": 590,
+      "collettori": "OEM",
+      "cat_codice": "OEM",
+      "cat": "OEM",
+      "diametro": 0,
+      "celle": 0,
+      "tipo_cat": "OEM",
+      "invecchiato": false,
+      "fase": "Sviluppo",
+      "emis_mg_km": {
+        "CO": 247.0,
+        "HC": 50.6,
+        "NMHC": 46.4,
+        "NOx": 15.7,
+        "CO2": 104.2
+      },
+      "perc_limite": {
+        "CO": 24.7,
+        "HC": 50.6,
+        "NMHC": 68.2,
+        "NOx": 26.2
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 811.0,
+        "cat2_2brick": 813.0,
+        "fonte": "stimata",
+        "margine_1brick": 8.0,
+        "margine_2brick": 22.0,
+        "passa_temp": false
+      },
+      "passa": false
+    },
+    {
+      "id": "SVIL-05",
+      "prova": 5,
+      "codice": "Y44-E",
+      "data": "2026-01-27",
+      "file": "05-Tmax-20260127-Emission EU5+_Y44-E.pdf",
+      "etichetta_stato": "nuovo (sviluppo)",
+      "collettori_mm": 590,
+      "collettori": "Corti",
+      "cat_codice": "LD76.31201103-OM",
+      "cat": "Ø76 - 300 celle (replica OEM)",
+      "diametro": 76,
+      "celle": 300,
+      "tipo_cat": "Mono-stadio",
+      "invecchiato": false,
+      "fase": "Sviluppo",
+      "emis_mg_km": {
+        "CO": 381.5,
+        "HC": 69.9,
+        "NMHC": 65.7,
+        "NOx": 24.6,
+        "CO2": 106.6
+      },
+      "perc_limite": {
+        "CO": 38.1,
+        "HC": 69.9,
+        "NMHC": 96.6,
+        "NOx": 41.0
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 811.0,
+        "cat2_2brick": 813.0,
+        "fonte": "stimata",
+        "margine_1brick": 8.0,
+        "margine_2brick": 22.0,
+        "passa_temp": false
+      },
+      "passa": false
+    },
+    {
+      "id": "SVIL-06",
+      "prova": 6,
+      "codice": "Y44-F",
+      "data": "2026-03-03",
+      "file": "06-Tmax-20260303-Emission EU5+_Y44-F.pdf",
+      "etichetta_stato": "nuovo (sviluppo)",
+      "collettori_mm": 590,
+      "collettori": "Corti",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "fase": "Sviluppo",
+      "emis_mg_km": {
+        "CO": 387.1,
+        "HC": 49.3,
+        "NMHC": 45.7,
+        "NOx": 18.7,
+        "CO2": 106.1
+      },
+      "perc_limite": {
+        "CO": 38.7,
+        "HC": 49.3,
+        "NMHC": 67.2,
+        "NOx": 31.2
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 811.0,
+        "cat2_2brick": 813.0,
+        "fonte": "misurata",
+        "margine_1brick": 8.0,
+        "margine_2brick": 22.0,
+        "passa_temp": false
+      },
+      "passa": false
+    },
+    {
+      "id": "SVIL-07",
+      "prova": 7,
+      "codice": "Y44-F",
+      "data": "2026-03-03",
+      "file": "07-Tmax-20260303-Emission EU5+_Y44-F.pdf",
+      "etichetta_stato": "nuovo (sviluppo)",
+      "collettori_mm": 590,
+      "collettori": "Corti",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "fase": "Sviluppo",
+      "emis_mg_km": {
+        "CO": 426.4,
+        "HC": 42.9,
+        "NMHC": 39.7,
+        "NOx": 20.0,
+        "CO2": 106.4
+      },
+      "perc_limite": {
+        "CO": 42.6,
+        "HC": 42.9,
+        "NMHC": 58.4,
+        "NOx": 33.3
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 811.0,
+        "cat2_2brick": 813.0,
+        "fonte": "misurata",
+        "margine_1brick": 8.0,
+        "margine_2brick": 22.0,
+        "passa_temp": false
+      },
+      "passa": false
+    },
+    {
+      "id": "SVIL-08",
+      "prova": 8,
+      "codice": "Y44-G",
+      "data": "2026-03-16",
+      "file": "08-Tmax-20260316-Emission EU5+_Y44-G.pdf",
+      "etichetta_stato": "nuovo (sviluppo)",
+      "collettori_mm": 875,
+      "collettori": "Lunghi (racing)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "fase": "Sviluppo",
+      "emis_mg_km": {
+        "CO": 286.1,
+        "HC": 63.4,
+        "NMHC": 58.3,
+        "NOx": 48.2,
+        "CO2": 106.3
+      },
+      "perc_limite": {
+        "CO": 28.6,
+        "HC": 63.4,
+        "NMHC": 85.7,
+        "NOx": 80.3
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 705.0,
+        "cat2_2brick": 709.0,
+        "fonte": "misurata",
+        "margine_1brick": 114.0,
+        "margine_2brick": 126.0,
+        "passa_temp": true
+      },
+      "passa": true
+    },
+    {
+      "id": "SVIL-09",
+      "prova": 9,
+      "codice": "Y44-H",
+      "data": "2026-04-21",
+      "file": "09-Tmax-20260421-Emission EU5+_Y44-H.pdf",
+      "etichetta_stato": "nuovo (sviluppo)",
+      "collettori_mm": 800,
+      "collettori": "Medi (omolog.)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "fase": "Sviluppo",
+      "emis_mg_km": {
+        "CO": 262.1,
+        "HC": 55.3,
+        "NMHC": 51.3,
+        "NOx": 29.4,
+        "CO2": 107.3
+      },
+      "perc_limite": {
+        "CO": 26.2,
+        "HC": 55.3,
+        "NMHC": 75.4,
+        "NOx": 49.0
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 738.0,
+        "cat2_2brick": 743.0,
+        "fonte": "misurata",
+        "margine_1brick": 81.0,
+        "margine_2brick": 92.0,
+        "passa_temp": true
+      },
+      "passa": true
+    },
+    {
+      "id": "SVIL-10",
+      "prova": 10,
+      "codice": "Y44-H",
+      "data": "2026-04-22",
+      "file": "10-Tmax-20260422-Emission EU5+_Y44-H.pdf",
+      "etichetta_stato": "nuovo (sviluppo)",
+      "collettori_mm": 800,
+      "collettori": "Medi (omolog.)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "fase": "Sviluppo",
+      "emis_mg_km": {
+        "CO": 273.3,
+        "HC": 52.3,
+        "NMHC": 48.9,
+        "NOx": 21.6,
+        "CO2": 107.3
+      },
+      "perc_limite": {
+        "CO": 27.3,
+        "HC": 52.3,
+        "NMHC": 71.9,
+        "NOx": 36.0
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 738.0,
+        "cat2_2brick": 743.0,
+        "fonte": "misurata",
+        "margine_1brick": 81.0,
+        "margine_2brick": 92.0,
+        "passa_temp": true
+      },
+      "passa": true
+    },
+    {
+      "id": "OMOL-01",
+      "prova": 1,
+      "codice": "Y44-H",
+      "data": "2026-04-24",
+      "file": "01Hom-Tmax-20260424-Emission EU5+_Y44-H.pdf",
+      "etichetta_stato": "nuovo (sessione omologazione)",
+      "collettori_mm": 800,
+      "collettori": "Medi (omolog.)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "fase": "Omologazione",
+      "emis_mg_km": {
+        "CO": 310.2,
+        "HC": 54.1,
+        "NMHC": 50.6,
+        "NOx": 25.1,
+        "CO2": 106.7
+      },
+      "perc_limite": {
+        "CO": 31.0,
+        "HC": 54.1,
+        "NMHC": 74.4,
+        "NOx": 41.8
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 738.0,
+        "cat2_2brick": 743.0,
+        "fonte": "misurata",
+        "margine_1brick": 81.0,
+        "margine_2brick": 92.0,
+        "passa_temp": true
+      },
+      "passa": true
+    },
+    {
+      "id": "OMOL-02",
+      "prova": 2,
+      "codice": "Y44-H",
+      "data": "2026-04-24",
+      "file": "02Hom-Tmax-20260424-Emission EU5+_Y44-H.pdf",
+      "etichetta_stato": "nuovo (sessione omologazione)",
+      "collettori_mm": 800,
+      "collettori": "Medi (omolog.)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": false,
+      "fase": "Omologazione",
+      "emis_mg_km": {
+        "CO": 315.7,
+        "HC": 52.4,
+        "NMHC": 48.7,
+        "NOx": 26.7,
+        "CO2": 106.9
+      },
+      "perc_limite": {
+        "CO": 31.6,
+        "HC": 52.4,
+        "NMHC": 71.6,
+        "NOx": 44.5
+      },
+      "vincolo_critico": "NMHC",
+      "passa_emis": true,
+      "temp": {
+        "cat1_1brick": 738.0,
+        "cat2_2brick": 743.0,
+        "fonte": "misurata",
+        "margine_1brick": 81.0,
+        "margine_2brick": 92.0,
+        "passa_temp": true
+      },
+      "passa": true
+    },
+    {
+      "id": "OMOL-03",
+      "prova": 3,
+      "codice": "Y44-H",
+      "data": "2026-06-03",
+      "file": "03Hom-Tmax-20260603-Emission EU5+_Y44-H_pc1.pdf",
+      "etichetta_stato": "post-invecchiamento (pc1)",
+      "collettori_mm": 800,
+      "collettori": "Medi (omolog.)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio (post-invecchiamento)",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": true,
+      "fase": "Omologazione",
+      "emis_mg_km": {
+        "CO": 477.9,
+        "HC": 83.1,
+        "NMHC": 77.4,
+        "NOx": 111.1,
+        "CO2": 106.7
+      },
+      "perc_limite": {
+        "CO": 47.8,
+        "HC": 83.1,
+        "NMHC": 113.8,
+        "NOx": 185.2
+      },
+      "vincolo_critico": "NOx",
+      "passa_emis": false,
+      "temp": {
+        "cat1_1brick": 738.0,
+        "cat2_2brick": 743.0,
+        "fonte": "misurata",
+        "margine_1brick": 81.0,
+        "margine_2brick": 92.0,
+        "passa_temp": true
+      },
+      "passa": false
+    },
+    {
+      "id": "OMOL-04",
+      "prova": 4,
+      "codice": "Y44-H",
+      "data": "2026-06-04",
+      "file": "04Hom-Tmax-20260604-Emission EU5+_Y44-H_pc2.pdf",
+      "etichetta_stato": "post-invecchiamento (pc2)",
+      "collettori_mm": 800,
+      "collettori": "Medi (omolog.)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio (post-invecchiamento)",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": true,
+      "fase": "Omologazione",
+      "emis_mg_km": {
+        "CO": 495.7,
+        "HC": 62.6,
+        "NMHC": 57.6,
+        "NOx": 74.0,
+        "CO2": 106.9
+      },
+      "perc_limite": {
+        "CO": 49.6,
+        "HC": 62.6,
+        "NMHC": 84.7,
+        "NOx": 123.3
+      },
+      "vincolo_critico": "NOx",
+      "passa_emis": false,
+      "temp": {
+        "cat1_1brick": 738.0,
+        "cat2_2brick": 743.0,
+        "fonte": "misurata",
+        "margine_1brick": 81.0,
+        "margine_2brick": 92.0,
+        "passa_temp": true
+      },
+      "passa": false
+    },
+    {
+      "id": "OMOL-05",
+      "prova": 5,
+      "codice": "Y44-H",
+      "data": "2026-06-04",
+      "file": "05Hom-Tmax-20260604-Emission EU5+_Y44-H_pc3.pdf",
+      "etichetta_stato": "post-invecchiamento (pc3)",
+      "collettori_mm": 800,
+      "collettori": "Medi (omolog.)",
+      "cat_codice": "LDTW7690803-6KJ-3A",
+      "cat": "Ø76 - doppio stadio (post-invecchiamento)",
+      "diametro": 76,
+      "celle": 0,
+      "tipo_cat": "Doppio stadio",
+      "invecchiato": true,
+      "fase": "Omologazione",
+      "emis_mg_km": {
+        "CO": 502.9,
+        "HC": 72.8,
+        "NMHC": 67.8,
+        "NOx": 73.2,
+        "CO2": 108.9
+      },
+      "perc_limite": {
+        "CO": 50.3,
+        "HC": 72.8,
+        "NMHC": 99.7,
+        "NOx": 122.0
+      },
+      "vincolo_critico": "NOx",
+      "passa_emis": false,
+      "temp": {
+        "cat1_1brick": 738.0,
+        "cat2_2brick": 743.0,
+        "fonte": "misurata",
+        "margine_1brick": 81.0,
+        "margine_2brick": 92.0,
+        "passa_temp": true
+      },
+      "passa": false
+    }
+  ],
+  "temp_riferimenti": {
+    "T_invecchiamento_2brick": 835,
+    "T_invecchiamento_1brick": 819,
+    "margine_sicurezza": 50,
+    "soglia_sicura": 785
+  },
+  "fonte": "Report omologazione Minarelli S.p.A. (EU5+) + test SRC temperatura - estratti automaticamente"
+};
+const LIMITI={CO:1000,HC:100,NMHC:68,NOx:60};
+const T_AGE=835, SOGLIA=785;   // soglia sicura = 835 - 50
+// --- Riferimento: config omologazione Y44-H a CATALIZZATORE NUOVO (sessione TUV 24/04) ---
+const REF={coll:800,catdia:76,cpsi:300,pgm:100,rh:1.0,tipo:'doppio',lambda:1.00,sai:false,insul:'nessuno',aged:false,primdia:30};
+const REFOUT={NMHC:73,CO:31,HC:53,NOx:43,temp:738,bp:100}; // valori % e °C a cat NUOVO (media 01/02 Hom)
+
+// stato corrente
+let S={...REF};
+
+// ---------- MODELLO FISICO (grey-box, documentato) ----------
+// s.aged=true -> applica il DETERIORAMENTO post-invecchiamento (35.000 km), ancorato ai cicli
+// ufficiali pc1/pc2/pc3: NOx x3.3, NMHC x1.36 a PGM 100. Il carico PGM mitiga il degrado.
+function simula(s){
+  // ----- TEMPERATURA 1° brick (°C) ----- (misurata Y44-H 800mm = 738°C)
+  let T = REFOUT.temp;
+  T += -0.372*(s.coll-800);          // collettori: ancorato a dati SRC (590->811, 875->705)
+  T += (1-s.lambda)*300;             // ricco = piu caldo (post-combustione)
+  T += s.sai ? 25 : 0;               // aria secondaria: esotermia nel cat
+  T += -1.4*(s.catdia-76);           // cat piu grande = piu massa termica = piu freddo
+  T += 0.03*(s.cpsi-300);            // celle dense = leggermente piu caldo
+  T += s.insul==='fasciatura'?28 : s.insul==='doppia'?16 : 0; // calore trattenuto
+  T += -0.25*(s.primdia-30);         // primario largo = piu disperso = piu fresco
+
+  // ----- NMHC a cat NUOVO (% del limite) -----
+  const fColl = (15.4+0.0807*s.coll)/79.96;        // ancorato F(590)/G(875), ref 800
+  const fLam  = 1 + 9*Math.max(0,1-s.lambda) + 5*Math.max(0,s.lambda-1); // finestra TWC stretta
+  const fSai  = s.sai ? 0.70 : 1.0;                // aria secondaria abbatte HC a freddo
+  const fPgm  = Math.pow(100/s.pgm,0.30);          // piu metalli preziosi = piu conversione
+  const fCpsi = Math.pow(300/s.cpsi,0.15);         // piu celle = piu superficie + light-off
+  const fDia  = Math.pow(s.catdia/76,0.05);        // piu grande = light-off leggermente piu lento
+  const fTipo = s.tipo==='doppio'?1.0 : 1.50;      // mono-stadio penalizza il freddo
+  const fIns  = s.insul==='fasciatura'?0.93 : s.insul==='doppia'?0.96 : 1.0;
+  let NMHC = REFOUT.NMHC * fColl*fLam*fSai*fPgm*fCpsi*fDia*fTipo*fIns;
+
+  // ----- altri inquinanti a cat NUOVO -----
+  const conv = fSai*fPgm*fCpsi*fTipo*fIns;
+  const rich = Math.max(0,1-s.lambda), lean=Math.max(0,s.lambda-1);
+  let CO  = REFOUT.CO  * conv * (1 + 22*rich + 3*lean);
+  let HC  = REFOUT.HC  * conv * (1 + 9*rich + 4*lean);
+  // rh = carico Rodio relativo all'attuale (Pt:Rh 10:3 da scheda cat reale). Il Rodio riduce il NOx.
+  let NOx = REFOUT.NOx * (1 + 14*lean - 7*rich) * Math.pow(100/s.pgm,0.15)*(s.tipo==='doppio'?0.95:1.05)*Math.pow(1/s.rh,0.25);
+  CO*=fColl*0.6+0.4; HC*=fColl*0.6+0.4;
+
+  // ----- DETERIORAMENTO post-invecchiamento (la causa del mancato passaggio) -----
+  // Ancorato ai cicli ufficiali pc1/pc2/pc3: a PGM 100 -> NOx x3.34, NMHC x1.36, CO x1.55, HC x1.36.
+  // Il carico PGM (in particolare Rodio per il NOx) riduce il degrado. Cat piu grande/denso = piu riserva.
+  if(s.aged){
+    const dur  = Math.pow(100/s.pgm,0.65) * Math.pow(300/s.cpsi,0.10) * Math.pow(76/s.catdia,0.15);
+    // il degrado del NOx dipende fortemente dal Rodio: poco Rh (attuale 10:3) = crollo NOx
+    const durNOx = 2.34*Math.pow(100/s.pgm,0.55)*Math.pow(76/s.catdia,0.2)*Math.pow(1/s.rh,0.85);
+    NMHC *= 1 + 0.36*dur;
+    NOx  *= 1 + durNOx;
+    CO   *= 1 + 0.55*dur;
+    HC   *= 1 + 0.36*dur;
+  }
+  NOx=Math.max(NOx,3);
+
+  // ----- CONTROPRESSIONE (% OEM) -----
+  let BP = 100 * Math.pow(30/s.primdia,2) * Math.pow(s.cpsi/300,0.5) * Math.pow(76/s.catdia,1.6) * Math.pow(s.coll/800,0.2) * (s.tipo==='doppio'?1.06:1.0);
+
+  return {NMHC,CO,HC,NOx,temp:Math.round(T),bp:Math.round(BP)};
+}
+const agedOut=s=>simula({...s,aged:true});  // proiezione fine-vita
+
+// L'OMOLOGAZIONE richiede che le emissioni passino DOPO l'invecchiamento (fine vita).
+function esito(oCur,oAged){
+  const emisNuovo = oCur.NMHC<=100 && oCur.CO<=100 && oCur.HC<=100 && oCur.NOx<=100;
+  const dur = oAged.NMHC<=100 && oAged.CO<=100 && oAged.HC<=100 && oAged.NOx<=100; // il vincolo vero
+  const temp = oCur.temp<=SOGLIA;
+  const bp = oCur.bp>=80 && oCur.bp<=120;
+  return {emisNuovo,dur,temp,bp,full:dur&&temp};
+}
+
+// ---------- AFFIDABILITA del modello su una configurazione ----------
+// Quanto la config si appoggia a parametri REALMENTE misurati vs estrapolati.
+// I parametri PGM, lambda, aria secondaria, isolamento NON sono mai stati variati nelle 15 prove:
+// usarli = estrapolazione -> affidabilita piu bassa.
+function confidenza(s){
+  let c=0.93;
+  if(s.coll<560) c-=(560-s.coll)/100*0.08;          // collettori testati 590-875
+  if(s.coll>900) c-=(s.coll-900)/100*0.08;
+  c-=Math.abs(s.catdia-76)/10*0.07;                  // diametro cat testato ~76 (93 una volta)
+  if(s.cpsi>400) c-=(s.cpsi-400)/100*0.05;           // celle testate 300-400
+  if(s.cpsi<300) c-=(300-s.cpsi)/100*0.05;
+  c-=Math.abs(s.pgm-100)/30*0.07;                    // PGM mai variato (assunto ~100)
+  c-=Math.abs(s.rh-1)*0.09;                           // Rodio mai variato (scheda: Pt:Rh 10:3)
+  c-=Math.abs(s.lambda-1)/0.02*0.06;                 // lambda mai variato (~1.00)
+  if(s.sai) c-=0.10;                                 // aria secondaria mai testata
+  if(s.insul!=='nessuno') c-=0.06;                   // isolamento mai testato
+  if(s.tipo==='mono') c-=0.02;
+  return Math.max(0.05,Math.min(0.93,c));
+}
+function erf(x){const t=1/(1+0.3275911*Math.abs(x));
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+  return x>=0?y:-y;}
+const Phi=z=>0.5*(1+erf(z/Math.SQRT2));
+
+// ---------- PROBABILITA di superare l'omologazione ----------
+// Combina il MARGINE dai limiti (a fine vita) con l'INCERTEZZA del modello (sigma cresce se conf bassa).
+function probSuccesso(oAged,oCur,conf){
+  const sigma = 5 + (1-conf)*42;        // incertezza in punti % : alta conf ~8, bassa ~40
+  const pLim = v => Phi((100-v)/sigma);
+  let p = pLim(oAged.NOx)*pLim(oAged.NMHC)*pLim(oAged.CO)*pLim(oAged.HC);  // emissioni a fine vita
+  p *= Phi((SOGLIA-oCur.temp)/(8+(1-conf)*18));                            // temperatura
+  if(oCur.bp>120||oCur.bp<80) p*=0.45;                                     // contropressione fuori OEM
+  return Math.max(0,Math.min(1,p));
+}
+
+// ---------- UI: controlli ----------
+const colE=p=>p>100?'var(--bad)':p>85?'var(--warn)':'var(--ok)';
+const colT=t=>t>T_AGE?'var(--bad)':t>SOGLIA?'var(--warn)':'var(--ok)';
+const colB=b=>(b<80||b>120)?'var(--bad)':(b<88||b>112)?'var(--warn)':'var(--ok)';
+
+const CONTROLS=[
+  {g:'📐 Geometria scarico',items:[
+    {k:'coll',type:'range',min:500,max:1000,step:10,unit:'mm',label:'Lunghezza collettori primari',hl:'Corti = cat caldo (ottimo NMHC, rischio temp). Lunghi = cat fresco.'},
+    {k:'primdia',type:'range',min:26,max:38,step:1,unit:'mm',label:'Diametro interno primario',hl:'Stretto = piu contropressione e calore. Largo = piu flusso.'},
+  ]},
+  {g:'🧱 Catalizzatore',items:[
+    {k:'catdia',type:'range',min:60,max:100,step:1,unit:'mm Ø',label:'Diametro catalizzatore',hl:'Grande = piu volume/massa = piu freddo e piu capacita, ma light-off piu lento.'},
+    {k:'cpsi',type:'range',min:200,max:600,step:50,unit:'cpsi',label:'Densità celle',hl:'Piu celle = piu superficie e light-off rapido, ma piu contropressione.'},
+    {k:'pgm',type:'range',min:50,max:200,step:10,unit:'g/ft³',label:'Carico metalli preziosi (PGM)',hl:'Carico totale. Scheda cat reale: 0,75 g totali. Piu carico = piu conversione e meno degrado.'},
+    {k:'rh',type:'range',min:1.0,max:3.0,step:0.1,unit:'× Rodio',label:'Carico Rodio (rapporto Pt:Rh)',hl:'LA LEVA per il NOx a fine vita. Scheda reale: Pt:Rh 10:3 = poco Rodio → e per questo il NOx crolla dopo l\'invecchiamento. 1.0 = attuale.'},
+    {k:'tipo',type:'seg',options:[['doppio','Doppio stadio'],['mono','Mono-stadio']],label:'Architettura catalizzatore',hl:'Doppio stadio: il pre-cat accende prima e abbatte l\'NMHC a freddo.'},
+    {k:'aged',type:'seg',options:[[false,'Nuovo'],[true,'Invecchiato']],label:'Stato (durabilità)',hl:'Verifica che passi anche dopo 30h di invecchiamento (35.000 km).'},
+  ]},
+  {g:'🔧 Calibrazione motore (spesso trascurata)',items:[
+    {k:'lambda',type:'range',min:0.93,max:1.06,step:0.01,unit:'λ',label:'Rapporto aria/benzina (Lambda)',hl:'Il TWC converte solo vicino a λ=1. Ricco (<1): piu CO/HC e piu caldo. Magro (>1): piu NOx.'},
+    {k:'sai',type:'seg',options:[[false,'No'],[true,'Sì']],label:'Iniezione aria secondaria (SAI)',hl:'Ossida CO/HC a freddo: forte taglio NMHC, ma aggiunge calore al cat.'},
+  ]},
+  {g:'🛡️ Gestione termica',items:[
+    {k:'insul',type:'seg',options:[['nessuno','Nessuna'],['doppia','Doppia parete'],['fasciatura','Fasciatura']],label:'Isolamento collettori',hl:'Trattiene calore: light-off piu rapido (meglio NMHC) ma alza il picco.'},
+  ]},
+];
+
+function buildControls(){
+  const root=document.getElementById('controls');
+  root.innerHTML=CONTROLS.map(grp=>`<div class="group"><h4>${grp.g}</h4>`+
+    grp.items.map(it=>{
+      if(it.type==='range'){
+        return `<div class="ctrl"><div class="top"><label>${it.label}</label><div class="v" id="v_${it.k}"></div></div>
+          <input type="range" class="${it.k==='lambda'||it.k==='coll'||it.k==='catdia'?'':''}" id="c_${it.k}" min="${it.min}" max="${it.max}" step="${it.step}">
+          <div class="hl">${it.hl}</div></div>`;
+      } else {
+        return `<div class="ctrl"><div class="top"><label>${it.label}</label></div>
+          <div class="seg" id="c_${it.k}">${it.options.map(o=>`<button data-v="${o[0]}">${o[1]}</button>`).join('')}</div>
+          <div class="hl">${it.hl}</div></div>`;
+      }
+    }).join('')+`</div>`).join('');
+  // wire
+  CONTROLS.forEach(grp=>grp.items.forEach(it=>{
+    const el=document.getElementById('c_'+it.k);
+    if(it.type==='range'){el.oninput=()=>{S[it.k]=parseFloat(el.value);render();};}
+    else{el.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      let val=b.dataset.v; if(val==='true')val=true; else if(val==='false')val=false;
+      S[it.k]=val; render();});}
+  }));
+}
+function syncControls(){
+  CONTROLS.forEach(grp=>grp.items.forEach(it=>{
+    const el=document.getElementById('c_'+it.k);
+    if(it.type==='range'){el.value=S[it.k];
+      const vu=document.getElementById('v_'+it.k);
+      let disp=S[it.k]; if(it.k==='lambda')disp=S[it.k].toFixed(2); if(it.k==='rh')disp=S[it.k].toFixed(1);
+      vu.innerHTML=`${disp} <small>${it.unit}</small>`;}
+    else{el.querySelectorAll('button').forEach(b=>{
+      let val=b.dataset.v; if(val==='true')val=true; else if(val==='false')val=false;
+      b.classList.toggle('on',val===S[it.k]);});}
+  }));
+}
+
+// ---------- RENDER ----------
+function render(){
+  syncControls();
+  const o=simula(S);          // stato selezionato (nuovo o invecchiato)
+  const oN=simula({...S,aged:false});
+  const oA=agedOut(S);        // proiezione fine vita (sempre)
+  const e=esito(o,oA);
+  // verdict (l'omologazione richiede di passare DOPO l'invecchiamento)
+  const vd=document.getElementById('verdict');
+  if(e.full){vd.className='verdict ok';vd.innerHTML=`✓ CONFIGURAZIONE OMOLOGABILE<small>passa anche a fine vita (post-invecchiamento) e in temperatura${e.bp?'':' · ⚠ contropressione fuori range OEM'}</small>`;}
+  else{let why=[]; if(!e.dur)why.push('durabilità (emissioni post-invecchiamento)'); if(!e.temp)why.push('temperatura');
+    vd.className='verdict bad';vd.innerHTML=`✗ NON OMOLOGABILE<small>fuori limite: ${why.join(' + ')}${!e.bp?' · contropressione':''}</small>`;}
+  // probabilita di successo + affidabilita
+  const conf=confidenza(S);
+  const prob=probSuccesso(oA,o,conf);
+  const pCol=prob>0.7?'var(--ok)':prob>0.4?'var(--warn)':'var(--bad)';
+  document.getElementById('probNum').textContent=Math.round(prob*100)+'%';
+  document.getElementById('probNum').style.color=pCol;
+  const relLab=conf>=0.7?'Alta':conf>=0.45?'Media':'Bassa';
+  const rCol=conf>=0.7?'var(--ok)':conf>=0.45?'var(--warn)':'var(--bad)';
+  document.getElementById('relVal').textContent=relLab+' · '+Math.round(conf*100)+'%';
+  document.getElementById('relVal').style.color=rCol;
+  const rb=document.getElementById('relBar');rb.style.width=Math.round(conf*100)+'%';rb.style.background=rCol;
+  // spiega cosa abbassa l'affidabilita
+  const estr=[];
+  if(Math.abs(S.rh-1)>0.05) estr.push('carico Rodio');
+  if(Math.abs(S.pgm-100)>5) estr.push('carico PGM');
+  if(Math.abs(S.lambda-1)>0.005) estr.push('lambda');
+  if(S.sai) estr.push('aria secondaria');
+  if(Math.abs(S.catdia-76)>3) estr.push('Ø catalizzatore');
+  if(S.cpsi>400) estr.push('densità celle');
+  if(S.insul!=='nessuno') estr.push('isolamento');
+  document.getElementById('relTxt').innerHTML = estr.length
+    ? `Stai estrapolando su: <b style="color:${rCol}">${estr.join(', ')}</b> — parametri mai variati nelle 15 prove reali. <b>Conferma al banco consigliata</b> prima di investire.`
+    : `Configurazione vicina ai dati realmente misurati: stima solida. Resta comunque uno strumento di screening, non una certificazione.`;
+  // gauge NMHC (stato selezionato)
+  setGauge('Nmhc',o.NMHC.toFixed(0)+'%','m',Math.min(o.NMHC,180)/180*100,colE(o.NMHC));
+  document.getElementById('gNmhcS').textContent=(o.NMHC*0.68).toFixed(1)+' mg/km · '+(S.aged?'INVECCHIATO':'nuovo');
+  const tw=Math.min(Math.max((o.temp-650)/(880-650),0),1)*100;
+  document.getElementById('gTemp').textContent=o.temp+'°C';
+  document.getElementById('gTemp').style.color=colT(o.temp);
+  const mt=document.getElementById('mTemp');mt.style.width=tw+'%';mt.style.background=colT(o.temp);
+  document.getElementById('limTemp').style.left=((SOGLIA-650)/(880-650)*100)+'%';
+  document.getElementById('gTempS').textContent='1° brick · soglia '+SOGLIA+'°C · invecch. '+T_AGE+'°C';
+  document.getElementById('gBp').textContent=o.bp+'%';
+  document.getElementById('gBp').style.color=colB(o.bp);
+  const mb=document.getElementById('mBp');mb.style.width=Math.min(o.bp,150)/150*100+'%';mb.style.background=colB(o.bp);
+  // polls (stato selezionato)
+  document.getElementById('pollsTitle').textContent='Inquinanti (% limite) · '+(S.aged?'catalizzatore INVECCHIATO':'catalizzatore nuovo');
+  const P=[['CO',o.CO],['HC',o.HC],['NMHC',o.NMHC],['NOx',o.NOx]];
+  document.getElementById('polls').innerHTML=P.map(([k,v])=>
+    `<div class="pb"><span>${k}</span><div class="track"><i style="width:${Math.min(v,180)/180*100}%;background:${colE(v)}"></i><div class="lim" style="left:${100/180*100}%"></div></div><span class="pv">${v.toFixed(0)}%</span></div>`).join('');
+  // durabilita: nuovo -> fine vita per i 2 critici
+  const D=[['NMHC',oN.NMHC,oA.NMHC],['NOx',oN.NOx,oA.NOx]];
+  document.getElementById('durab').innerHTML=D.map(([k,vn,va])=>
+    `<div class="pb"><span>${k}</span><div class="track"><i style="width:${Math.min(va,200)/200*100}%;background:${colE(va)}"></i><div class="lim" style="left:${100/200*100}%"></div></div>`+
+    `<span class="pv">${vn.toFixed(0)}→<b style="color:${colE(va)}">${va.toFixed(0)}%</b></span></div>`).join('');
+  document.getElementById('pillStatus').textContent = e.full?'omologabile (anche a fine vita) ✓':'durabilità da risolvere…';
+  renderScatter(o,e);
+  renderSensitivity(o);
+  renderCurve();
+}
+function setGauge(id,val,mpref,w,c){
+  document.getElementById('g'+id).textContent=val;
+  document.getElementById('g'+id).style.color=c;
+  const m=document.getElementById('m'+id);m.style.width=w+'%';m.style.background=c;
+}
+
+// ---------- SCATTER ----------
+function renderScatter(o,e){
+  const W=960,H=360,m={l:58,r:26,t:22,b:46};
+  const xMin=40,xMax=150,yMin=650,yMax=870;
+  const X=v=>m.l+(Math.min(Math.max(v,xMin),xMax)-xMin)/(xMax-xMin)*(W-m.l-m.r);
+  const Y=v=>H-m.b-(Math.min(Math.max(v,yMin),yMax)-yMin)/(yMax-yMin)*(H-m.t-m.b);
+  let s=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">`;
+  s+=`<rect x="${X(xMin)}" y="${Y(SOGLIA)}" width="${X(100)-X(xMin)}" height="${Y(yMin)-Y(SOGLIA)}" fill="rgba(46,194,126,.10)"/>`;
+  for(let v=50;v<=140;v+=10){s+=`<line x1="${X(v)}" y1="${m.t}" x2="${X(v)}" y2="${H-m.b}" stroke="#222c3a"/><text x="${X(v)}" y="${H-m.b+17}" fill="#8b98a8" font-size="10" text-anchor="middle">${v}%</text>`;}
+  for(let v=700;v<=850;v+=50){s+=`<line x1="${m.l}" y1="${Y(v)}" x2="${W-m.r}" y2="${Y(v)}" stroke="#222c3a"/><text x="${m.l-7}" y="${Y(v)+4}" fill="#8b98a8" font-size="10" text-anchor="end">${v}°</text>`;}
+  s+=`<line x1="${X(100)}" y1="${m.t}" x2="${X(100)}" y2="${H-m.b}" stroke="var(--bad)" stroke-width="2" stroke-dasharray="6 4"/><text x="${X(100)+5}" y="${m.t+13}" fill="var(--bad)" font-size="10">NMHC 100%</text>`;
+  s+=`<line x1="${m.l}" y1="${Y(T_AGE)}" x2="${W-m.r}" y2="${Y(T_AGE)}" stroke="var(--bad)" stroke-width="2" stroke-dasharray="6 4"/><text x="${W-m.r-4}" y="${Y(T_AGE)-5}" fill="var(--bad)" font-size="10" text-anchor="end">invecchiamento 835°C</text>`;
+  s+=`<line x1="${m.l}" y1="${Y(SOGLIA)}" x2="${W-m.r}" y2="${Y(SOGLIA)}" stroke="var(--warn)" stroke-width="1.4" stroke-dasharray="3 3"/><text x="${W-m.r-4}" y="${Y(SOGLIA)-4}" fill="var(--warn)" font-size="9.5" text-anchor="end">soglia sicura ${SOGLIA}°C</text>`;
+  (REAL.prove||[]).forEach(p=>{if(!p.temp)return;
+    const x=X(p.perc_limite.NMHC),y=Y(p.temp.cat1_1brick),pass=p.passa;
+    const st=p.temp.fonte==='stimata'?'stroke-dasharray="2 2"':'';
+    s+=`<circle cx="${x}" cy="${y}" r="7" fill="${pass?'var(--ok)':'var(--bad)'}" stroke="#fff" stroke-width="1.1" ${st} opacity=".55"/>`;
+    s+=`<text x="${x}" y="${y-10}" fill="#8b98a8" font-size="9" text-anchor="middle">${p.codice.replace('Y44-','')}</text>`;});
+  // punto live
+  const lx=X(o.NMHC),ly=Y(o.temp);
+  s+=`<line x1="${lx}" y1="${m.t}" x2="${lx}" y2="${H-m.b}" stroke="var(--accent2)" stroke-width="1" opacity=".35"/>`;
+  s+=`<line x1="${m.l}" y1="${ly}" x2="${W-m.r}" y2="${ly}" stroke="var(--accent2)" stroke-width="1" opacity=".35"/>`;
+  s+=`<rect x="${lx-8}" y="${ly-8}" width="16" height="16" transform="rotate(45 ${lx} ${ly})" fill="${e.full?'var(--ok)':'var(--accent2)'}" stroke="#fff" stroke-width="2"/>`;
+  s+=`<text x="${lx}" y="${ly-16}" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">LA TUA CONFIG</text>`;
+  s+=`<text x="${W/2}" y="${H-6}" fill="#8b98a8" font-size="11" text-anchor="middle">NMHC (% limite) → emissioni</text>`;
+  s+=`<text x="14" y="${H/2}" fill="#8b98a8" font-size="11" text-anchor="middle" transform="rotate(-90 14 ${H/2})">Temp. cat. 1° brick (°C) →</text></svg>`;
+  document.getElementById('scatter').innerHTML=s;
+  document.getElementById('legend').innerHTML=
+    `<span><i style="background:var(--accent2)"></i>◆ La tua simulazione (live)</span>`+
+    `<span><i style="background:var(--ok)"></i>Prova reale omologabile</span>`+
+    `<span><i style="background:var(--bad)"></i>Prova reale bocciata</span>`+
+    `<span style="color:var(--ok)">▢ Finestra di omologazione</span>`;
+}
+
+// ---------- SENSIBILITA ----------
+const SENS=[
+  {k:'rh',label:'Rodio → 2.5× (più Pt:Rh)',set:s=>s.rh=2.5},
+  {k:'pgm',label:'PGM → max (200 g/ft³)',set:s=>s.pgm=200},
+  {k:'catdia',label:'Ø cat → max (100mm)',set:s=>s.catdia=100},
+  {k:'cpsi',label:'Celle → max (600 cpsi)',set:s=>s.cpsi=600},
+  {k:'lambda',label:'Lambda → 0.99 (leggerm. ricco)',set:s=>s.lambda=0.99},
+  {k:'sai',label:'Aria secondaria → ON',set:s=>s.sai=true},
+];
+function renderSensitivity(base){
+  const curA=agedOut(S);                    // riferimento: fine vita (il vincolo)
+  const rows=SENS.map(it=>{
+    const s2={...S}; it.set(s2); const o2=agedOut(s2);
+    return {label:it.label,dNOx:o2.NOx-curA.NOx,dN:o2.NMHC-curA.NMHC};
+  });
+  const maxX=Math.max(8,...rows.map(r=>Math.abs(r.dNOx)));
+  const maxN=Math.max(8,...rows.map(r=>Math.abs(r.dN)));
+  const bar=(d,max,unit)=>{
+    const w=Math.abs(d)/max*50; const pos=d>=0;
+    const c=Math.abs(d)<0.5?'var(--muted)':(d<0?'var(--ok)':'var(--bad)');
+    const left=pos?50:50-w;
+    return `<div class="sbar"><div class="mid"></div><i style="left:${left}%;width:${w}%;background:${c}"></i>
+      <span style="position:absolute;${pos?'left:52%':'right:52%'};top:0;font-size:.74rem;line-height:20px;color:${c}">${d>=0?'+':''}${d.toFixed(0)}${unit}</span></div>`;
+  };
+  document.getElementById('sens').innerHTML=
+    `<div class="srow" style="color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.4px"><div>Leva</div><div style="text-align:center">Δ NOx fine vita (← meglio)</div><div style="text-align:center">Δ NMHC fine vita (← meglio)</div></div>`+
+    rows.map(r=>`<div class="srow"><div class="nm">${r.label}</div>${bar(r.dNOx,maxX,'%')}${bar(r.dN,maxN,'%')}</div>`).join('');
+  const winners=rows.filter(r=>r.dNOx<-3).sort((a,b)=>a.dNOx-b.dNOx);
+  let adv;
+  if(winners.length) adv=`💡 <b>Leve che salvano la durabilità (NOx a fine vita):</b> ${winners.slice(0,3).map(w=>w.label.split('→')[0].trim()).join(', ')}. Il NOx post-invecchiamento è il vincolo che ha bloccato l'omologazione: queste sono le strade da provare per prime.`;
+  else adv=`💡 Su questa config le leve disponibili incidono poco sul NOx a fine vita: il problema è la <b>formulazione del catalizzatore</b> (più Rodio / oxygen storage). Valuta un catalizzatore a maggior carico PGM o di volume maggiore.`;
+  document.getElementById('advice').innerHTML=adv;
+}
+
+// ---------- CURVA DI RISPOSTA ----------
+const CURVE_PARAMS=[
+  {k:'rh',label:'Carico Rodio (× attuale)',min:1,max:3,unit:'×'},
+  {k:'pgm',label:'Carico PGM (g/ft³)',min:50,max:200,unit:''},
+  {k:'coll',label:'Lunghezza collettori (mm)',min:500,max:1000,unit:''},
+  {k:'catdia',label:'Diametro catalizzatore (mm)',min:60,max:100,unit:''},
+  {k:'cpsi',label:'Densità celle (cpsi)',min:200,max:600,unit:''},
+  {k:'lambda',label:'Lambda',min:0.93,max:1.06,unit:''},
+];
+function renderCurve(){
+  const sel=document.getElementById('curveSel');
+  if(!sel.options.length){
+    sel.innerHTML=CURVE_PARAMS.map(p=>`<option value="${p.k}">${p.label}</option>`).join('');
+    sel.value='rh'; sel.onchange=renderCurve;
+  }
+  const P=CURVE_PARAMS.find(p=>p.k===sel.value);
+  const N=60, pts=[];
+  for(let i=0;i<=N;i++){
+    const x=P.min+(P.max-P.min)*i/N;
+    const oA=agedOut({...S,[P.k]:x});
+    pts.push({x,NMHC:oA.NMHC,NOx:oA.NOx});
+  }
+  const W=960,H=320,m={l:54,r:24,t:20,b:46};
+  const yMax=Math.max(160,...pts.map(p=>Math.max(p.NOx,p.NMHC)))*1.05;
+  const X=v=>m.l+(v-P.min)/(P.max-P.min)*(W-m.l-m.r);
+  const Y=v=>H-m.b-Math.min(v,yMax)/yMax*(H-m.t-m.b);
+  let s=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">`;
+  // zona sotto 100 (verde)
+  s+=`<rect x="${m.l}" y="${Y(100)}" width="${W-m.l-m.r}" height="${H-m.b-Y(100)}" fill="rgba(46,194,126,.08)"/>`;
+  // griglia Y
+  for(let v=0;v<=yMax;v+=50){s+=`<line x1="${m.l}" y1="${Y(v)}" x2="${W-m.r}" y2="${Y(v)}" stroke="#222c3a"/><text x="${m.l-7}" y="${Y(v)+4}" fill="#8b98a8" font-size="10" text-anchor="end">${v}%</text>`;}
+  // limite 100
+  s+=`<line x1="${m.l}" y1="${Y(100)}" x2="${W-m.r}" y2="${Y(100)}" stroke="var(--bad)" stroke-width="2" stroke-dasharray="6 4"/><text x="${W-m.r-4}" y="${Y(100)-5}" fill="var(--bad)" font-size="10" text-anchor="end">limite 100%</text>`;
+  // assi X label
+  for(let i=0;i<=5;i++){const xv=P.min+(P.max-P.min)*i/5;s+=`<text x="${X(xv)}" y="${H-m.b+17}" fill="#8b98a8" font-size="10" text-anchor="middle">${P.k==='lambda'?xv.toFixed(2):(P.k==='rh'?xv.toFixed(1):Math.round(xv))}${P.unit}</text>`;}
+  // curve
+  const path=(key,col)=>{let d=pts.map((p,i)=>(i?'L':'M')+X(p.x).toFixed(1)+' '+Y(p[key]).toFixed(1)).join(' ');
+    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2.5"/>`;};
+  s+=path('NOx','var(--temp)');
+  s+=path('NMHC','var(--emis)');
+  // posizione attuale
+  const cx=X(S[P.k]);
+  s+=`<line x1="${cx}" y1="${m.t}" x2="${cx}" y2="${H-m.b}" stroke="#fff" stroke-width="1.3" stroke-dasharray="4 3" opacity=".7"/>`;
+  const cur=agedOut(S);
+  s+=`<circle cx="${cx}" cy="${Y(cur.NOx)}" r="5" fill="var(--temp)" stroke="#fff" stroke-width="1.5"/>`;
+  s+=`<circle cx="${cx}" cy="${Y(cur.NMHC)}" r="5" fill="var(--emis)" stroke="#fff" stroke-width="1.5"/>`;
+  s+=`<text x="${cx}" y="${m.t-4}" fill="#fff" font-size="10" text-anchor="middle">attuale</text>`;
+  s+=`<text x="${W/2}" y="${H-6}" fill="#8b98a8" font-size="11" text-anchor="middle">${P.label} →</text>`;
+  s+=`<text x="14" y="${H/2}" fill="#8b98a8" font-size="11" text-anchor="middle" transform="rotate(-90 14 ${H/2})">% del limite a fine vita →</text></svg>`;
+  document.getElementById('curve').innerHTML=s;
+  document.getElementById('curveLegend').innerHTML=
+    `<span><i style="background:var(--temp)"></i>NOx a fine vita (il vincolo critico)</span>`+
+    `<span><i style="background:var(--emis)"></i>NMHC a fine vita</span>`+
+    `<span style="color:#fff">⋮ posizione attuale · ▢ verde = sotto il limite</span>`;
+}
+
+// ---------- OTTIMO (ricerca a griglia) — deve passare ANCHE a fine vita ----------
+function trovaOttimo(){
+  let best=null;
+  const colls=[700,800],dias=[76,84,93],pgms=[100,130,160],cpsis=[300,400,500],lams=[0.99,1.00],sais=[false,true],rhs=[1.5,2.0,2.5];
+  for(const coll of colls)for(const catdia of dias)for(const pgm of pgms)for(const cpsi of cpsis)
+   for(const lambda of lams)for(const sai of sais)for(const rh of rhs){
+    const s={...REF,coll,catdia,pgm,cpsi,lambda,sai,rh,tipo:'doppio'};
+    const o=simula(s),oA=agedOut(s),e=esito(o,oA);
+    if(e.full&&e.bp){
+      // punteggio = probabilita di successo (margine x affidabilita) - penalita costo PGM
+      const conf=confidenza(s), prob=probSuccesso(oA,o,conf);
+      const score = prob*100 + conf*25 - (pgm-130)*0.06 - (sai?1.5:0);
+      if(!best||score>best.score)best={s,o,oA,score};
+    }
+  }
+  return best;
+}
+
+// ---------- PRESET ----------
+function setS(obj){S={...REF,...obj};render();window.scrollTo({top:document.getElementById('sim').offsetTop-10,behavior:'smooth'});}
+document.getElementById('presetH').onclick=()=>setS({});
+document.getElementById('presetF').onclick=()=>setS({coll:590,tipo:'doppio'});
+document.getElementById('resetBtn').onclick=()=>setS({});
+document.getElementById('presetOpt').onclick=()=>{const b=trovaOttimo();
+  if(b){setS(b.s);document.getElementById('pillStatus').textContent='ottimo suggerito caricato';}};
+
+// ---------- CONCORRENZA ----------
+const COMP=[
+  {n:'OEM Yamaha',cls:'warn',pos:'Close-coupled (vicino alla testa)',cat:'Metallico, alto carico Rh, dimensionato 35.000 km',cal:'Doppia lambda + aria secondaria + ECU dedicata',lesson:'Il riferimento: durabilità garantita per progetto. La calibrazione fine + aria secondaria tengono basso il NOx anche a fine vita.'},
+  {n:'Akrapovič',cls:'ok',pos:'Catalizzatore nel silenziatore (a valle)',cat:'Ceramico/metallico ben caricato, collaudato',cal:'Plug-and-play, nessuna rimappa ECU',lesson:'Posizione a valle = parte già con margine di durabilità. Cat lontano e generoso: l’invecchiamento incide meno sulla conversione.'},
+  {n:'Arrow / LeoVince',cls:'ok',pos:'Cat nel raccordo / linkpipe',cat:'Cat omologato modulare ~200-400 cpsi',cal:'Replica back-pressure OEM',lesson:'Cat intermedio e standardizzato: scelta conservativa che privilegia il superamento sicuro dell’omologazione su tutta la vita.'},
+  {n:'MIVV / Spark',cls:'ok',pos:'Cat nel silenziatore',cat:'Volume generoso, focus durabilità+rumore',cal:'Plug-and-play',lesson:'Privilegiano un catalizzatore con riserva di conversione: meno performante a freddo ma robusto a fine vita.'},
+  {n:'SC Project — config attuale',cls:'sc',pos:'Collettori medi 800mm + doppio stadio vicino',cat:'Ø76 doppio stadio (LDTW) — carico/Rh limitato',cal:'Stechiometrica standard, no aria secondaria',lesson:'⚠️ Ottimo a nuovo, ma il catalizzatore non regge il NOx a fine vita. Da copiare: più Rodio, più volume, NOx basso a nuovo (calibrazione), eventuale aria secondaria.'},
+];
+function renderComp(){
+  document.getElementById('compGrid').innerHTML=COMP.map(c=>
+    `<div class="ccard ${c.cls}">
+       <div class="nm">${c.n}</div>
+       <div class="row">📍 <b>Posizione:</b> ${c.pos}</div>
+       <div class="row">🧱 <b>Catalizzatore:</b> ${c.cat}</div>
+       <div class="row">🔧 <b>Calibrazione:</b> ${c.cal}</div>
+       <div class="lesson">💡 ${c.lesson}</div>
+     </div>`).join('');
+  document.getElementById('compNote').innerHTML=
+    `🎯 <b>La lezione chiave dalla concorrenza:</b> tutti — OEM e aftermarket affermati — partono con un <b>catalizzatore dimensionato per la durabilità</b> (più volume e/o più Rodio) e/o lo mettono <b>a valle</b> dove invecchia meno. Voi avete puntato su un cat compatto e vicino, ottimo per prestazioni e light-off, ma <b>con poca riserva sul NOx a fine vita</b>. Non dovete stravolgere il progetto: dovete <b>aumentare la riserva di conversione</b> (Rodio + volume) e <b>tenere basso il NOx a nuovo</b> con la calibrazione. Usa il simulatore qui sopra per vedere quanta riserva serve per portare la probabilità di successo sopra il 70%.`;
+}
+
+// init
+buildControls();renderComp();render();
+</script>
+</body>
+</html>
