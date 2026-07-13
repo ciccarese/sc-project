@@ -1,0 +1,2611 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PIE·CUT — Generatore curve a spicchi · STEP</title>
+<style>
+  :root{
+    --bg:#080b0f; --panel:#0e151c; --panel2:#111b24; --line:#1d2c38;
+    --amber:#ffb000; --teal:#19e6d2; --ink:#c9d6de; --dim:#6c8496; --warn:#ff5a4d;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:13px;overflow:hidden}
+  body{display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0e151c,#0a1017)}
+  header .logo{font-weight:700;letter-spacing:3px;color:var(--amber)}
+  header .logo b{color:var(--teal)}
+  header .tag{color:var(--dim);font-size:11px;letter-spacing:1px}
+  header .spacer{flex:1}
+  header .stat{color:var(--dim);font-size:11px}
+  header .stat b{color:var(--teal);font-weight:600}
+  main{flex:1;display:flex;min-height:0}
+  .side{width:328px;min-width:328px;border-right:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:14px}
+  .view{flex:1;position:relative;min-width:0;background:radial-gradient(120% 120% at 50% 20%,#0c141b 0%,#070a0e 70%)}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+  .badge{position:absolute;left:12px;bottom:12px;font-size:11px;color:var(--dim);background:rgba(8,12,16,.6);border:1px solid var(--line);border-radius:6px;padding:6px 9px;pointer-events:none;line-height:1.5}
+  .badge b{color:var(--teal)}
+  .warnpill{position:absolute;left:12px;top:12px;font-size:11px;color:#0a0a0a;background:var(--warn);border-radius:6px;padding:5px 9px;display:none;max-width:60%}
+  .grp{margin-bottom:16px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+  .grp h3{margin:0;padding:8px 11px;font-size:11px;letter-spacing:1.5px;color:var(--amber);border-bottom:1px solid var(--line);text-transform:uppercase;font-weight:600}
+  .grp .body{padding:11px}
+  label.row{display:flex;justify-content:space-between;align-items:center;margin:9px 0 5px;color:var(--dim);font-size:11px;letter-spacing:.5px}
+  label.row .val{color:var(--teal);font-weight:600;font-size:12px}
+  input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:3px;background:#1a2a36;outline:none;margin:2px 0 4px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #0a0f14;cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #0a0f14;cursor:pointer;border:none}
+  input[type=number],textarea,select{width:100%;background:#0a1218;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12px;border-radius:6px;padding:7px 8px}
+  textarea{resize:vertical;min-height:70px;line-height:1.5}
+  .two{display:flex;gap:8px}
+  .two>div{flex:1}
+  button,.btn{width:100%;font-family:var(--mono);font-size:12px;letter-spacing:1px;border-radius:7px;padding:9px;border:1px solid var(--line);background:#12202a;color:var(--ink);cursor:pointer;transition:.12s}
+  button:hover,.btn:hover{border-color:var(--teal);color:#fff}
+  button.primary{background:linear-gradient(180deg,#ffb000,#e08a00);color:#160d00;border:none;font-weight:700}
+  button.primary:hover{filter:brightness(1.08)}
+  .file{display:block;border:1px dashed #2a3f4d;border-radius:7px;padding:11px;text-align:center;color:var(--dim);cursor:pointer;font-size:11px}
+  .file:hover{border-color:var(--teal);color:var(--teal)}
+  .file input{display:none}
+  .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .seg button{border:none;border-radius:0;background:#0a1218;color:var(--dim);padding:8px 6px;font-size:11px}
+  .seg button.on{background:#12303a;color:var(--teal);font-weight:600}
+  .hint{color:var(--dim);font-size:10.5px;line-height:1.55;margin-top:7px}
+  select{cursor:pointer}
+  details.ref{border-bottom:1px solid var(--line)}
+  details.ref:last-child{border-bottom:none}
+  details.ref summary{list-style:none;cursor:pointer;padding:9px 11px;font-size:11px;letter-spacing:.5px;color:var(--teal);position:relative;padding-left:24px}
+  details.ref summary::-webkit-details-marker{display:none}
+  details.ref summary:before{content:"▸";position:absolute;left:10px;color:var(--amber);transition:.15s}
+  details.ref[open] summary:before{transform:rotate(90deg)}
+  details.ref summary:hover{background:#0d1a22}
+  details.ref>div{padding:2px 12px 12px;color:var(--dim);font-size:10.5px;line-height:1.6}
+  details.ref b{color:var(--ink)}
+  details.ref ul{margin:6px 0 0;padding-left:16px}
+  details.ref li{margin-bottom:4px}
+  details.ref .eq{margin:7px 0;padding:7px 9px;background:#0a1218;border-left:2px solid var(--amber);border-radius:4px;color:var(--ink);font-size:11px}
+  details.ref .eq2{color:var(--ink);background:#0a1218;padding:1px 5px;border-radius:3px}
+  details.ref .disclaim{margin-top:9px;padding-top:8px;border-top:1px solid var(--line);color:#5b7182;font-size:10px}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .metrics div{background:var(--panel2);padding:8px 9px}
+  .metrics .k{color:var(--dim);font-size:10px;letter-spacing:.5px}
+  .metrics .v{color:var(--teal);font-size:14px;font-weight:600;margin-top:2px}
+  .metrics .v.warn{color:var(--warn)}
+  .flat{border-top:1px solid var(--line);background:var(--panel);height:150px;display:flex;flex-direction:column}
+  .flat .hd{display:flex;align-items:center;gap:12px;padding:6px 14px;border-bottom:1px solid var(--line)}
+  .flat .hd .t{color:var(--amber);font-size:11px;letter-spacing:1.5px}
+  .flat .hd .m{color:var(--dim);font-size:11px}
+  .flat .hd .m b{color:var(--teal)}
+  .flat .hd .spacer{flex:1}
+  .flat svg{flex:1;width:100%}
+  .toggleflat{cursor:pointer;color:var(--dim);font-size:11px}
+  .toggleflat:hover{color:var(--teal)}
+  @media(max-width:820px){
+    main{flex-direction:column}
+    .side{width:100%;min-width:0;max-height:44vh;border-right:none;border-bottom:1px solid var(--line)}
+    .view{min-height:44vh}
+    .flat{height:120px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">PIE<b>·</b>CUT</div>
+  <div class="tag">LOBSTER-BACK · STEP GENERATOR</div>
+  <div class="spacer"></div>
+  <div class="stat">MODE <b id="hMode">ANALITICO</b></div>
+  <div class="stat">SPICCHI <b id="hSeg">12</b></div>
+</header>
+<main>
+  <div class="side">
+    <div class="grp">
+      <h3>Ingresso</h3>
+      <div class="body">
+        <div class="seg" id="inputSeg">
+          <button data-input="traj" class="on">TRAIETTORIA</button>
+          <button data-input="lines">2 CURVE INIZIO/FINE</button>
+        </div>
+
+        <div id="trajBox" style="margin-top:10px">
+          <label class="file">CARICA FILE .STP / .STEP
+            <input type="file" id="fileIn" accept=".stp,.step,.STP,.STEP">
+          </label>
+          <select id="preset" style="margin-top:8px"></select>
+          <div class="hint" id="presetInfo"></div>
+          <div class="two" style="margin-top:8px">
+            <button id="btnDemo">RICARICA PRESET</button>
+            <button id="btnPaste">INCOLLA XYZ</button>
+          </div>
+          <div id="pasteBox" style="display:none;margin-top:8px">
+            <textarea id="pasteArea" placeholder="Un punto per riga: x y z&#10;0 0 0&#10;50 0 0&#10;50 40 0&#10;50 40 40"></textarea>
+            <button id="btnLoadPaste" style="margin-top:6px">USA QUESTI PUNTI</button>
+          </div>
+          <div class="hint">Una curva 3D completa (STEP, preset o punti incollati). Il primo e l'ultimo spicchio restano tangenti agli estremi esatti.</div>
+        </div>
+
+        <div id="linesBox" style="display:none;margin-top:10px">
+          <label class="file">CARICA .STP · 2 CURVE O SEGMENTI
+            <input type="file" id="fileLines" accept=".stp,.step,.STP,.STEP">
+          </label>
+          <div class="hint" style="margin:6px 0">Due elementi separati (linee, archi, spline). La traiettoria parte tangente a entrambe e collega gli estremi più vicini. …oppure incolla 4 punti (2 rette):</div>
+          <textarea id="linesArea" placeholder="2 linee = 4 punti (2 per linea): x y z&#10;# linea di partenza&#10;0 0 0&#10;70 0 0&#10;# linea di arrivo&#10;110 40 0&#10;110 110 0"></textarea>
+          <div class="two" style="margin-top:6px">
+            <button id="btnLoadLines">GENERA CURVA</button>
+            <button id="btnLinesDemo">DEMO 2 LINEE</button>
+          </div>
+          <label class="row" style="margin-top:10px">AMPIEZZA CURVA <span class="val"><span id="dV">–</span> mm</span></label>
+          <input type="range" id="dAmp" min="0" max="100" step="0.5" value="0" disabled>
+          <div class="two" style="margin-top:4px">
+            <button id="btnDauto">AUTO · MAX RAGGIO</button>
+            <button id="btnLinesFit" title="massimo N ancora realizzabile">OTTIMIZZA SPICCHI</button>
+          </div>
+          <div class="hint" id="biarcInfo">Genera la curva a spicchi con i raggi più ampi possibile tra le due curve di inizio e fine.</div>
+        </div>
+
+        <div class="hint" id="clInfo">Nessuna curva caricata.</div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>Tubo</h3>
+      <div class="body">
+        <label class="row">DIAMETRO ESTERNO OD <span class="val"><span id="odV">45.0</span> mm</span></label>
+        <input type="range" id="od" min="10" max="120" step="0.5" value="45">
+        <label class="row">SPESSORE PARETE <span class="val"><span id="thV">1.5</span> mm</span></label>
+        <input type="range" id="th" min="0.5" max="8" step="0.1" value="1.5">
+        <label class="row">NUMERO SPICCHI <span class="val" id="segV">12</span></label>
+        <input type="range" id="seg" min="2" max="48" step="1" value="12">
+        <label class="row">PONTICELLO (LIGAMENT) <span class="val"><span id="ligV">2.0</span> mm</span></label>
+        <input type="range" id="lig" min="1" max="4" step="0.1" value="2">
+        <div class="hint">Tratto non tagliato sul dorso che tiene uniti gli spicchi nel rettilineo pre-piega.</div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>Ottimizzazione traiettoria</h3>
+      <div class="body">
+        <label class="row">TANGENZA RILASSATA <span class="val"><span id="relV">0</span>°</span></label>
+        <input type="range" id="tanRel" min="0" max="20" step="1" value="0">
+        <div class="hint">Concede fino a N° di disallineamento agli estremi in cambio di raggi più ampi e spicchi più spessi dove lo spazio è poco. <b>0° = traiettoria intatta</b>; oltre, la traiettoria (fornita o generata da 2 linee) viene ri-ottimizzata per il massimo raggio. Resa migliore su una curva singola.</div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>Metriche</h3>
+      <div class="body">
+        <div class="metrics">
+          <div><div class="k">LUNGHEZZA PERCORSO</div><div class="v" id="mLen">—</div></div>
+          <div><div class="k">RAGGIO MIN</div><div class="v" id="mRad">—</div></div>
+          <div><div class="k">ANGOLO / GIUNTO MAX</div><div class="v" id="mAng">—</div></div>
+          <div><div class="k">LUNGH. SPICCHIO MED</div><div class="v" id="mSeg">—</div></div>
+          <div><div class="k">R/D (RAGGIO / OD)</div><div class="v" id="mRD">—</div></div>
+          <div><div class="k">OCCUPAZIONE TAGLI</div><div class="v" id="mOcc">—</div></div>
+          <div><div class="k">SPESSORE MIN SPICCHIO</div><div class="v" id="mStrip">—</div></div>
+          <div><div class="k">DISALLINEAMENTO</div><div class="v" id="mDev">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>Riferimenti · sistemi di scarico</h3>
+      <div class="body" style="padding:0">
+        <details class="ref"><summary>Perché una curva a spicchi</summary><div>
+          Il tubo mandrinato (mandrel bend) non scende sotto un certo raggio senza assottigliare l'estradosso e grinzare l'intradosso. La curva a spicchi (<i>lobster back</i> / pie-cut) taglia il tubo in tronchi conici-retti e li risalda: <b>lo spessore di parete resta costante</b> ovunque, e il raggio può scendere molto sotto i limiti della piegatura. Prezzo da pagare: una saldatura per giunto e una superficie interna sfaccettata.
+        </div></details>
+        <details class="ref"><summary>Rapporto R/D e fattibilità</summary><div>
+          <b>R/D</b> = raggio della centerline / diametro esterno del tubo. Il generatore misura un <i>rapporto di occupazione</i> = quanto materiale mangiano i due tagli obliqui rispetto alla lunghezza dello spicchio. Su un arco vale esattamente
+          <div class="eq">occupazione = R<sub>tubo</sub> / R<sub>curva</sub> = 1 / (2 · R/D)</div>
+          e <b>non dipende dal numero di spicchi</b>. Da qui:
+          <ul>
+            <li><b>R/D &gt; 0,5</b> — limite fisico assoluto: sotto, i piani di taglio si incrociano dentro al tubo e lo spicchio non esiste.</li>
+            <li><b>R/D ≈ 0,6</b> — occupazione ~0,83: gli spicchi diventano lamelle, saldatura difficile. L'app segnala «stretta».</li>
+            <li><b>R/D 1,5</b> — valore di riferimento tipico per curve di scarico.</li>
+            <li><b>R/D ≥ 2</b> — perdita di carico bassa, ma ingombro elevato.</li>
+          </ul>
+        </div></details>
+        <details class="ref"><summary>Quanti spicchi servono</summary><div>
+          Con Θ = angolo totale della curva e N spicchi, l'angolo di ogni giunto è <span class="eq2">δ = Θ / (N−1)</span> e ogni faccia è tagliata a <span class="eq2">ψ = δ/2</span>. L'asse della curva a spicchi si scosta dall'arco ideale, verso l'esterno, di
+          <div class="eq">e<sub>max</sub> = R<sub>curva</sub> · ( sec(δ/2) − 1 )</div>
+          Esempio, R = 67,5 mm: δ=30° → 2,38 mm; δ=15° → 0,58 mm; δ=10° → 0,26 mm; δ=5° → 0,06 mm.
+          <ul>
+            <li>Regola pratica: <b>δ ≤ 15°</b> per un buon compromesso; <b>δ ≤ 10°</b> per avvicinarsi alla qualità del mandrinato.</li>
+            <li>Ogni giunto è una saldatura: N alto = precisione geometrica alta e apporto termico/distorsione alti.</li>
+            <li>Gli spicchi <b>estremi sono di mezza lunghezza</b>: hanno un solo taglio obliquo, l'altra faccia è perpendicolare.</li>
+          </ul>
+        </div></details>
+        <details class="ref"><summary>Facce di estremità e accoppiamento</summary><div>
+          Primo e ultimo spicchio hanno l'asse <b>tangente ai punti estremi</b> della traiettoria (o alle due curve generatrici, in modalità 2 linee) e la faccia esterna tagliata <b>perpendicolare</b>: è un <b>cerchio di diametro OD esatto</b>, non un'ellisse. Serve per il testa-a-testa con flangia, tratto dritto o curva successiva, e non cambia al variare del numero di spicchi.
+        </div></details>
+        <details class="ref"><summary>Sviluppo piano e taglio laser</summary><div>
+          Aperto sul piano, ogni spicchio è un rettangolo di larghezza <span class="eq2">π · OD</span> chiuso da due sinusoidi:
+          <div class="eq">z(φ) = R<sub>est</sub> · tan(ψ) · cos(φ)</div>
+          Il modello <b>RETTILINEO</b> esporta invece il grezzo diritto: stessi angoli e stesso <i>clocking</i> (orientamento della tacca attorno alla circonferenza), tacche già tagliate e spicchi tenuti insieme da un <b>ponticello</b> sul dorso convesso. È un pezzo unico: si taglia al laser 3D, si piega a mano sulle cerniere e si salda. Ponticello 1–2 mm = piega facile ma fragile; 3–4 mm = robusto ma va forzato.
+        </div></details>
+        <details class="ref"><summary>Materiali, spessori, saldatura</summary><div>
+          <ul>
+            <li><b>AISI 304</b> — inox comune, economico, buona saldabilità.</li>
+            <li><b>AISI 321 / 347</b> — stabilizzati al titanio/niobio: resistono alla precipitazione dei carburi in zona termicamente alterata, preferiti dove il tubo resta a lungo caldo.</li>
+            <li><b>Inconel 625 / 718</b> — leghe di nichel per temperature molto alte (racing, tratti a monte del turbo).</li>
+            <li><b>Titanio Gr.2 / Gr.9</b> — leggerissimo; richiede saldatura TIG in atmosfera protetta <i>completa</i> (back-purge di argon dentro al tubo), altrimenti infragilisce.</li>
+          </ul>
+          Spessori indicativi: 0,8–1,2 mm su primari di piccolo diametro, 1,2–1,5 mm su tratti correnti, 1,5–2,0 mm su tubi grandi o zone flangiate. Sui tratti sottili conviene aumentare N: giunti più dolci, meno apporto termico per saldatura.
+        </div></details>
+        <details class="ref"><summary>Note funzionali</summary><div>
+          <ul>
+            <li><b>Accordatura</b> — la lunghezza dei primari e il punto di confluenza governano il ritorno dell'onda di depressione e quindi la forma della curva di coppia. Cambiare il percorso di una curva a spicchi cambia la lunghezza sviluppata: la metrica «lunghezza percorso» in alto è la lunghezza della centerline effettiva.</li>
+            <li><b>Contropressione</b> — dominata da diametro, lunghezza e rugosità; ogni giunto aggiunge una piccola perdita localizzata, tanto minore quanto più piccolo è δ.</li>
+            <li><b>Catalizzatore e avviamento a freddo</b> — la posizione del catalizzatore lungo il tratto (e quindi la lunghezza del collettore a monte) determina quanto in fretta raggiunge la temperatura di innesco: è spesso il fattore dominante sulle emissioni misurate nella fase fredda del ciclo di omologazione.</li>
+            <li><b>Acustica</b> — geometria e volumi a valle definiscono le frequenze di risonanza; il db-killer agisce come restrizione a valle, con effetto sia sul rumore sia sulla contropressione.</li>
+          </ul>
+          <div class="disclaim">I valori indicati sono ordini di grandezza tipici, non specifiche: verificare sempre contro il proprio capitolato, il materiale reale e la normativa applicabile.</div>
+        </div></details>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>Export STEP</h3>
+      <div class="body">
+        <div class="seg" id="modeSeg">
+          <button data-mode="analytic" class="on">CURVO ANALITICO</button>
+          <button data-mode="faceted">CURVO FACETED</button>
+          <button data-mode="straight">RETTILINEO</button>
+        </div>
+        <div class="hint" id="modeHint">Analitico: superfici cilindriche vere ed ellissi di taglio, file leggero, ri-editabile in CAD. Ogni spicchio è un solido separato.</div>
+        <button class="primary" id="btnExport" style="margin-top:10px">ESPORTA STEP ▼</button>
+        <div class="hint" id="exStat"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view">
+    <canvas id="cv"></canvas>
+    <div class="warnpill" id="warnPill"></div>
+    <div class="seg" id="viewSeg" style="position:absolute;top:12px;right:12px;width:auto;background:rgba(8,12,16,.7)">
+      <button data-view="both" class="on">ENTRAMBI</button>
+      <button data-view="bent">PIEGATO</button>
+      <button data-view="straight">RETTILINEO</button>
+    </div>
+    <div class="badge">TRASCINA ruota · PINCH/ROTELLA zoom · <span style="color:#ffb000">■</span> piegato <span style="color:#7aa0b8">■</span> rettilineo<br><b id="bTris">0</b> triangoli</div>
+  </div>
+</main>
+<div class="flat" id="flatWrap">
+  <div class="hd">
+    <div class="t">SVILUPPO SPICCHIO</div>
+    <div class="m">taglio a becco · larghezza <b id="fpW">—</b> · lungh <b id="fpL">—</b></div>
+    <div class="spacer"></div>
+    <div class="m">spicchio <b id="fpIdx">1</b></div>
+    <div class="toggleflat" id="fpPrev">◀</div>
+    <div class="toggleflat" id="fpNext">▶</div>
+  </div>
+  <svg id="fpSvg" preserveAspectRatio="xMidYMid meet"></svg>
+</div>
+
+<script>/* ROBO / PIE-CUT CORE
+ * Motore puro (no DOM). Gira in Node (test) e nel browser (inlinato in HTML).
+ * - Parser STEP input -> polilinea centerline
+ * - Geometria a spicchi (lobster-back) con Rotation-Minimizing Frame
+ * - Export STEP: FACETED_BREP (robusto) + ADVANCED_BREP analitico (cilindri+ellissi)
+ * - Validatori topologici e geometrici
+ */
+(function (root) {
+  'use strict';
+
+  /* ---------------- Vec3 ---------------- */
+  const V = {
+    add: (a, b) => [a[0]+b[0], a[1]+b[1], a[2]+b[2]],
+    sub: (a, b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]],
+    scale: (a, s) => [a[0]*s, a[1]*s, a[2]*s],
+    dot: (a, b) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+    cross: (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]],
+    len: (a) => Math.hypot(a[0], a[1], a[2]),
+    norm: (a) => { const l = Math.hypot(a[0],a[1],a[2]) || 1; return [a[0]/l, a[1]/l, a[2]/l]; },
+    dist: (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]),
+    lerp: (a, b, t) => [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t],
+  };
+
+  // rotate vector v around unit axis k by angle ang (Rodrigues)
+  function rodrigues(v, k, ang) {
+    const c = Math.cos(ang), s = Math.sin(ang);
+    const kv = V.cross(k, v);
+    const kk = V.dot(k, v);
+    return [
+      v[0]*c + kv[0]*s + k[0]*kk*(1-c),
+      v[1]*c + kv[1]*s + k[1]*kk*(1-c),
+      v[2]*c + kv[2]*s + k[2]*kk*(1-c),
+    ];
+  }
+  // rotation taking unit a -> unit b, applied to vector v
+  function rotateAtoB(v, a, b) {
+    const axis = V.cross(a, b);
+    const sinv = V.len(axis);
+    const cosv = Math.max(-1, Math.min(1, V.dot(a, b)));
+    if (sinv < 1e-9) {
+      if (cosv > 0) return v.slice();            // same dir
+      // 180°: rotate around any perpendicular
+      let perp = Math.abs(a[0]) < 0.9 ? [1,0,0] : [0,1,0];
+      perp = V.norm(V.sub(perp, V.scale(a, V.dot(perp, a))));
+      return rodrigues(v, perp, Math.PI);
+    }
+    return rodrigues(v, V.scale(axis, 1/sinv), Math.atan2(sinv, cosv));
+  }
+  function anyPerp(a) {
+    let p = Math.abs(a[0]) < 0.9 ? [1,0,0] : [0,1,0];
+    return V.norm(V.sub(p, V.scale(a, V.dot(p, a))));
+  }
+
+  /* ============================================================
+   * STEP INPUT PARSER  ->  centerline polyline
+   * Supporta: CARTESIAN_POINT, DIRECTION, VECTOR, LINE, CIRCLE,
+   * ELLIPSE, POLYLINE, B_SPLINE_CURVE_WITH_KNOTS (+ rational),
+   * TRIMMED_CURVE, COMPOSITE_CURVE(+SEGMENT), EDGE_CURVE/VERTEX_POINT.
+   * ============================================================ */
+
+  function parseStep(text) {
+    // strip comments
+    text = text.replace(/\/\*[\s\S]*?\*\//g, '');
+    // isolate DATA section if present
+    const di = text.indexOf('DATA;');
+    const ei = text.indexOf('ENDSEC;', di >= 0 ? di : 0);
+    const body = (di >= 0 && ei >= 0) ? text.slice(di + 5, ei) : text;
+
+    // split into statements at top-level ';' (respect strings & parens)
+    const stmts = [];
+    let buf = '', depth = 0, inStr = false;
+    for (let i = 0; i < body.length; i++) {
+      const ch = body[i];
+      if (inStr) { buf += ch; if (ch === "'") { if (body[i+1] === "'") { buf += body[++i]; } else inStr = false; } continue; }
+      if (ch === "'") { inStr = true; buf += ch; continue; }
+      if (ch === '(') depth++;
+      if (ch === ')') depth--;
+      if (ch === ';' && depth === 0) { if (buf.trim()) stmts.push(buf.trim()); buf = ''; continue; }
+      buf += ch;
+    }
+
+    const entities = new Map();
+    for (const st of stmts) {
+      const m = st.match(/^#(\d+)\s*=\s*([\s\S]+)$/);
+      if (!m) continue;
+      const id = +m[1];
+      entities.set(id, parseRHS(m[2].trim()));
+    }
+    return entities;
+  }
+
+  // RHS -> { type, args } or { complex:[{type,args}...] }
+  function parseRHS(s) {
+    if (s[0] === '(') {
+      // complex instance: ( TYPE(..) TYPE(..) ... )
+      const inner = s.slice(1, s.lastIndexOf(')'));
+      const parts = splitComplex(inner);
+      return { complex: parts.map(p => parseSimple(p)) };
+    }
+    return parseSimple(s);
+  }
+  function splitComplex(s) {
+    const out = []; let buf = '', depth = 0, inStr = false;
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      if (inStr) { buf += ch; if (ch === "'") inStr = false; continue; }
+      if (ch === "'") { inStr = true; buf += ch; continue; }
+      if (ch === '(') depth++;
+      if (ch === ')') depth--;
+      buf += ch;
+      if (depth === 0 && ch === ')') { out.push(buf.trim()); buf = ''; }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+  function parseSimple(s) {
+    const m = s.match(/^([A-Za-z0-9_]+)\s*\(([\s\S]*)\)\s*$/);
+    if (!m) return { type: s.trim().toUpperCase(), args: [] };
+    return { type: m[1].toUpperCase(), args: parseArgs(m[2]) };
+  }
+  // parse comma-separated argument list into JS values
+  function parseArgs(s) {
+    const args = []; let buf = '', depth = 0, inStr = false;
+    const push = () => { const t = buf.trim(); if (t !== '' || depth === 0) args.push(parseToken(t)); buf = ''; };
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      if (inStr) { buf += ch; if (ch === "'") { if (s[i+1] === "'") buf += s[++i]; else inStr = false; } continue; }
+      if (ch === "'") { inStr = true; buf += ch; continue; }
+      if (ch === '(') { if (depth === 0 && buf.trim() === '') { /* list start */ } depth++; buf += ch; continue; }
+      if (ch === ')') { depth--; buf += ch; continue; }
+      if (ch === ',' && depth === 0) { args.push(parseToken(buf.trim())); buf = ''; continue; }
+      buf += ch;
+    }
+    if (buf.trim() !== '' || s.trim() !== '') args.push(parseToken(buf.trim()));
+    return args.filter(a => a !== undefined);
+  }
+  function parseToken(t) {
+    if (t === '' ) return undefined;
+    if (t[0] === '(') { return parseArgs(t.slice(1, t.lastIndexOf(')'))); } // nested list
+    if (t[0] === '#') return { ref: +t.slice(1) };
+    if (t[0] === "'") return { str: t.slice(1, -1).replace(/''/g, "'") };
+    if (t[0] === '.') return { enum: t.replace(/\./g, '') };
+    if (t === '$') return null;
+    if (t === '*') return { derived: true };
+    const num = Number(t);
+    if (!isNaN(num)) return num;
+    // could be a typed value like LENGTH_MEASURE(1.0) — try parse
+    const tm = t.match(/^([A-Za-z0-9_]+)\s*\(([\s\S]*)\)$/);
+    if (tm) return { type: tm[1].toUpperCase(), args: parseArgs(tm[2]) };
+    return { raw: t };
+  }
+
+  /* --- resolve helpers --- */
+  function extractCenterline(entities, opts) {
+    opts = opts || {};
+    const get = (r) => (r && r.ref != null) ? entities.get(r.ref) : null;
+    const isType = (e, t) => e && (e.type === t || (e.complex && e.complex.some(c => c.type === t)));
+    const findComplex = (e, t) => e && e.complex ? e.complex.find(c => c.type === t) : (e && e.type === t ? e : null);
+
+    function point(r) {
+      const e = get(r); if (!e) return null;
+      const cp = findComplex(e, 'CARTESIAN_POINT'); if (!cp) return null;
+      const co = cp.args.find(a => Array.isArray(a));
+      return co ? [co[0], co[1] || 0, co[2] || 0] : null;
+    }
+    function dir(r) {
+      const e = get(r); if (!e) return null;
+      const dd = findComplex(e, 'DIRECTION'); if (!dd) return null;
+      const co = dd.args.find(a => Array.isArray(a));
+      return co ? V.norm([co[0], co[1] || 0, co[2] || 0]) : null;
+    }
+    function placement(r) {
+      const e = get(r); if (!e) return null;
+      const p = findComplex(e, 'AXIS2_PLACEMENT_3D') || findComplex(e, 'AXIS1_PLACEMENT');
+      if (!p) return null;
+      const loc = point(p.args[1]);
+      const axis = p.args[2] ? dir(p.args[2]) : [0,0,1];
+      const ref = p.args[3] ? dir(p.args[3]) : null;
+      return { loc, axis: axis || [0,0,1], ref };
+    }
+
+    // Evaluate a curve entity to an array of points. steps ~ sampling density.
+    function evalCurve(r, steps) {
+      const e = get(r); if (!e) return null;
+      const t = e.type || (e.complex && e.complex[0] && 'COMPLEX');
+      if (isType(e, 'B_SPLINE_CURVE_WITH_KNOTS') || isType(e, 'RATIONAL_B_SPLINE_CURVE') || isType(e, 'B_SPLINE_CURVE'))
+        return evalBSpline(e, steps);
+      if (isType(e, 'POLYLINE')) return evalPolyline(e);
+      if (isType(e, 'CIRCLE')) return evalConic(e, 'CIRCLE', 0, 2*Math.PI, steps);
+      if (isType(e, 'ELLIPSE')) return evalConic(e, 'ELLIPSE', 0, 2*Math.PI, steps);
+      if (isType(e, 'LINE')) return null; // needs trimming; handled by trimmed/edge
+      if (isType(e, 'TRIMMED_CURVE')) return evalTrimmed(e, steps);
+      if (isType(e, 'COMPOSITE_CURVE')) return evalComposite(e, steps);
+      if (isType(e, 'EDGE_CURVE')) return evalEdge(e, steps);
+      if (isType(e, 'B_SPLINE_CURVE_WITH_KNOTS_AND_RATIONAL_B_SPLINE_CURVE')) return evalBSpline(e, steps);
+      return null;
+    }
+
+    function evalPolyline(e) {
+      const pl = findComplex(e, 'POLYLINE');
+      const list = pl.args.find(a => Array.isArray(a));
+      return list.map(point).filter(Boolean);
+    }
+
+    function evalBSpline(e, steps) {
+      const isComplex = !!e.complex;
+      let degree, ctrlRefs, mults, knots, weights = null;
+      if (isComplex) {
+        // sub-records have NO name field
+        const bc = findComplex(e, 'B_SPLINE_CURVE');
+        const wk = findComplex(e, 'B_SPLINE_CURVE_WITH_KNOTS');
+        const rat = findComplex(e, 'RATIONAL_B_SPLINE_CURVE');
+        degree = bc.args[0];
+        ctrlRefs = bc.args[1];
+        if (wk) { mults = wk.args[0]; knots = wk.args[1]; }
+        if (rat) { const wl = rat.args.find(a => Array.isArray(a)); if (wl) weights = wl.slice(); }
+      } else {
+        // simple B_SPLINE_CURVE_WITH_KNOTS(name, degree, ctrl, form, closed, selfint, mults, knots, spec)
+        const a = e.args;
+        degree = a[1];
+        ctrlRefs = a[2];
+        // remaining arrays are mults (ints) then knots (floats)
+        const arrays = a.slice(3).filter(x => Array.isArray(x));
+        mults = arrays[0];
+        knots = arrays[1];
+      }
+      if (!Array.isArray(ctrlRefs) || !mults || !knots) return null;
+      const ctrl = ctrlRefs.map(point).filter(Boolean);
+      // expand knot vector
+      const U = [];
+      for (let i = 0; i < knots.length; i++) for (let k = 0; k < mults[i]; k++) U.push(knots[i]);
+      const p = degree, n = ctrl.length - 1;
+      const u0 = U[p], u1 = U[n + 1];
+      const out = [];
+      const M = Math.max(steps, ctrl.length * 6);
+      for (let s = 0; s <= M; s++) {
+        const u = u0 + (u1 - u0) * s / M;
+        out.push(deBoor(u, p, U, ctrl, weights, n));
+      }
+      return out;
+    }
+    function deBoor(u, p, U, P, W, n) {
+      // find span
+      let k = p;
+      if (u >= U[n + 1]) k = n; else { while (k < n && u >= U[k + 1]) k++; }
+      const d = [];
+      for (let j = 0; j <= p; j++) {
+        const idx = k - p + j;
+        const w = W ? W[idx] : 1;
+        d[j] = [P[idx][0]*w, P[idx][1]*w, P[idx][2]*w, w];
+      }
+      for (let r = 1; r <= p; r++) {
+        for (let j = p; j >= r; j--) {
+          const i = k - p + j;
+          const den = (U[i + p - r + 1] - U[i]) || 1e-12;
+          const a = (u - U[i]) / den;
+          for (let c = 0; c < 4; c++) d[j][c] = (1 - a) * d[j - 1][c] + a * d[j][c];
+        }
+      }
+      const res = d[p];
+      const w = res[3] || 1;
+      return [res[0]/w, res[1]/w, res[2]/w];
+    }
+
+    function evalConic(e, kind, t0, t1, steps) {
+      const c = findComplex(e, kind);
+      const pl = placement(c.args[1]);
+      const nums = c.args.filter(a => typeof a === 'number');
+      const R1 = nums[0], R2 = (kind === 'ELLIPSE') ? nums[1] : nums[0];
+      const z = pl.axis, x = pl.ref || anyPerp(z), y = V.cross(z, x);
+      const out = [];
+      const M = Math.max(steps, 24);
+      for (let s = 0; s <= M; s++) {
+        const t = t0 + (t1 - t0) * s / M;
+        out.push(V.add(pl.loc, V.add(V.scale(x, R1*Math.cos(t)), V.scale(y, R2*Math.sin(t)))));
+      }
+      return out;
+    }
+
+    function evalTrimmed(e, steps) {
+      const tc = findComplex(e, 'TRIMMED_CURVE');
+      const baseRef = tc.args[0];
+      const trim1 = tc.args[1], trim2 = tc.args[2];
+      const senseAgree = tc.args.find(a => a && a.enum === 'T') ? true : true;
+      const param = tc.args.find(a => a && a.enum && (a.enum === 'PARAMETER' || a.enum === 'CARTESIAN' || a.enum === 'UNSPECIFIED'));
+      const baseE = get(baseRef);
+      // if base is a conic and we have param trims, sample between them
+      const getTrimVal = (tl) => {
+        if (!Array.isArray(tl)) tl = [tl];
+        for (const it of tl) { if (typeof it === 'number') return { p: it }; if (it && it.type === 'PARAMETER_VALUE') return { p: it.args[0] }; if (it && it.ref != null) return { pt: point(it) }; }
+        return {};
+      };
+      const a = getTrimVal(trim1), b = getTrimVal(trim2);
+      if (baseE && (isType(baseE, 'CIRCLE') || isType(baseE, 'ELLIPSE'))) {
+        const kind = isType(baseE, 'CIRCLE') ? 'CIRCLE' : 'ELLIPSE';
+        const c = findComplex(baseE, kind);
+        const pl = placement(c.args[1]);
+        const z = pl.axis, x = pl.ref || anyPerp(z), y = V.cross(z, x);
+        const angOf = (v) => { const d = V.sub(v.pt || pl.loc, pl.loc); return Math.atan2(V.dot(d, y), V.dot(d, x)); };
+        let t0 = a.p != null ? a.p * Math.PI/180 : angOf(a);
+        let t1 = b.p != null ? b.p * Math.PI/180 : angOf(b);
+        // note: STEP circle trim params in radians typically; many exporters use radians. Use as-is if look like radians
+        if (a.p != null && Math.abs(a.p) <= 2*Math.PI + 0.01 && Math.abs(b.p) <= 2*Math.PI + 0.01) { t0 = a.p; t1 = b.p; }
+        if (t1 < t0) t1 += 2*Math.PI;
+        return evalConic(baseE, kind, t0, t1, steps);
+      }
+      if (baseE && isType(baseE, 'LINE')) {
+        const ln = findComplex(baseE, 'LINE');
+        const p0 = point(ln.args[0]);
+        const pa = a.pt || p0, pb = b.pt || p0;
+        const out = []; const M = 2;
+        for (let s = 0; s <= M; s++) out.push(V.lerp(pa, pb, s/M));
+        return out;
+      }
+      // fallback: eval base ignoring trim
+      return evalCurve(baseRef, steps);
+    }
+
+    function evalComposite(e, steps) {
+      const cc = findComplex(e, 'COMPOSITE_CURVE');
+      const segs = cc.args.find(a => Array.isArray(a)) || [];
+      let poly = [];
+      for (const segRef of segs) {
+        const seg = get(segRef);
+        const s = findComplex(seg, 'COMPOSITE_CURVE_SEGMENT');
+        if (!s) continue;
+        const parentRef = s.args.find(a => a && a.ref != null);
+        let pts = evalCurve(parentRef, steps);
+        if (!pts) continue;
+        if (poly.length && pts.length) {
+          // orient continuity: connect nearest end
+          const last = poly[poly.length - 1];
+          const d0 = V.dist(last, pts[0]), d1 = V.dist(last, pts[pts.length - 1]);
+          if (d1 < d0) pts = pts.slice().reverse();
+          pts = pts.slice(1);
+        }
+        poly = poly.concat(pts);
+      }
+      return poly.length ? poly : null;
+    }
+
+    function evalEdge(e, steps) {
+      const ec = findComplex(e, 'EDGE_CURVE');
+      const geomRef = ec.args.find((a, i) => i >= 2 && a && a.ref != null);
+      return evalCurve(geomRef, steps);
+    }
+
+    // Strategy: gather candidate curves in priority order.
+    const steps = opts.steps || 400;
+
+    // COLLECT mode: return ALL separate wires (for the 2-curves trajectory mode)
+    if (opts.collect) {
+      const vtxPoint = (vid) => {
+        const v = entities.get(vid); if (!v) return null;
+        const vp = findComplex(v, 'VERTEX_POINT'); if (!vp) return null;
+        return point(vp.args.find(a => a && a.ref != null));
+      };
+      const edgePts = (e, refs) => {
+        const g = get(refs[2]); if (!g) return null;
+        const v1 = refs[0] ? vtxPoint(refs[0].ref) : null;
+        const v2 = refs[1] ? vtxPoint(refs[1].ref) : null;
+        if (isType(g, 'LINE')) return (v1 && v2) ? [v1, v2] : null;
+        if ((isType(g, 'CIRCLE') || isType(g, 'ELLIPSE')) && v1 && v2) {
+          const kind = isType(g, 'CIRCLE') ? 'CIRCLE' : 'ELLIPSE';
+          const c = findComplex(g, kind); const pl = placement(c.args[1]);
+          if (pl) {
+            const x = pl.ref || anyPerp(pl.axis), y = V.cross(pl.axis, x);
+            const ang = p => Math.atan2(V.dot(V.sub(p, pl.loc), y), V.dot(V.sub(p, pl.loc), x));
+            let a1 = ang(v1), a2 = ang(v2);
+            const ecx = findComplex(e, 'EDGE_CURVE');
+            const senseArg = ecx.args.find(a => a && a.enum);
+            const sense = !senseArg || senseArg.enum === 'T';
+            if (sense) { if (a2 <= a1 + 1e-6) a2 += 2*Math.PI; } else { if (a2 >= a1 - 1e-6) a2 -= 2*Math.PI; }
+            return evalConic(g, kind, a1, a2, Math.max(32, steps/3));
+          }
+        }
+        let pts = evalCurve(refs[2], steps);                      // spline / other
+        if (pts && pts.length >= 2 && v1 && v2 && V.dist(pts[0], v1) > V.dist(pts[0], v2)) pts = pts.slice().reverse();
+        return pts;
+      };
+      const edges = [];
+      for (const [, e] of entities) {
+        if (!isType(e, 'EDGE_CURVE')) continue;
+        const ec = findComplex(e, 'EDGE_CURVE');
+        const refs = ec.args.filter(a => a && a.ref != null);      // [v1, v2, geometry]
+        if (refs.length < 3) continue;
+        const pts = edgePts(e, refs);
+        if (pts && pts.length >= 2) edges.push({ v1: refs[0] && refs[0].ref, v2: refs[1] && refs[1].ref, pts });
+      }
+      let wires = [];
+      if (edges.length) {
+        const byV = new Map();
+        edges.forEach((e, i) => [e.v1, e.v2].forEach(v => { if (v == null) return; if (!byV.has(v)) byV.set(v, []); byV.get(v).push(i); }));
+        const used = new Set();
+        for (let i = 0; i < edges.length; i++) {
+          if (used.has(i)) continue;
+          const comp = [], stack = [i];
+          while (stack.length) {
+            const k = stack.pop(); if (used.has(k)) continue; used.add(k); comp.push(edges[k]);
+            [edges[k].v1, edges[k].v2].forEach(v => { if (v == null) return; (byV.get(v) || []).forEach(j => { if (!used.has(j)) stack.push(j); }); });
+          }
+          wires.push(chainEdges(comp));
+        }
+      }
+      if (wires.length < 2) {   // fall back to top-level standalone curves
+        const types = ['B_SPLINE_CURVE_WITH_KNOTS', 'B_SPLINE_CURVE', 'CIRCLE', 'ELLIPSE', 'TRIMMED_CURVE', 'POLYLINE', 'COMPOSITE_CURVE'];
+        for (const [id, e] of entities) {
+          if (!types.some(t => isType(e, t))) continue;
+          const pts = evalCurve({ ref: id }, steps);
+          if (pts && pts.length >= 2) wires.push(pts);
+        }
+      }
+      wires = wires.filter(w => w && w.length >= 2 && polylineLength(w) > 1e-6)
+                   .map(w => dedupePolyline(w));
+      wires.sort((a, b) => polylineLength(b) - polylineLength(a));
+      return wires;
+    }
+
+    const priority = ['COMPOSITE_CURVE', 'B_SPLINE_CURVE_WITH_KNOTS', 'B_SPLINE_CURVE', 'TRIMMED_CURVE', 'CIRCLE', 'ELLIPSE', 'POLYLINE'];
+    // 1) top-level named curves
+    for (const wanted of priority) {
+      for (const [id, e] of entities) {
+        if (isType(e, wanted)) {
+          const pts = evalCurve({ ref: id }, steps);
+          if (pts && pts.length >= 2) return dedupePolyline(pts);
+        }
+      }
+    }
+    // 2) EDGE_CURVE chain (open wire)
+    const edges = [];
+    for (const [id, e] of entities) {
+      if (isType(e, 'EDGE_CURVE')) {
+        const ec = findComplex(e, 'EDGE_CURVE');
+        const v1 = ec.args[0], v2 = ec.args[1];
+        const pts = evalEdge(e, steps);
+        if (pts && pts.length >= 2) edges.push({ id, v1: v1 && v1.ref, v2: v2 && v2.ref, pts });
+      }
+    }
+    if (edges.length) {
+      const chained = chainEdges(edges);
+      if (chained && chained.length >= 2) return dedupePolyline(chained);
+    }
+    // 3) last resort: all CARTESIAN_POINTs in file order
+    const pts = [];
+    for (const [id, e] of entities) if (isType(e, 'CARTESIAN_POINT')) { const p = point({ ref: id }); if (p) pts.push(p); }
+    if (pts.length >= 2) return { points: dedupePolyline(pts), warn: 'Nessuna curva riconosciuta: uso i CARTESIAN_POINT in ordine di file (verifica la sequenza).' };
+    return null;
+  }
+
+  /* Extract two straight line segments from a STEP (for the 2-lines trajectory
+     mode). Looks for straight EDGE_CURVEs (LINE geometry) with vertices, then
+     falls back to TRIMMED_CURVE on LINE, then 2-point POLYLINEs. Returns the
+     two longest segments. */
+  function extractLines(entities) {
+    const isType = (e,t) => e && (e.type===t || (e.complex && e.complex.some(c=>c.type===t)));
+    const findC  = (e,t) => e && e.complex ? e.complex.find(c=>c.type===t) : (e && e.type===t ? e : null);
+    const get = r => (r && r.ref != null) ? entities.get(r.ref) : null;
+    const ptOf = r => {
+      const e = get(r); if (!e) return null;
+      const cp = findC(e,'CARTESIAN_POINT'); if (!cp) return null;
+      const co = cp.args.find(a => Array.isArray(a));
+      return co ? [ +co[0], +co[1], +(co[2]||0) ] : null;
+    };
+    const vtxPt = vref => {
+      const v = get(vref); if (!v) return null;
+      const vp = findC(v,'VERTEX_POINT'); if (!vp) return null;
+      return ptOf(vp.args.find(a => a && a.ref != null));
+    };
+    const segs = [];
+    for (const [, e] of entities) {
+      if (!isType(e,'EDGE_CURVE')) continue;
+      const ec = findC(e,'EDGE_CURVE');
+      const refs = ec.args.filter(a => a && a.ref != null);   // [v1, v2, geometry]
+      if (refs.length < 3) continue;
+      const g = get(refs[2]);
+      if (!g || !isType(g,'LINE')) continue;                  // straight edges only
+      const p1 = vtxPt(refs[0]), p2 = vtxPt(refs[1]);
+      if (p1 && p2 && V.dist(p1,p2) > 1e-6) segs.push([p1,p2]);
+    }
+    if (segs.length < 2) {                               // TRIMMED_CURVE on LINE
+      for (const [, e] of entities) {
+        const tc = findC(e,'TRIMMED_CURVE'); if (!tc) continue;
+        const base = get(tc.args[0]); if (!base || !isType(base,'LINE')) continue;
+        const tp = [];
+        for (const t of [tc.args[1], tc.args[2]]) if (Array.isArray(t)) for (const x of t) { const p = ptOf(x); if (p) tp.push(p); }
+        if (tp.length >= 2 && V.dist(tp[0],tp[1]) > 1e-6) segs.push([tp[0],tp[1]]);
+      }
+    }
+    if (segs.length < 2) {                               // 2-point POLYLINEs
+      for (const [, e] of entities) {
+        const pl = findC(e,'POLYLINE'); if (!pl) continue;
+        const list = pl.args.find(a => Array.isArray(a));
+        if (!list || list.length !== 2) continue;
+        const p1 = ptOf(list[0]), p2 = ptOf(list[1]);
+        if (p1 && p2 && V.dist(p1,p2) > 1e-6) segs.push([p1,p2]);
+      }
+    }
+    if (segs.length < 2) return null;
+    segs.sort((a,b) => V.dist(b[0],b[1]) - V.dist(a[0],a[1]));
+    return { line1: segs[0], line2: segs[1], count: segs.length };
+  }
+
+  /* Extract two CURVES (any geometry: arcs, splines, lines) from a STEP as
+     sampled polylines, for the 2-curves trajectory mode. Returns the two
+     longest separate wires. */
+  function extractCurves(entities, opts) {
+    opts = opts || {};
+    const wires = extractCenterline(entities, { collect: true, steps: opts.steps || 200 });
+    if (!Array.isArray(wires) || wires.length < 2) return null;
+    return { curve1: wires[0], curve2: wires[1], count: wires.length };
+  }
+
+  function chainEdges(edges) {
+    // build vertex adjacency
+    const byV = new Map();
+    edges.forEach((e, i) => {
+      [e.v1, e.v2].forEach(v => { if (v == null) return; if (!byV.has(v)) byV.set(v, []); byV.get(v).push(i); });
+    });
+    // find an endpoint (vertex used once)
+    let start = null;
+    for (const [v, arr] of byV) if (arr.length === 1) { start = { edge: arr[0], v }; break; }
+    if (!start) start = { edge: 0, v: edges[0].v1 };
+    const used = new Set();
+    let poly = [];
+    let curV = start.v, curE = start.edge;
+    while (curE != null && !used.has(curE)) {
+      used.add(curE);
+      const e = edges[curE];
+      let pts = e.pts.slice();
+      if (e.v1 !== curV && e.v2 === curV) pts = pts.reverse();
+      else if (e.v1 == null && e.v2 == null && poly.length) {
+        const last = poly[poly.length - 1];
+        if (V.dist(last, pts[pts.length-1]) < V.dist(last, pts[0])) pts = pts.reverse();
+      }
+      if (poly.length) pts = pts.slice(1);
+      poly = poly.concat(pts);
+      const nextV = (e.v1 === curV) ? e.v2 : e.v1;
+      curV = nextV;
+      const cand = (byV.get(curV) || []).find(i => !used.has(i));
+      curE = cand;
+    }
+    // append any leftover edges by proximity
+    for (let i = 0; i < edges.length; i++) if (!used.has(i)) {
+      const e = edges[i]; let pts = e.pts.slice();
+      if (poly.length && V.dist(poly[poly.length-1], pts[pts.length-1]) < V.dist(poly[poly.length-1], pts[0])) pts = pts.reverse();
+      poly = poly.concat(poly.length ? pts.slice(1) : pts);
+      used.add(i);
+    }
+    return poly;
+  }
+
+  function dedupePolyline(pts, tol) {
+    tol = tol || 1e-7;
+    const out = [];
+    for (const p of pts) { if (!out.length || V.dist(out[out.length-1], p) > tol) out.push(p); }
+    return out;
+  }
+
+  /* ============================================================
+   * CENTERLINE UTILITIES
+   * ============================================================ */
+  function polylineLength(pts) {
+    let L = 0; for (let i = 1; i < pts.length; i++) L += V.dist(pts[i-1], pts[i]); return L;
+  }
+  // resample to exactly `count` points by arc length
+  function resample(pts, count) {
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i-1] + V.dist(pts[i-1], pts[i]));
+    const L = cum[cum.length - 1];
+    if (L === 0) return pts.slice(0, count);
+    const out = [];
+    for (let k = 0; k < count; k++) {
+      const s = (L * k) / (count - 1);
+      let i = 1; while (i < cum.length - 1 && cum[i] < s) i++;
+      const t = (s - cum[i-1]) / ((cum[i] - cum[i-1]) || 1);
+      out.push(V.lerp(pts[i-1], pts[i], t));
+    }
+    return out;
+  }
+  function minRadius(nodes) {
+    // approximate min curvature radius from node turn angles & spacing
+    let rmin = Infinity;
+    for (let i = 1; i < nodes.length - 1; i++) {
+      const a = V.norm(V.sub(nodes[i], nodes[i-1]));
+      const b = V.norm(V.sub(nodes[i+1], nodes[i]));
+      const ang = Math.acos(Math.max(-1, Math.min(1, V.dot(a, b))));
+      const seg = (V.dist(nodes[i-1], nodes[i]) + V.dist(nodes[i], nodes[i+1])) / 2;
+      if (ang > 1e-6) rmin = Math.min(rmin, seg / (2 * Math.tan(ang / 2)));
+    }
+    return rmin;
+  }
+
+  /* ============================================================
+   * BIARC TRAJECTORY  (curve from two lines / tangent conditions)
+   * Equal-chord biarc: G1 for any tangent length d -> 1-param family.
+   * Each arc is constant-radius, ideal for uniform pie-cut spicchi.
+   * ============================================================ */
+
+  // circular arc from P (unit tangent T) to endpoint Q: geometry + sampler
+  function arcFromTangent(P, T, Q) {
+    const chord = V.sub(Q, P);
+    const c = V.len(chord);
+    if (c < 1e-9) return { straight: true, R: Infinity, turn: 0, pts: (n) => [P.slice()] };
+    const cd = V.scale(chord, 1 / c);
+    let cosf = Math.max(-1, Math.min(1, V.dot(T, cd)));
+    const phi = Math.acos(cosf);                       // half of total turn
+    if (phi < 1e-6 || Math.abs(phi - Math.PI) < 1e-6) {
+      return { straight: true, R: Infinity, turn: 0, center: null,
+               pts: (n) => { const o = []; for (let k = 0; k <= n; k++) o.push(V.lerp(P, Q, k/n)); return o; } };
+    }
+    let n = V.cross(T, cd);
+    if (V.len(n) < 1e-9) n = anyPerp(T);
+    n = V.norm(n);
+    const R = c / (2 * Math.sin(phi));
+    const turn = 2 * phi;                              // total swept angle
+    // center: perpendicular to T, in-plane, toward concave side
+    let perp = V.norm(V.cross(n, T));
+    let center = V.add(P, V.scale(perp, R));
+    if (Math.abs(V.dist(center, Q) - R) > 1e-6 * R) center = V.add(P, V.scale(perp, -R));
+    const r0 = V.sub(P, center);
+    const sampler = (m) => {
+      const o = [];
+      for (let k = 0; k <= m; k++) o.push(V.add(center, rodrigues(r0, n, turn * k / m)));
+      return o;
+    };
+    return { straight: false, R, turn, center, n, pts: sampler };
+  }
+
+  /* True C1 biarc from (P0,T0) to (P1,T1), parametrized by the start tangent
+     length d0. The end tangent length d1 is DERIVED so the two arcs share their
+     tangent at the joint (the old midpoint construction was only C1 when
+     |AB|=2d, which left a curvature spike at the joint for a general d). */
+  function biarc(P0, T0, P1, T1, d0) {
+    T0 = V.norm(T0); T1 = V.norm(T1);
+    const t = V.sub(P1, P0);
+    const tt = V.dot(t, t), tT0 = V.dot(t, T0), tT1 = V.dot(t, T1), T01 = V.dot(T0, T1);
+    const denom = -2 * tT1 - 2 * d0 * (1 - T01);
+    const d1 = Math.abs(denom) < 1e-9 ? -1 : (2 * d0 * tT0 - tt) / denom;   // C1 constraint
+    if (!(d0 > 1e-9) || !(d1 > 1e-9)) {
+      return { J: V.scale(V.add(P0, P1), 0.5), a1: { R: Infinity, turn: 1e9, pts: n => [P0.slice()] },
+               a2: { R: Infinity, turn: 1e9, pts: n => [P1.slice()] }, R1: Infinity, R2: Infinity,
+               turn1: 1e9, turn2: 1e9, d0, d1, ok: false };
+    }
+    const A = V.add(P0, V.scale(T0, d0));
+    const B = V.sub(P1, V.scale(T1, d1));
+    const ab = V.sub(B, A), abl = V.len(ab);
+    const tJ = abl < 1e-9 ? T0 : V.scale(ab, 1 / abl);
+    const J = V.add(A, V.scale(tJ, d0));
+    const a1 = arcFromTangent(P0, T0, J);
+    const a2 = arcFromTangent(J, tJ, P1);
+    return { J, a1, a2, R1: a1.R, R2: a2.R, turn1: a1.turn, turn2: a2.turn, d0, d1, ok: true };
+  }
+
+  // sample a biarc into `segments` nodes distributed by turn angle (uniform ψ)
+  function biarcNodes(ba, segments) {
+    if (!ba.ok) { const o = []; for (let k = 0; k <= segments; k++) o.push(V.lerp(ba.J, ba.J, 0)); return o.length >= 2 ? o : [ba.J.slice(), ba.J.slice()]; }
+    const t1 = ba.turn1, t2 = ba.turn2, tt = t1 + t2 || 1;
+    let n1 = Math.round(segments * t1 / tt);
+    n1 = Math.max(1, Math.min(segments - 1, n1));
+    const n2 = segments - n1;
+    const p1 = ba.a1.pts(n1);              // n1+1 pts
+    const p2 = ba.a2.pts(n2);              // n2+1 pts
+    return p1.concat(p2.slice(1));         // segments+1 pts
+  }
+
+  // cubic Hermite (Bezier) sampler matching P0,T0 -> P1,T1 with handle length h
+  function hermite(P0, T0, P1, T1, h) {
+    const C0 = V.add(P0, V.scale(T0, h)), C1 = V.sub(P1, V.scale(T1, h));
+    return (s) => {
+      const u = 1 - s;
+      return V.add(V.add(V.scale(P0, u*u*u), V.scale(C0, 3*u*u*s)),
+                   V.add(V.scale(C1, 3*u*s*s), V.scale(P1, s*s*s)));
+    };
+  }
+  // min radius of curvature of a sampled polyline (circumradius of triples)
+  function minCurveRadius(pts) {
+    let rmin = Infinity;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const a = V.dist(pts[i-1], pts[i]), b = V.dist(pts[i], pts[i+1]), c = V.dist(pts[i-1], pts[i+1]);
+      const s = (a + b + c) / 2, area = Math.sqrt(Math.max(0, s*(s-a)*(s-b)*(s-c)));
+      if (area < 1e-9) continue;
+      rmin = Math.min(rmin, (a*b*c) / (4*area));
+    }
+    return rmin;
+  }
+
+  // Unit tangent at a curve endpoint, pointing AWAY from the curve body.
+  // Averaged over a short span so noisy sampling near the tip doesn't skew it.
+  function curveEndTangent(curve, atStart) {
+    const n = curve.length;
+    const P = atStart ? curve[0] : curve[n-1];
+    const tol = Math.max(0.5, 0.03 * polylineLength(curve));
+    let q = null;
+    if (atStart) { for (let i = 1; i < n; i++) if (V.dist(curve[i], P) >= tol) { q = curve[i]; break; } if (!q) q = curve[n-1]; }
+    else         { for (let i = n-2; i >= 0; i--) if (V.dist(curve[i], P) >= tol) { q = curve[i]; break; } if (!q) q = curve[0]; }
+    const t = V.sub(P, q);                       // from body toward tip = away from body
+    return V.len(t) > 1e-9 ? V.norm(t) : V.norm(V.sub(curve[n-1], curve[0]));
+  }
+
+  /* Build a trajectory from two loaded curves (or straight segments, which are
+     just 2-point polylines). Connects the NEAREST pair of endpoints and stays
+     TANGENT to each curve there. Auto-optimizes the tangent length/handle to
+     MAXIMIZE the minimum radius (widest, most feasible bends, more material on
+     every spicchio). Planar corner -> constant-radius biarc; skew 3D -> spline. */
+  function biarcFromLines(curve1, curve2, segments, opts) {
+    opts = opts || {};
+    const c1 = curve1, c2 = curve2;
+    const n1 = c1.length, n2 = c2.length;
+    const endsA = [ { P: c1[0], start: true }, { P: c1[n1-1], start: false } ];
+    const endsB = [ { P: c2[0], start: true }, { P: c2[n2-1], start: false } ];
+    let sel = null;
+    for (const a of endsA) for (const b of endsB) { const g = V.dist(a.P, b.P); if (!sel || g < sel.g) sel = { a, b, g }; }
+    const P0 = sel.a.P.slice(), P1 = sel.b.P.slice();
+    const gapDir = V.sub(P1, P0);
+    // tangent LINES at each connection point (collinear with the curve); orient
+    // both in the P0->P1 sense so the trajectory continues each curve smoothly
+    // regardless of the STEP edge sense.
+    let d0 = curveEndTangent(c1, sel.a.start);
+    let d1 = curveEndTangent(c2, sel.b.start);
+    const s0 = V.dot(d0, gapDir), s1 = V.dot(d1, gapDir);
+    const T0 = V.scale(d0, s0 < 0 ? -1 : 1);   // leaves curve1 toward the gap
+    const T1 = V.scale(d1, s1 < 0 ? -1 : 1);   // enters curve2 going forward
+
+    const chord = Math.max(1e-6, V.dist(P0, P1));
+    // coplanarity + a genuine corner (tangents converging) -> constant-radius biarc.
+    const cd = V.norm(V.sub(P1, P0));
+    const triple = Math.abs(V.dot(V.cross(T0, T1), cd));
+    const bend = V.dot(T0, T1);                 // ~1 = parallel (S-step), <0.85 = real corner
+    const useBiarc = (triple < 0.02) && (bend < 0.85);
+
+    if (useBiarc) {
+      const Rout = opts.Rout || 0;
+      const alpha = Math.max(0, opts.alpha || 0);   // radians: end-tangency relaxation budget
+      const dMin = 0.05 * chord, dMax = 1.6 * chord;
+      const clamp = x => Math.max(-1, Math.min(1, x));
+
+      // biarc plane normal, and the chord-ward rotation sign for each end tangent
+      let nPlane = V.cross(T0, cd);
+      if (V.len(nPlane) < 1e-9) nPlane = V.cross(T1, cd);
+      if (V.len(nPlane) < 1e-9) nPlane = anyPerp(cd);
+      nPlane = V.norm(nPlane);
+      const signedAng = (u, v) => Math.atan2(V.dot(V.cross(u, v), nPlane), V.dot(u, v));
+      const sgn0 = signedAng(T0, cd) >= 0 ? 1 : -1;   // rotate T0 toward the chord
+      const sgn1 = signedAng(T1, cd) >= 0 ? 1 : -1;   // rotate T1 toward the chord
+
+      const scoreD = (t0, t1, d) => {
+        const ba = biarc(P0, t0, P1, t1, d);
+        if (ba.turn1 > Math.PI + 1e-3 || ba.turn2 > Math.PI + 1e-3) return { s: -1e18, ba };
+        const r1 = isFinite(ba.R1) ? ba.R1 : 1e6, r2 = isFinite(ba.R2) ? ba.R2 : 1e6;
+        const rmin = Math.min(r1, r2);
+        const cap = Rout > 0 ? 3 * Rout : rmin;                 // stop rewarding once spicchi are thick
+        return { s: Math.min(rmin, cap) - 0.02 * (ba.turn1 + ba.turn2) * chord, ba, rmin };
+      };
+      const bestDfor = (t0, t1) => {                            // optimize tangent length d
+        let best = { d: dMin, s: -1e18 };
+        for (let i = 0; i <= 60; i++) { const d = dMin + (dMax-dMin)*i/60; const r = scoreD(t0,t1,d); if (r.s > best.s) best = { d, s: r.s }; }
+        let lo = Math.max(dMin, best.d-(dMax-dMin)/60), hi = Math.min(dMax, best.d+(dMax-dMin)/60);
+        for (let it = 0; it < 30; it++) { const m1 = lo+(hi-lo)/3, m2 = hi-(hi-lo)/3; if (scoreD(t0,t1,m1).s < scoreD(t0,t1,m2).s) lo = m1; else hi = m2; }
+        const d = (lo+hi)/2; return Object.assign({ d }, scoreD(t0, t1, d));
+      };
+
+      let T0b = T0, T1b = T1, dBest, bestRes;
+      if (alpha <= 1e-6) {
+        bestRes = bestDfor(T0, T1);
+        dBest = bestRes.d;
+      } else {
+        /* Search θ0,θ1 in [0,α] (chord-ward only: rotating away always costs radius).
+           Because the search set grows with α, max min-radius is monotonic in α, so
+           the slider never makes the curve worse. We trade tangency for radius. */
+        const G = 6; bestRes = { s: -1e18 };
+        for (let i = 0; i <= G; i++) for (let j = 0; j <= G; j++) {
+          const t0 = V.norm(rodrigues(T0, nPlane, sgn0 * alpha * i / G));
+          const t1 = V.norm(rodrigues(T1, nPlane, sgn1 * alpha * j / G));
+          const res = bestDfor(t0, t1);
+          if (res.s > bestRes.s) { bestRes = res; T0b = t0; T1b = t1; dBest = res.d; }
+        }
+      }
+
+      // valid d0 interval (both arcs real, no loops) for the chosen tangents; this
+      // is what the "ampiezza" slider is allowed to sweep. A manual d outside it
+      // (or that yields a degenerate biarc) falls back to the optimal d0.
+      let dLo = null, dHi = null;
+      for (let i = 0; i <= 200; i++) {
+        const d0 = dMin + (dMax - dMin) * i / 200;
+        const b = biarc(P0, T0b, P1, T1b, d0);
+        if (b.ok && b.turn1 <= Math.PI + 1e-3 && b.turn2 <= Math.PI + 1e-3) { if (dLo == null) dLo = d0; dHi = d0; }
+      }
+      if (dLo == null) { dLo = dMin; dHi = dMax; }
+      if (alpha <= 1e-6 && opts.d != null) {
+        const dc = Math.max(dLo, Math.min(dHi, opts.d));
+        const bc = biarc(P0, T0b, P1, T1b, dc);
+        dBest = (bc.ok && bc.turn1 <= Math.PI + 1e-3 && bc.turn2 <= Math.PI + 1e-3) ? dc : dBest;
+      }
+
+      let ba = biarc(P0, T0b, P1, T1b, dBest);
+      if (!ba.ok) ba = biarc(P0, T0b, P1, T1b, (dLo + dHi) / 2);   // last-resort guard
+      const nodes = biarcNodes(ba, segments);
+      const dense = biarcNodes(ba, Math.max(400, segments * 40));
+      const dev0 = Math.acos(clamp(V.dot(T0b, T0)));            // sacrificed tangency at each end
+      const dev1 = Math.acos(clamp(V.dot(T1b, T1)));
+      return { nodes, dense, mode: 'biarc', planar: true, P0, T0: T0b, P1, T1: T1b, J: ba.J,
+               T0line: T0, T1line: T1, dev0, dev1, alpha,
+               R1: ba.R1, R2: ba.R2, Rmin: Math.min(ba.R1, ba.R2),
+               turn1: ba.turn1, turn2: ba.turn2, d: dBest, dOpt: bestRes.d, dMin: dLo, dMax: dHi, chord };
+    }
+
+    // skew 3D -> cubic spline, optimize handle length for max min-radius.
+    // Tangency relaxation: rotate each end tangent toward the chord (in its own
+    // plane with the chord) by up to alpha, choosing the amount that maximizes the
+    // min curvature radius. Same trade as the planar biarc, extended to 3D.
+    const alpha = Math.max(0, opts.alpha || 0);
+    const clampd = x => Math.max(-1, Math.min(1, x));
+    const towardChord = (Tv, ang) => {
+      if (ang <= 1e-6) return Tv.slice();
+      let ax = V.cross(Tv, cd);
+      if (V.len(ax) < 1e-9) return Tv.slice();           // already collinear with chord
+      ax = V.norm(ax);
+      return V.norm(rodrigues(Tv, ax, ang));             // cross(T,cd) axis rotates T toward cd
+    };
+    const dMin = 0.15 * chord, dMax = 2.0 * chord;
+    const rOfH = (t0, t1, h) => minCurveRadius(sampleN(hermite(P0, t0, P1, t1, h), 120));
+    const bestHfor = (t0, t1) => {
+      let best = { d: dMin, r: -1 };
+      for (let i = 0; i <= 60; i++) { const h = dMin + (dMax-dMin)*i/60; const r = rOfH(t0,t1,h); if (r > best.r) best = { d: h, r }; }
+      let lo = Math.max(dMin, best.d-(dMax-dMin)/60), hi = Math.min(dMax, best.d+(dMax-dMin)/60);
+      for (let it = 0; it < 30; it++) { const m1 = lo+(hi-lo)/3, m2 = hi-(hi-lo)/3; if (rOfH(t0,t1,m1) < rOfH(t0,t1,m2)) lo = m1; else hi = m2; }
+      const d = (lo+hi)/2; return { d, r: rOfH(t0, t1, d) };
+    };
+
+    let T0b = T0, T1b = T1, dRes;
+    if (alpha <= 1e-6 && opts.d != null) {
+      dRes = { d: opts.d, r: rOfH(T0, T1, opts.d) };
+    } else if (alpha <= 1e-6) {
+      dRes = bestHfor(T0, T1);
+    } else {
+      const G = 6; let bestR = -1;
+      for (let i = 0; i <= G; i++) for (let j = 0; j <= G; j++) {
+        const t0 = towardChord(T0, alpha*i/G), t1 = towardChord(T1, alpha*j/G);
+        const res = bestHfor(t0, t1);
+        if (res.r > bestR) { bestR = res.r; T0b = t0; T1b = t1; dRes = res; }
+      }
+    }
+    const d = dRes.d;
+    const curve = hermite(P0, T0b, P1, T1b, d);
+    const dense = sampleN(curve, Math.max(400, segments*40));
+    const nodes = resample(dense, segments + 1);
+    const Rmin = minCurveRadius(dense);
+    const dev0 = Math.acos(clampd(V.dot(T0b, T0))), dev1 = Math.acos(clampd(V.dot(T1b, T1)));
+    return { nodes, dense, mode: 'bezier', planar: false, P0, T0: T0b, P1, T1: T1b,
+             T0line: T0, T1line: T1, dev0, dev1, alpha,
+             R1: Rmin, R2: Rmin, Rmin, d, dOpt: d, dMin, dMax, chord };
+  }
+
+  function sampleN(fn, n) { const o = []; for (let k = 0; k <= n; k++) o.push(fn(k/n)); return o; }
+
+  /* Optimize an ARBITRARY given trajectory the same way as the 2-lines case:
+     take its start/end points and end tangents as boundary conditions and refit
+     the max-min-radius biarc/spline between them, with tangency relaxation `alpha`.
+     Callers pass alpha=0 to keep the original trajectory untouched (handled above
+     in app logic); alpha>0 trades endpoint tangency for larger radius. */
+  function optimizeFromTrajectory(centerline, segments, opts) {
+    const dense = resample(centerline, Math.max(400, segments * 40));
+    const P0 = dense[0].slice(), P1 = dense[dense.length - 1].slice();
+    const chord = Math.max(1e-6, V.dist(P0, P1));
+    const ext = 0.6 * chord;
+    const tBack = curveEndTangent(dense, true);          // away from body at start
+    const tFwd  = curveEndTangent(dense, false);         // away from body at end (= travel dir)
+    // build two short collinear stubs so biarcFromLines derives exactly these ends
+    const line1 = [ V.add(P0, V.scale(tBack, ext)), P0 ];        // travels tBack->P0 (into body)
+    const line2 = [ P1, V.add(P1, V.scale(tFwd, ext)) ];         // travels P1->outward
+    return biarcFromLines(line1, line2, segments, opts);
+  }
+
+  /* ============================================================
+   * PIE-CUT MODEL
+   * segments = number of straight tube pieces (spicchi)
+   * ============================================================ */
+  /* ============================================================
+   * TANGENT (CIRCUMSCRIBED) POLYGON  — true lobster-back topology
+   * Spicchio axes are TANGENT to the centerline; nodes are the
+   * intersections of consecutive tangent lines. Consequences:
+   *   - axis of spicchio 0  == tangent at the exact curve start
+   *   - axis of spicchio N-1 == tangent at the exact curve end
+   *   - outer end faces are PERPENDICULAR to their own axis -> true
+   *     circles of diameter OD (never ellipses), independent of N
+   *   - end spicchi are half-length (classic lobster back)
+   * ============================================================ */
+  function cumArc(pts) {
+    const c = [0];
+    for (let i = 1; i < pts.length; i++) c.push(c[i-1] + V.dist(pts[i-1], pts[i]));
+    return c;
+  }
+  function pointAtArc(pts, cum, s) {
+    const L = cum[cum.length-1];
+    s = Math.max(0, Math.min(L, s));
+    let i = 1; while (i < cum.length - 1 && cum[i] < s) i++;
+    const t = (s - cum[i-1]) / ((cum[i] - cum[i-1]) || 1);
+    return V.lerp(pts[i-1], pts[i], t);
+  }
+  // unit tangent (travel direction) at arc length s, central difference over a window
+  function tangentAtArc(pts, cum, s, win) {
+    const L = cum[cum.length-1];
+    win = Math.max(1e-9, win || 0.01 * L);
+    const a = Math.max(0, s - win), b = Math.min(L, s + win);
+    let t = V.sub(pointAtArc(pts, cum, b), pointAtArc(pts, cum, a));
+    if (V.len(t) < 1e-12) t = V.sub(pts[pts.length-1], pts[0]);
+    return V.norm(t);
+  }
+  /* Min curvature radius of a dense polyline, estimated from how much the tangent
+     rotates over a finite arc-length span h:  R = h / Δθ.
+     The 3-point circumradius is ill-conditioned on resampled polylines (chord
+     noise can halve the estimate); this integral form is stable. */
+  function minCurveRadiusArc(dense, cum) {
+    const L = cum[cum.length - 1];
+    if (!(L > 0) || dense.length < 3) return Infinity;
+    /* Windows must span several polyline chords, otherwise the tangent estimate is
+       quantised to a single chord direction and Δθ measures vertex jumps instead
+       of curvature (which badly underestimates R on coarsely sampled inputs). */
+    const sp = L / (dense.length - 1);
+    const h = Math.max(L / 80, 8 * sp);
+    const win = Math.max(h / 4, 2 * sp);
+    const M = 400;
+    let rmin = Infinity;
+    for (let i = 0; i <= M; i++) {
+      const s = h/2 + Math.max(0, L - h) * i / M;
+      const t0 = tangentAtArc(dense, cum, s - h/2, win);
+      const t1 = tangentAtArc(dense, cum, s + h/2, win);
+      const th = Math.acos(Math.max(-1, Math.min(1, V.dot(t0, t1))));
+      if (th > 1e-6) rmin = Math.min(rmin, h / th);
+    }
+    return rmin;
+  }
+
+  // closest points of two (possibly skew) lines; null if near-parallel
+  function lineClosest(PA, TA, PB, TB) {
+    const w0 = V.sub(PA, PB);
+    const ab = V.dot(TA, TB), d = V.dot(TA, w0), e = V.dot(TB, w0);
+    const den = 1 - ab * ab;
+    if (Math.abs(den) < 1e-9) return null;              // parallel tangents
+    const a = (ab * e - d) / den, b = (e - ab * d) / den;
+    return { CA: V.add(PA, V.scale(TA, a)), CB: V.add(PB, V.scale(TB, b)), a, b };
+  }
+  /* Node construction for the pie-cut polygon.
+
+     Interior: tangent (circumscribed) polygon -> nodes are intersections of
+     consecutive tangent lines, giving uniform wedge angles. Where that is
+     ill-conditioned (inflection points: consecutive tangents near-parallel, the
+     intersection runs to infinity) we fall back to the inscribed node, which is
+     always well behaved.
+
+     ENDS (hard constraint): node 1 always lies on the tangent LINE at the curve
+     start, node N-1 always lies on the tangent LINE at the curve end - by
+     intersection when well conditioned, otherwise by orthogonal projection.
+     Therefore:
+       axes[0]      == tangent at the exact start point   (exactly, any N)
+       axes[N-1]    == tangent at the exact end point     (exactly, any N)
+     and since the outer cut planes use those same axes as normals, the two end
+     faces are perpendicular cuts -> true circles of diameter OD, never ellipses. */
+  function pieCutNodes(dense, N, tStart, tEnd) {
+    if (N < 2) N = 2;
+    const cum = cumArc(dense), L = cum[cum.length - 1];
+    const step = L / (N - 1);
+    const base = resample(dense, N + 1);          // inscribed fallback (robust)
+    const P = [], T = [];
+    for (let k = 0; k < N; k++) {
+      const s = step * k;
+      P.push(pointAtArc(dense, cum, s));
+      T.push(tangentAtArc(dense, cum, s, step / 4));
+    }
+    T[0] = V.norm(tStart.slice());
+    T[N-1] = V.norm(tEnd.slice());
+    const P0 = P[0].slice(), PL = P[N-1].slice();
+    const EPS = 1e-4;
+
+    // exact anchors on the two end tangent lines (used when intersection is bad)
+    const projStart = () => V.add(P0, V.scale(T[0], Math.max(EPS, V.dot(V.sub(base[1], P0), T[0]))));
+    const projEnd   = () => V.sub(PL, V.scale(T[N-1], Math.max(EPS, -V.dot(V.sub(base[N-1], PL), T[N-1]))));
+
+    if (N === 2) {
+      const r = lineClosest(P0, T[0], PL, T[1]);
+      const ok = r && isFinite(r.a) && isFinite(r.b) && r.a > EPS && r.b < -EPS;
+      return [P0, ok ? V.scale(V.add(r.CA, r.CB), 0.5) : base[1], PL];
+    }
+
+    const nodes = [P0];
+    for (let k = 1; k <= N - 1; k++) {
+      const r = lineClosest(P[k-1], T[k-1], P[k], T[k]);
+      /* Accept the tangent-line intersection only when it is well conditioned:
+         it must lie AHEAD of tangent point k-1, BEHIND tangent point k, within
+         ~1.5 steps of both (on a circular arc it sits at ~0.5 step), and the two
+         lines must nearly meet (small skew). This rejects straight runs (lines
+         collinear -> intersection anywhere), inflections (near-parallel -> runaway)
+         and strongly skew tangents. Otherwise we use the inscribed node. */
+      const skew = r ? V.dist(r.CA, r.CB) : Infinity;
+      const ok = r && isFinite(r.a) && isFinite(r.b) &&
+                 r.a > 1e-6 && r.b < -1e-6 &&
+                 r.a <= 1.5 * step && -r.b <= 1.5 * step &&
+                 skew <= 0.15 * step;
+      let node;
+      if (k === 1)            node = ok ? r.CA : projStart();   // always on start tangent line
+      else if (k === N - 1)   node = ok ? r.CB : projEnd();     // always on end tangent line
+      else                    node = ok ? V.scale(V.add(r.CA, r.CB), 0.5) : base[k];
+      // must advance along the curve, else fall back to the inscribed node
+      const adv = V.dot(V.sub(node, nodes[k-1]), T[k-1]);
+      if (!isFinite(adv) || adv <= 1e-7) node = (k === 1) ? projStart() : (k === N-1 ? projEnd() : base[k]);
+      if (V.dist(node, nodes[k-1]) < 1e-7) node = base[k];      // degenerate guard
+      nodes.push(node);
+    }
+    nodes.push(PL);
+    return nodes;
+  }
+
+  function buildModel(centerline, segments, OD, thickness, opts) {
+    opts = opts || {};
+    const Rout = OD / 2;
+    const Rin = Math.max(1e-4, OD / 2 - thickness);
+    const dense = resample(centerline, Math.max(600, segments * 40));
+
+    // End tangents, oriented along the travel direction. opts.tStart/tEnd let the
+    // caller supply the EXACT tangents of the two generating curves (biarc mode).
+    let tStart = opts.tStart ? V.norm(opts.tStart.slice()) : V.scale(curveEndTangent(centerline, true), -1);
+    let tEnd   = opts.tEnd   ? V.norm(opts.tEnd.slice())   : curveEndTangent(centerline, false);
+    /* Orient against the LOCAL direction of travel at each end, never against the
+       start->end chord: on a U-turn that chord is perpendicular to both tangents
+       and its sign is pure numerical noise. */
+    const nd = dense.length, kLoc = Math.max(1, Math.round(nd * 0.02));
+    const dirS = V.sub(dense[kLoc], dense[0]);
+    const dirE = V.sub(dense[nd-1], dense[nd-1-kLoc]);
+    if (V.dot(tStart, dirS) < 0) tStart = V.scale(tStart, -1);
+    if (V.dot(tEnd, dirE) < 0) tEnd = V.scale(tEnd, -1);
+
+    const nodes = (opts.nodes && opts.nodes.length === segments + 1)
+      ? opts.nodes.map(p => p.slice())
+      : pieCutNodes(dense, segments, tStart, tEnd);   // segments+1 nodes
+
+    // segment axes (index 1..segments -> stored 0..segments-1)
+    const axes = [];
+    for (let i = 1; i < nodes.length; i++) axes.push(V.norm(V.sub(nodes[i], nodes[i-1])));
+
+    // plane normal at each node.
+    // ENDPOINTS: normal = the spicchio's OWN axis, which by construction of the
+    // tangent polygon IS the exact trajectory/generating-curve tangent. So the
+    // outer faces are perpendicular cuts -> true circles of diameter OD (psi=0),
+    // invariant to the number of spicchi. Interior joints stay on the bisector.
+    const planeN = [];
+    for (let i = 0; i < nodes.length; i++) {
+      if (i === 0) planeN.push(axes[0].slice());
+      else if (i === nodes.length - 1) planeN.push(axes[axes.length - 1].slice());
+      else planeN.push(V.norm(V.add(axes[i-1], axes[i])));
+    }
+
+    // RMF frame per segment (e1,e2 perpendicular to axis), transported
+    const frames = [];
+    let e1 = anyPerp(axes[0]);
+    let e2 = V.cross(axes[0], e1);
+    frames.push({ e1, e2 });
+    for (let i = 1; i < axes.length; i++) {
+      e1 = V.norm(rotateAtoB(frames[i-1].e1, axes[i-1], axes[i]));
+      e2 = V.norm(rotateAtoB(frames[i-1].e2, axes[i-1], axes[i]));
+      // re-orthogonalize
+      e1 = V.norm(V.sub(e1, V.scale(axes[i], V.dot(e1, axes[i]))));
+      e2 = V.norm(V.cross(axes[i], e1));
+      frames.push({ e1, e2 });
+    }
+
+    // ring point: intersection of ruling(phi) with a cut plane
+    function ringPoint(base, axis, e1, e2, R, planePt, n, phi) {
+      const r = V.add(V.scale(e1, R*Math.cos(phi)), V.scale(e2, R*Math.sin(phi)));
+      const p0 = V.add(base, r);
+      const denom = V.dot(axis, n) || 1e-9;
+      const s = -V.dot(V.sub(p0, planePt), n) / denom;
+      return V.add(p0, V.scale(axis, s));
+    }
+
+    const segs = [];
+    let maxJointAngle = 0;
+    let feasible = true, worstClearRatio = 0, tightCount = 0;
+    for (let i = 0; i < axes.length; i++) {
+      const A0 = nodes[i], A1 = nodes[i+1];
+      const axis = axes[i], f = frames[i];
+      const nStart = planeN[i], nEnd = planeN[i+1];
+      const psiStart = Math.acos(Math.max(-1, Math.min(1, Math.abs(V.dot(axis, nStart)))));
+      const psiEnd = Math.acos(Math.max(-1, Math.min(1, Math.abs(V.dot(axis, nEnd)))));
+      if (i > 0) maxJointAngle = Math.max(maxJointAngle, psiStart * 2);
+      // feasibility: miter cuts must not cross inside the tube
+      const segLen = V.dist(A0, A1);
+      const eaten = Rout * (Math.tan(psiStart) + Math.tan(psiEnd));
+      const ratio = eaten / segLen;               // >=1 => self-intersecting
+      worstClearRatio = Math.max(worstClearRatio, ratio);
+      if (ratio >= 1) { feasible = false; }
+      if (ratio >= 0.85) tightCount++;
+      segs.push({ i, A0, A1, axis, e1: f.e1, e2: f.e2, nStart, nEnd, Rout, Rin, psiStart, psiEnd, segLen, clearRatio: ratio, ringPoint });
+    }
+    /* curveRadius: min curvature radius of the ACTUAL centerline (not of the node
+       polygon, which underestimates it at straight->arc junctions). This is the
+       radius that governs R/D and the cut occupancy = Rout/curveRadius. */
+    const curveRadius = minCurveRadiusArc(dense, cumArc(dense));
+    return { nodes, axes, planeN, frames, segs, Rout, Rin, OD, thickness, segments,
+             length: polylineLength(nodes), minRadius: minRadius(nodes), curveRadius,
+             maxJointAngle, feasible, worstClearRatio, tightCount, centerlineDense: dense,
+             tStart, tEnd };
+  }
+
+  // Build a triangulated mesh (for preview & faceted export) — K facets around.
+  function tessellate(model, K) {
+    K = K || 64;
+    const parts = [];
+    for (const s of model.segs) {
+      const osO = [], oeO = [], isI = [], ieI = [];
+      for (let j = 0; j < K; j++) {
+        const phi = 2 * Math.PI * j / K;
+        osO.push(s.ringPoint(s.A0, s.axis, s.e1, s.e2, s.Rout, s.A0, s.nStart, phi));
+        oeO.push(s.ringPoint(s.A0, s.axis, s.e1, s.e2, s.Rout, s.A1, s.nEnd, phi));
+        isI.push(s.ringPoint(s.A0, s.axis, s.e1, s.e2, s.Rin, s.A0, s.nStart, phi));
+        ieI.push(s.ringPoint(s.A0, s.axis, s.e1, s.e2, s.Rin, s.A1, s.nEnd, phi));
+      }
+      parts.push({ osO, oeO, isI, ieI, K });
+    }
+    return parts;
+  }
+
+  /* ============================================================
+   * STEP WRITER  — shared header/footer + id allocator
+   * ============================================================ */
+  function StepDoc(name) {
+    this.lines = [];
+    this.id = 0;
+    this.name = name || 'PIECUT';
+  }
+  StepDoc.prototype.add = function (body) { const id = ++this.id; this.lines.push('#' + id + '=' + body + ';'); return id; };
+  StepDoc.prototype.P = function (p) { return this.add(`CARTESIAN_POINT('',(${f(p[0])},${f(p[1])},${f(p[2])}))`); };
+  StepDoc.prototype.D = function (d) { return this.add(`DIRECTION('',(${f(d[0])},${f(d[1])},${f(d[2])}))`); };
+  StepDoc.prototype.A2P = function (loc, z, x) {
+    const lp = this.P(loc), zd = this.D(z), xd = this.D(x);
+    return this.add(`AXIS2_PLACEMENT_3D('',#${lp},#${zd},#${xd})`);
+  };
+  function f(x) {
+    if (!isFinite(x)) x = 0;
+    if (Math.abs(x) < 1e-11) x = 0;
+    let s = x.toFixed(9).replace(/0+$/, '').replace(/\.$/, '.0');
+    if (!s.includes('.')) s += '.0';
+    return s;
+  }
+
+  function stepHeader(name) {
+    const ts = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+    return `ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Pie-cut lobster-back tube'),'2;1');
+FILE_NAME('${name}.stp','${ts}',(''),(''),'ROBO PIE-CUT','ROBO PIE-CUT','');
+FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));
+ENDSEC;
+DATA;
+`;
+  }
+  function stepContext(doc) {
+    // units + geometric context
+    const lu = doc.add(`( LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.) )`);
+    const au = doc.add(`( NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.) )`);
+    const su = doc.add(`( NAMED_UNIT(*) SI_UNIT($,.STERADIAN.) SOLID_ANGLE_UNIT() )`);
+    const unc = doc.add(`UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(1.E-05),#${lu},'distance','')`);
+    const ctx = doc.add(`( GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#${unc})) GLOBAL_UNIT_ASSIGNED_CONTEXT((#${lu},#${au},#${su})) REPRESENTATION_CONTEXT('','3D') )`);
+    return ctx;
+  }
+  function stepWrap(doc, ctxId, solidIds, name) {
+    // product / shape wrapper referencing an ABSR with the solids
+    const absr = doc.add(`ADVANCED_BREP_SHAPE_REPRESENTATION('${name}',(${solidIds.map(i=>'#'+i).join(',')}),#${ctxId})`);
+    const appctx = doc.add(`APPLICATION_CONTEXT('automotive design')`);
+    doc.add(`APPLICATION_PROTOCOL_DEFINITION('international standard','automotive_design',2000,#${appctx})`);
+    const prod = doc.add(`PRODUCT('${name}','${name}','',(#${doc.add(`PRODUCT_CONTEXT('',#${appctx},'mechanical')`)}))`);
+    const pdf = doc.add(`PRODUCT_DEFINITION_FORMATION('','',#${prod})`);
+    const pdctx = doc.add(`PRODUCT_DEFINITION_CONTEXT('part definition',#${appctx},'design')`);
+    const pd = doc.add(`PRODUCT_DEFINITION('','',#${pdf},#${pdctx})`);
+    const pds = doc.add(`PRODUCT_DEFINITION_SHAPE('','',#${pd})`);
+    doc.add(`SHAPE_DEFINITION_REPRESENTATION(#${pds},#${absr})`);
+    doc.add(`PRODUCT_RELATED_PRODUCT_CATEGORY('part','',(#${prod}))`);
+    return absr;
+  }
+
+  /* ---- FACETED exporter: planar B-rep, shared edges (robust fallback) ---- */
+  function exportFaceted(model, K, name) {
+    K = K || 48;
+    name = name || 'PIECUT';
+    const doc = new StepDoc(name);
+    const parts = tessellate(model, K);
+    const ctx = stepContext(doc);
+    const solids = [];
+
+    for (const pt of parts) {
+      const { osO, oeO, isI, ieI } = pt;
+      // vertex list for this segment: [outerStart(K), outerEnd(K), innerStart(K), innerEnd(K)]
+      const P = [], vtx = [];
+      const bank = (arr) => arr.map(p => { const id = doc.P(p); P.push(p); vtx.push(doc.add(`VERTEX_POINT('',#${id})`)); return vtx.length - 1; });
+      const OS = bank(osO), OE = bank(oeO), IS = bank(isI), IE = bank(ieI);
+
+      const edgeMap = new Map();  // "min_max" -> {edge, v1}
+      function getOE(i, j) {
+        const key = i < j ? i+'_'+j : j+'_'+i;
+        let e = edgeMap.get(key);
+        if (!e) {
+          const dir = V.norm(V.sub(P[j], P[i]));
+          const line = doc.add(`LINE('',#${doc.P(P[i])},#${doc.add(`VECTOR('',#${doc.D(dir)},1.0)`)})`);
+          const edge = doc.add(`EDGE_CURVE('',#${vtx[i]},#${vtx[j]},#${line},.T.)`);
+          e = { edge, v1: i }; edgeMap.set(key, e);
+        }
+        const forward = (e.v1 === i);
+        return doc.add(`ORIENTED_EDGE('',*,*,#${e.edge},${forward ? '.T.' : '.F.'})`);
+      }
+      function quad(a, b, c, d) {
+        // plane from Newell normal
+        const idx = [a, b, c, d];
+        let nx=0, ny=0, nz=0;
+        for (let k=0;k<4;k++){ const p=P[idx[k]], q=P[idx[(k+1)%4]];
+          nx += (p[1]-q[1])*(p[2]+q[2]); ny += (p[2]-q[2])*(p[0]+q[0]); nz += (p[0]-q[0])*(p[1]+q[1]); }
+        const nrm = V.norm([nx, ny, nz]);
+        const xdir = V.norm(V.sub(P[b], P[a]));
+        const plane = doc.add(`PLANE('',#${doc.A2P(P[a], nrm, xdir)})`);
+        const loop = doc.add(`EDGE_LOOP('',(#${getOE(a,b)},#${getOE(b,c)},#${getOE(c,d)},#${getOE(d,a)}))`);
+        const b1 = doc.add(`FACE_OUTER_BOUND('',#${loop},.T.)`);
+        return doc.add(`ADVANCED_FACE('',(#${b1}),#${plane},.T.)`);
+      }
+
+      const faces = [];
+      for (let j = 0; j < K; j++) {
+        const j2 = (j + 1) % K;
+        faces.push(quad(OS[j], OS[j2], OE[j2], OE[j]));   // outer wall
+        faces.push(quad(IS[j], IE[j], IE[j2], IS[j2]));   // inner wall (reversed winding)
+        faces.push(quad(OS[j], IS[j], IS[j2], OS[j2]));   // start cap
+        faces.push(quad(OE[j], OE[j2], IE[j2], IE[j]));   // end cap
+      }
+      const shell = doc.add(`CLOSED_SHELL('',(${faces.map(i=>'#'+i).join(',')}))`);
+      solids.push(doc.add(`MANIFOLD_SOLID_BREP('',#${shell})`));
+    }
+    stepWrap(doc, ctx, solids, name);
+    return stepHeader(name) + doc.lines.join('\n') + '\nENDSEC;\nEND-ISO-10303-21;\n';
+  }
+
+  /* ---- ANALYTIC ADVANCED_BREP exporter (cilindri + ellissi) ---- */
+  function exportAnalytic(model, name) {
+    name = name || 'PIECUT';
+    const doc = new StepDoc(name);
+    const ctx = stepContext(doc);
+    const solids = [];
+
+    for (const s of model.segs) {
+      solids.push(buildAnalyticSegment(doc, s));
+    }
+    stepWrap(doc, ctx, solids, name);
+    return stepHeader(name) + doc.lines.join('\n') + '\nENDSEC;\nEND-ISO-10303-21;\n';
+  }
+
+  function buildAnalyticSegment(doc, s) {
+    const { A0, A1, axis, e1, e2, nStart, nEnd, Rout, Rin } = s;
+    const rp = s.ringPoint;
+
+    // Ellipse frame at a cut plane: major = projection of axis on plane; a = R/|cos psi|
+    function ellipseFrame(node, n, R) {
+      const cospsi = V.dot(axis, n);
+      let major = V.sub(axis, V.scale(n, cospsi));
+      if (V.len(major) < 1e-9) major = V.sub(e1, V.scale(n, V.dot(e1, n)));
+      major = V.norm(major);
+      const minor = V.norm(V.cross(n, major));
+      return { center: node, z: n, x: major, y: minor,
+               semiMajor: R / Math.max(1e-6, Math.abs(cospsi)), semiMinor: R };
+    }
+    const efSO = ellipseFrame(A0, nStart, Rout);
+    const efEO = ellipseFrame(A1, nEnd, Rout);
+    const efSI = ellipseFrame(A0, nStart, Rin);
+    const efEI = ellipseFrame(A1, nEnd, Rin);
+
+    // Single seam at phi=0 (axial ruling). Vertices where that ruling meets each cut plane.
+    const pSO = rp(A0, axis, e1, e2, Rout, A0, nStart, 0);
+    const pEO = rp(A0, axis, e1, e2, Rout, A1, nEnd, 0);
+    const pSI = rp(A0, axis, e1, e2, Rin, A0, nStart, 0);
+    const pEI = rp(A0, axis, e1, e2, Rin, A1, nEnd, 0);
+
+    const VP = (p) => doc.add(`VERTEX_POINT('',#${doc.P(p)})`);
+    const vSO = VP(pSO), vEO = VP(pEO), vSI = VP(pSI), vEI = VP(pEI);
+
+    const ellipseId = (ef) => doc.add(`ELLIPSE('',#${doc.A2P(ef.center, ef.z, ef.x)},${f(ef.semiMajor)},${f(ef.semiMinor)})`);
+    const elSO = ellipseId(efSO), elEO = ellipseId(efEO), elSI = ellipseId(efSI), elEI = ellipseId(efEI);
+
+    // closed ellipse edges (start vertex == end vertex): full 360° edge
+    const closedEdge = (v, ell) => doc.add(`EDGE_CURVE('',#${v},#${v},#${ell},.T.)`);
+    const eSO = closedEdge(vSO, elSO), eEO = closedEdge(vEO, elEO);
+    const eSI = closedEdge(vSI, elSI), eEI = closedEdge(vEI, elEI);
+
+    // axial seam line edges
+    function seamEdge(vA, pA, vB) {
+      const line = doc.add(`LINE('',#${doc.P(pA)},#${doc.add(`VECTOR('',#${doc.D(axis)},1.0)`)})`);
+      return doc.add(`EDGE_CURVE('',#${vA},#${vB},#${line},.T.)`);
+    }
+    const seamO = seamEdge(vSO, pSO, vEO);
+    const seamI = seamEdge(vSI, pSI, vEI);
+
+    const OE = (edge, ori) => doc.add(`ORIENTED_EDGE('',*,*,#${edge},${ori ? '.T.' : '.F.'})`);
+
+    // surfaces
+    const cylOut = doc.add(`CYLINDRICAL_SURFACE('',#${doc.A2P(A0, axis, e1)},${f(Rout)})`);
+    const cylIn  = doc.add(`CYLINDRICAL_SURFACE('',#${doc.A2P(A0, axis, e1)},${f(Rin)})`);
+    const planeS = doc.add(`PLANE('',#${doc.A2P(A0, nStart, efSO.x)})`);
+    const planeE = doc.add(`PLANE('',#${doc.A2P(A1, nEnd, efEO.x)})`);
+
+    const faces = [];
+
+    // Cylindrical face (periodic, canonical seam form):
+    //   seam(+ start->end), endEllipse(+ closed), seam(- end->start), startEllipse(- closed)
+    function cylFace(surf, seam, eStart, eEnd, sameSense) {
+      const loop = doc.add(`EDGE_LOOP('',(${[OE(seam,true), OE(eEnd,true), OE(seam,false), OE(eStart,false)].map(i=>'#'+i).join(',')}))`);
+      const b = doc.add(`FACE_OUTER_BOUND('',#${loop},.T.)`);
+      return doc.add(`ADVANCED_FACE('',(#${b}),#${surf},${sameSense ? '.T.' : '.F.'})`);
+    }
+    faces.push(cylFace(cylOut, seamO, eSO, eEO, true));   // outer: surface normal outward
+    faces.push(cylFace(cylIn,  seamI, eSI, eEI, false));  // inner: flip so normal points into hole (out of material)
+
+    // Planar cap: outer loop = closed outer ellipse; hole loop = closed inner ellipse (reversed)
+    function capFace(surf, eOut, eIn, sameSense) {
+      const outerLoop = doc.add(`EDGE_LOOP('',(#${OE(eOut, true)}))`);
+      const ob = doc.add(`FACE_OUTER_BOUND('',#${outerLoop},.T.)`);
+      const innerLoop = doc.add(`EDGE_LOOP('',(#${OE(eIn, false)}))`);
+      const ib = doc.add(`FACE_BOUND('',#${innerLoop},.T.)`);
+      return doc.add(`ADVANCED_FACE('',(#${ob},#${ib}),#${surf},${sameSense ? '.T.' : '.F.'})`);
+    }
+    // start cap outward normal = -nStart (points back) -> flip; end cap = +nEnd -> keep
+    faces.push(capFace(planeS, eSO, eSI, false));
+    faces.push(capFace(planeE, eEO, eEI, true));
+
+    const shell = doc.add(`CLOSED_SHELL('',(${faces.map(i=>'#'+i).join(',')}))`);
+    return doc.add(`MANIFOLD_SOLID_BREP('',#${shell})`);
+  }
+
+  /* ============================================================
+   * VALIDATORS  (topology + geometry) for FACETED output
+   * ============================================================ */
+  function validateFacetedMesh(model, K) {
+    K = K || 64;
+    const parts = tessellate(model, K);
+    const report = { ok: true, issues: [], shells: [] };
+    for (const pt of parts) {
+      const { osO, oeO, isI, ieI } = pt;
+      // build faces as index quads over a local vertex list
+      const verts = [];
+      const push = (p) => { verts.push(p); return verts.length - 1; };
+      const IOS = osO.map(push), IOE = oeO.map(push), IIS = isI.map(push), IIE = ieI.map(push);
+      const faces = [];
+      for (let j = 0; j < K; j++) {
+        const j2 = (j+1)%K;
+        faces.push([IOS[j], IOS[j2], IOE[j2], IOE[j]]);       // outer
+        faces.push([IIS[j], IIE[j], IIE[j2], IIS[j2]]);       // inner reversed
+        faces.push([IOS[j], IIS[j], IIS[j2], IOS[j2]]);       // start cap
+        faces.push([IOE[j], IOE[j2], IIE[j2], IIE[j]]);       // end cap
+      }
+      // edge usage (directed)
+      const edgeCount = new Map();
+      for (const fa of faces) {
+        for (let k = 0; k < fa.length; k++) {
+          const a = fa[k], b = fa[(k+1)%fa.length];
+          const key = a < b ? a+'_'+b : b+'_'+a;
+          const dirKey = a+'>'+b;
+          edgeCount.set(key, (edgeCount.get(key)||0)+1);
+          edgeCount.set('D'+dirKey, (edgeCount.get('D'+dirKey)||0)+1);
+        }
+      }
+      // manifold: every undirected edge used exactly twice
+      let nonManifold = 0, badDir = 0, E = 0;
+      const seen = new Set();
+      for (const [k, c] of edgeCount) {
+        if (k[0] === 'D') continue;
+        E++;
+        if (c !== 2) nonManifold++;
+      }
+      // orientation: each directed edge should appear once (opposite directions)
+      for (const [k, c] of edgeCount) {
+        if (k[0] !== 'D') continue;
+        if (c !== 1) badDir++;
+      }
+      const Vn = verts.length, Fn = faces.length;
+      const euler = Vn - E + Fn; // hollow tube (genus 1) -> expect 0
+      const shellRep = { V: Vn, E, F: Fn, euler, nonManifold, badDir };
+      report.shells.push(shellRep);
+      if (nonManifold) { report.ok = false; report.issues.push(`spicchio ${pt===parts[0]?0:''}: ${nonManifold} spigoli non-manifold`); }
+      if (badDir) { report.ok = false; report.issues.push(`orientazione incoerente: ${badDir} spigoli`); }
+      if (euler !== 0) { report.ok = false; report.issues.push(`Euler=${euler} atteso 0 (toro/tubo cavo)`); }
+    }
+    return report;
+  }
+
+  // geometric check: sampled ellipse points lie on cylinder (dist to axis=R) and on plane
+  function validateGeometry(model) {
+    const report = { ok: true, issues: [], maxCylErr: 0, maxPlaneErr: 0 };
+    for (const s of model.segs) {
+      const test = (base, plane, R, node) => {
+        for (let k = 0; k < 16; k++) {
+          const phi = 2*Math.PI*k/16;
+          const p = s.ringPoint(s.A0, s.axis, s.e1, s.e2, R, node, plane, phi);
+          // dist from axis line (through A0 dir axis)
+          const w = V.sub(p, s.A0);
+          const along = V.dot(w, s.axis);
+          const radial = V.len(V.sub(w, V.scale(s.axis, along)));
+          report.maxCylErr = Math.max(report.maxCylErr, Math.abs(radial - R));
+          // on plane through node
+          const pe = Math.abs(V.dot(V.sub(p, node), plane));
+          report.maxPlaneErr = Math.max(report.maxPlaneErr, pe);
+        }
+      };
+      test(s.A0, s.nStart, s.Rout, s.A0);
+      test(s.A0, s.nEnd, s.Rout, s.A1);
+      test(s.A0, s.nStart, s.Rin, s.A0);
+      test(s.A0, s.nEnd, s.Rin, s.A1);
+    }
+    if (report.maxCylErr > 1e-6) { report.ok = false; report.issues.push(`errore cilindro ${report.maxCylErr.toExponential(2)}`); }
+    if (report.maxPlaneErr > 1e-6) { report.ok = false; report.issues.push(`errore piano ${report.maxPlaneErr.toExponential(2)}`); }
+    return report;
+  }
+
+  // reference-integrity check on a produced STEP string
+  function validateStepRefs(stepText) {
+    const defined = new Set();
+    const referenced = new Set();
+    const re = /#(\d+)\s*=/g; let m;
+    while ((m = re.exec(stepText))) defined.add(+m[1]);
+    const dataStart = stepText.indexOf('DATA;');
+    const body = stepText.slice(dataStart);
+    const rr = /#(\d+)/g;
+    while ((m = rr.exec(body))) referenced.add(+m[1]);
+    const dangling = [...referenced].filter(id => !defined.has(id));
+    return { ok: dangling.length === 0, defined: defined.size, referenced: referenced.size, dangling };
+  }
+
+  // flat pattern: for a joint of half-angle psi, cut offset z(phi)=R*tan(psi)*cos(phi)
+  function flatPattern(model, segIndex) {
+    const s = model.segs[segIndex] || model.segs[0];
+    const circ = Math.PI * model.OD;
+    const ampStart = model.Rout * Math.tan(s.psiStart);
+    const ampEnd = model.Rout * Math.tan(s.psiEnd);
+    // developed length along a ruling at phi: distance between the two cut points
+    const N = 120, startWave = [], endWave = [];
+    let minLen = Infinity, maxLen = -Infinity;
+    for (let k = 0; k <= N; k++) {
+      const phi = 2*Math.PI*k/N;
+      const ps = s.ringPoint(s.A0, s.axis, s.e1, s.e2, model.Rout, s.A0, s.nStart, phi);
+      const pe = s.ringPoint(s.A0, s.axis, s.e1, s.e2, model.Rout, s.A1, s.nEnd, phi);
+      const L = V.dist(ps, pe);
+      minLen = Math.min(minLen, L); maxLen = Math.max(maxLen, L);
+      const x = circ * k / N;
+      startWave.push([x, V.dot(V.sub(ps, s.A0), s.axis)]);
+      endWave.push([x, V.dot(V.sub(pe, s.A0), s.axis)]);
+    }
+    return { circ, ampStart, ampEnd, minLen, maxLen, startWave, endWave };
+  }
+
+  /* ============================================================
+   * STRAIGHT DEVELOPED (pre-bend) MODEL
+   * Spicchi collineari su un unico asse, con tacche a cuneo (miter)
+   * orientate secondo il clocking reale della curva, unite da un
+   * ponticello (ligament) non tagliato sul dorso convesso.
+   * Ritorna una "quad soup" chiusa (unico solido) + info.
+   * ============================================================ */
+  // Shared straight-development geometry: stations (with back overhang) + miter planes.
+  function straightGeometry(model, ligament) {
+    ligament = (ligament == null) ? 2 : ligament;
+    const u = [0,0,1], E1 = [1,0,0], E2 = [0,1,0];
+    const Rout = model.Rout, Rin = model.Rin;
+    const N = model.segs.length;
+    const rad = (phi) => [Math.cos(phi), Math.sin(phi), 0];
+
+    const jg = [];
+    for (let i = 0; i < N-1; i++) {
+      const a0 = model.segs[i].axis, a1 = model.segs[i+1].axis;
+      const e1 = model.segs[i].e1, e2 = model.segs[i].e2;
+      const cosang = Math.max(-1, Math.min(1, V.dot(a0, a1)));
+      const psi = 0.5 * Math.acos(cosang);
+      let m = V.sub(a1, V.scale(a0, V.dot(a1, a0)));
+      let gamma = 0;
+      if (V.len(m) > 1e-7 && psi > 1e-4) { m = V.norm(m); gamma = Math.atan2(V.dot(m, e2), V.dot(m, e1)); }
+      jg.push({ psi, gamma, active: psi > 1e-4 });
+    }
+    const startNode = [0], endNode = [];
+    for (let i = 0; i < N; i++) {
+      endNode[i] = startNode[i] + model.segs[i].segLen;
+      if (i < N-1) startNode[i+1] = endNode[i] + (jg[i].active ? 2*Rout*Math.tan(jg[i].psi) : 0);
+    }
+    const L = endNode[N-1];
+
+    const joints = [];
+    for (let i = 0; i < N-1; i++) {
+      const { psi, gamma, active } = jg[i];
+      const straightMouth = [Math.cos(gamma), Math.sin(gamma), 0];
+      const backAngle = gamma + Math.PI;
+      const tstr = V.len(V.cross(u, straightMouth)) > 1e-7 ? V.norm(V.cross(u, straightMouth)) : E2.slice();
+      let nA = V.norm(rodrigues(u, tstr, +psi));
+      let nB = V.norm(rodrigues(u, tstr, -psi));
+      const nodeA = endNode[i], nodeB = startNode[i+1];
+      const zOf = (n, node) => (phi, r) => node - r * V.dot(n, rad(phi)) / (V.dot(n, u) || 1e-9);
+      if (zOf(nA, nodeA)(gamma, Rout) > zOf(nB, nodeB)(gamma, Rout)) { const t = nA; nA = nB; nB = t; }
+      const halfArc = Math.min(Math.PI*0.9, (ligament/2) / Rout);
+      joints.push({ psi, gamma, backAngle, halfArc, active, nA, nB, nodeA, nodeB,
+                    zA: zOf(nA, nodeA), zB: zOf(nB, nodeB) });
+    }
+    return { u, E1, E2, Rout, Rin, N, startNode, endNode, L, joints, rad };
+  }
+
+  function buildStraight(model, ligament, K) {
+    K = K || 120;
+    ligament = (ligament == null) ? 2 : ligament;
+    const G = straightGeometry(model, ligament);
+    const u = G.u, E1 = G.E1, E2 = G.E2, Rout = G.Rout, Rin = G.Rin, N = G.N, rad = G.rad;
+    const startNode = G.startNode, endNode = G.endNode, L = G.L, joints = G.joints;
+
+    // per-segment cut z at each angular sample, at outer & inner radius
+    function startZ(i, phi, r) {           // seg i start face
+      if (i === 0) return 0;
+      const j = joints[i-1];
+      return j.active ? j.zB(phi, r) : startNode[i];
+    }
+    function endZ(i, phi, r) {              // seg i end face
+      if (i === N-1) return L;
+      const j = joints[i];
+      return j.active ? j.zA(phi, r) : endNode[i];
+    }
+    const Po = (z, phi) => V.add(V.scale(u, z), V.scale(rad(phi), Rout));
+    const Pi = (z, phi) => V.add(V.scale(u, z), V.scale(rad(phi), Rin));
+
+    // is cell [phi_k, phi_{k+1}] within joint j bridge band?
+    function inBand(angMid, j) {
+      let d = angMid - j.backAngle;
+      d = Math.atan2(Math.sin(d), Math.cos(d));           // wrap to [-pi,pi]
+      return Math.abs(d) <= j.halfArc;
+    }
+
+    const quads = [];
+    const push = (a,b,c,d) => quads.push([a,b,c,d]);
+
+    /* NON-UNIFORM angular grid: uniform base resolution K PLUS the exact band
+       boundaries backAngle +/- halfArc of every active joint. This guarantees
+       (a) the ligament keeps its exact requested arc width, and
+       (b) the bridge cell always exists -> the blank stays ONE connected piece
+       even for thin ligaments, where a uniform grid could skip the band. */
+    const TAU = 2*Math.PI;
+    const wrapA = a => { let x = a % TAU; if (x < 0) x += TAU; return x; };
+    const raw = [];
+    for (let k = 0; k < K; k++) raw.push(TAU*k/K);
+    for (const j of joints) if (j.active) { raw.push(wrapA(j.backAngle - j.halfArc)); raw.push(wrapA(j.backAngle + j.halfArc)); }
+    raw.sort((a,b) => a-b);
+    const phis = [];
+    for (const a of raw) if (!phis.length || a - phis[phis.length-1] > 1e-9) phis.push(a);
+    if (phis.length > 1 && TAU - phis[phis.length-1] < 1e-9) phis.pop();
+    const KN = phis.length;
+    const phiK = k => { const q = Math.floor(k / KN); return phis[k - q*KN] + q*TAU; };
+    const phiMid = k => 0.5 * (phiK(k) + phiK(k+1));
+
+    // segment walls + caps
+    for (let i = 0; i < N; i++) {
+      for (let k = 0; k < KN; k++) {
+        const p0 = phiK(k), p1 = phiK(k+1);
+        const so0=startZ(i,p0,Rout), so1=startZ(i,p1,Rout), eo0=endZ(i,p0,Rout), eo1=endZ(i,p1,Rout);
+        const si0=startZ(i,p0,Rin), si1=startZ(i,p1,Rin), ei0=endZ(i,p0,Rin), ei1=endZ(i,p1,Rin);
+        // outer wall (normal outward)
+        push(Po(so0,p0), Po(so1,p1), Po(eo1,p1), Po(eo0,p0));
+        // inner wall (normal inward)
+        push(Pi(si0,p0), Pi(ei0,p0), Pi(ei1,p1), Pi(si1,p1));
+      }
+    }
+    // end caps (flat) at z=0 and z=L
+    for (let k = 0; k < KN; k++) {
+      const p0 = phiK(k), p1 = phiK(k+1);
+      push(Po(0,p0), Pi(0,p0), Pi(0,p1), Po(0,p1));                 // start cap, -u
+      push(Po(L,p0), Po(L,p1), Pi(L,p1), Pi(L,p0));                 // end cap, +u
+    }
+
+    // joints: miter faces / bridge quads / side faces
+    for (let ji = 0; ji < joints.length; ji++) {
+      const j = joints[ji]; const i = ji;   // seg i end -> seg i+1 start
+      for (let k = 0; k < KN; k++) {
+        const p0 = phiK(k), p1 = phiK(k+1), pm = phiMid(k);
+        const bridge = !j.active || inBand(pm, j);
+        const eo0=endZ(i,p0,Rout), eo1=endZ(i,p1,Rout), ei0=endZ(i,p0,Rin), ei1=endZ(i,p1,Rin);
+        const so0=startZ(i+1,p0,Rout), so1=startZ(i+1,p1,Rout), si0=startZ(i+1,p0,Rin), si1=startZ(i+1,p1,Rin);
+        if (bridge) {
+          // continuous wall across the joint (the tab)
+          push(Po(eo0,p0), Po(eo1,p1), Po(so1,p1), Po(so0,p0));     // outer bridge
+          push(Pi(ei0,p0), Pi(si0,p0), Pi(si1,p1), Pi(ei1,p1));     // inner bridge
+        } else {
+          // wedge walls: end face of seg i (+u) and start face of seg i+1 (-u)
+          push(Po(eo0,p0), Po(eo1,p1), Pi(ei1,p1), Pi(ei0,p0));     // seg i end miter
+          push(Po(so0,p0), Pi(si0,p0), Pi(si1,p1), Po(so1,p1));     // seg i+1 start miter
+        }
+      }
+      // side faces at band boundaries (close the slot circumferentially)
+      if (j.active) {
+        for (let k = 0; k < KN; k++) {
+          const bPrev = inBand(phiMid((k-1+KN) % KN), j), bCur = inBand(phiMid(k), j);
+          if (bPrev !== bCur) {
+            const p = phiK(k);
+            const eo=endZ(i,p,Rout), ei=endZ(i,p,Rin), so=startZ(i+1,p,Rout), si=startZ(i+1,p,Rin);
+            push(Po(eo,p), Po(so,p), Pi(si,p), Pi(ei,p));
+          }
+        }
+      }
+    }
+
+    const orientedQuads = orientQuads(quads);
+    return { quads: orientedQuads, length: L, stations: startNode, ligament, K, KN, phis,
+             segLens: model.segs.map(s=>s.segLen),
+             OD: model.OD, Rout, Rin, segments: N,
+             joints: joints.map(j=>({ psi: j.psi, backAngle: j.backAngle, halfArc: j.halfArc, active: j.active })) };
+  }
+
+  // Make face windings globally consistent (flood-fill), normals outward.
+  function orientQuads(quads) {
+    const key = p => `${Math.round(p[0]*1e5)}_${Math.round(p[1]*1e5)}_${Math.round(p[2]*1e5)}`;
+    const F = quads.map(q => q.map(key));
+    const edgeToFaces = new Map();
+    F.forEach((ks, f) => { for (let k=0;k<4;k++){ const a=ks[k], b=ks[(k+1)%4]; if(a===b) continue; const uk=a<b?a+'|'+b:b+'|'+a; if(!edgeToFaces.has(uk))edgeToFaces.set(uk,[]); edgeToFaces.get(uk).push({f,a,b}); } });
+    const visited = new Array(F.length).fill(false);
+    const flip = new Array(F.length).fill(false);
+    for (let seed=0; seed<F.length; seed++) {
+      if (visited[seed]) continue;
+      visited[seed]=true; const stack=[seed];
+      while (stack.length) {
+        const f=stack.pop(); const ks=F[f];
+        for (let k=0;k<4;k++){
+          let a=ks[k], b=ks[(k+1)%4]; if(a===b) continue;
+          if (flip[f]) { const t=a; a=b; b=t; }
+          const uk=a<b?a+'|'+b:b+'|'+a;
+          for (const nb of (edgeToFaces.get(uk)||[])) {
+            if (nb.f===f || visited[nb.f]) continue;
+            flip[nb.f] = (nb.a===a && nb.b===b); // same dir -> must flip
+            visited[nb.f]=true; stack.push(nb.f);
+          }
+        }
+      }
+    }
+    let out = quads.map((q,f)=> flip[f] ? [q[0],q[3],q[2],q[1]] : q.slice());
+    const tet=(a,b,c)=>V.dot(a,V.cross(b,c));
+    let vol=0; for (const q of out){ vol+=tet(q[0],q[1],q[2]); vol+=tet(q[0],q[2],q[3]); }
+    if (vol<0) out = out.map(q=>[q[0],q[3],q[2],q[1]]);
+    return out;
+  }
+
+  // triangles for preview from quad soup
+  function trianglesFromQuads(quads) {
+    const tris = [];
+    for (const q of quads) {
+      const n1 = V.norm(V.cross(V.sub(q[1],q[0]), V.sub(q[2],q[0])));
+      tris.push({ a:q[0], b:q[1], c:q[2], n:n1 });
+      tris.push({ a:q[0], b:q[2], c:q[3], n:n1 });
+    }
+    return tris;
+  }
+
+  /* generic closed solid from quad soup: compact FACETED_BREP with POLY_LOOP,
+     globally-deduplicated CARTESIAN_POINTs (no edge/vertex entities -> small file) */
+  function solidFromQuads(doc, quads) {
+    const pmap = new Map();
+    const key = p => `${Math.round(p[0]*1e5)}_${Math.round(p[1]*1e5)}_${Math.round(p[2]*1e5)}`;
+    function cp(p) { const k = key(p); let id = pmap.get(k); if (id == null) { id = doc.P(p); pmap.set(k, id); } return id; }
+    const faces = [];
+    for (const q of quads) {
+      const ks = q.map(key);
+      if (new Set(ks).size < 3) continue;                 // skip collapsed quads
+      let nx=0,ny=0,nz=0;
+      for (let k=0;k<4;k++){const p=q[k],r=q[(k+1)%4]; nx+=(p[1]-r[1])*(p[2]+r[2]); ny+=(p[2]-r[2])*(p[0]+r[0]); nz+=(p[0]-r[0])*(p[1]+r[1]);}
+      const nrm = V.norm([nx,ny,nz]); const xdir = V.norm(V.sub(q[1],q[0]));
+      const plane = doc.add(`PLANE('',#${doc.A2P(q[0], nrm, xdir)})`);
+      const pts = q.map(cp);
+      const loop = doc.add(`POLY_LOOP('',(#${pts[0]},#${pts[1]},#${pts[2]},#${pts[3]}))`);
+      const b = doc.add(`FACE_OUTER_BOUND('',#${loop},.T.)`);
+      faces.push(doc.add(`ADVANCED_FACE('',(#${b}),#${plane},.T.)`));
+    }
+    const shell = doc.add(`CLOSED_SHELL('',(${faces.map(i=>'#'+i).join(',')}))`);
+    return doc.add(`FACETED_BREP('',#${shell})`);
+  }
+
+  function exportStraight(model, ligament, name, K) {
+    name = name || 'PIECUT_STRAIGHT';
+    const st = buildStraight(model, ligament, K || 120);
+    const doc = new StepDoc(name);
+    const ctx = stepContext(doc);
+    const solid = solidFromQuads(doc, st.quads);
+    stepWrap(doc, ctx, [solid], name);
+    return stepHeader(name) + doc.lines.join('\n') + '\nENDSEC;\nEND-ISO-10303-21;\n';
+  }
+
+  /* Straight pre-bend with SMOOTH analytic surfaces:
+     each spicchio = a true cylindrical mitered tube (reuses buildAnalyticSegment),
+     collinear on the straight axis, joined on the back by small ligament tabs. */
+  function exportStraightAnalytic(model, ligament, name) {
+    name = name || 'PIECUT_STRAIGHT';
+    ligament = (ligament == null) ? 2 : ligament;
+    const G = straightGeometry(model, ligament);
+    const u = G.u, E1 = G.E1, E2 = G.E2, Rout = G.Rout, Rin = G.Rin, N = G.N;
+    const rp = model.segs[0].ringPoint;
+    const doc = new StepDoc(name);
+    const ctx = stepContext(doc);
+    const solids = [];
+
+    // smooth mitered cylinder per spicchio
+    for (let i = 0; i < N; i++) {
+      const nStart = (i === 0)     ? u.slice() : (G.joints[i-1].active ? G.joints[i-1].nB : u.slice());
+      const nEnd   = (i === N-1)   ? u.slice() : (G.joints[i].active   ? G.joints[i].nA   : u.slice());
+      const seg = { A0: [0,0,G.startNode[i]], A1: [0,0,G.endNode[i]],
+                    axis: u, e1: E1, e2: E2, nStart, nEnd, Rout, Rin, ringPoint: rp };
+      solids.push(buildAnalyticSegment(doc, seg));
+    }
+
+    // ligament tabs on the back (small connecting solids across each active joint)
+    const rad = (phi) => [Math.cos(phi), Math.sin(phi), 0];
+    const Po = (z, phi) => [Rout*Math.cos(phi), Rout*Math.sin(phi), z];
+    const Pi = (z, phi) => [Rin*Math.cos(phi),  Rin*Math.sin(phi),  z];
+    for (let i = 0; i < N-1; i++) {
+      const j = G.joints[i]; if (!j.active) continue;
+      const hz = j.zA(j.backAngle, (Rout+Rin)/2);       // hinge meet z (mid-wall)
+      const half = Math.min(ligament, 3) / 2;            // axial half-thickness of the tab
+      const z0 = hz - half, z1 = hz + half;
+      const a0 = j.backAngle - j.halfArc, a1 = j.backAngle + j.halfArc;
+      const M = 6;
+      const quads = [];
+      for (let k = 0; k < M; k++) {
+        const p0 = a0 + (a1-a0)*k/M, p1 = a0 + (a1-a0)*(k+1)/M;
+        quads.push([Po(z0,p0), Po(z0,p1), Po(z1,p1), Po(z1,p0)]);   // outer
+        quads.push([Pi(z0,p0), Pi(z1,p0), Pi(z1,p1), Pi(z0,p1)]);   // inner
+        quads.push([Po(z0,p0), Pi(z0,p0), Pi(z0,p1), Po(z0,p1)]);   // bottom cap
+        quads.push([Po(z1,p0), Po(z1,p1), Pi(z1,p1), Pi(z1,p0)]);   // top cap
+      }
+      quads.push([Po(z0,a0), Po(z1,a0), Pi(z1,a0), Pi(z0,a0)]);     // side a0
+      quads.push([Po(z0,a1), Pi(z0,a1), Pi(z1,a1), Po(z1,a1)]);     // side a1
+      solids.push(solidFromQuads(doc, orientQuads(quads)));
+    }
+
+    stepWrap(doc, ctx, solids, name);
+    return stepHeader(name) + doc.lines.join('\n') + '\nENDSEC;\nEND-ISO-10303-21;\n';
+  }
+
+  // manifold check on quad soup: every undirected edge used exactly twice
+  function validateQuadManifold(quads) {
+    const undirected = new Map(), directed = new Map();
+    const key = p => `${Math.round(p[0]*1e5)}_${Math.round(p[1]*1e5)}_${Math.round(p[2]*1e5)}`;
+    let degenerate = 0;
+    for (const q of quads) {
+      const ks = q.map(key);
+      if (new Set(ks).size < 3) { degenerate++; continue; }
+      for (let k=0;k<4;k++){
+        const a=ks[k], b=ks[(k+1)%4]; if (a===b) continue;
+        const uk = a<b? a+'|'+b : b+'|'+a;
+        undirected.set(uk,(undirected.get(uk)||0)+1);
+        directed.set(a+'>'+b,(directed.get(a+'>'+b)||0)+1);
+      }
+    }
+    let nonManifold=0, badDir=0;
+    for (const [,c] of undirected) if (c!==2) nonManifold++;
+    for (const [k,c] of directed){ const [a,b]=k.split('>'); const opp=directed.get(b+'>'+a)||0; if (c!==1||opp!==1) badDir++; }
+    return { ok: nonManifold===0 && badDir===0, edges: undirected.size, nonManifold, badDir, degenerate };
+  }
+
+  const API = {
+    V, rodrigues, rotateAtoB, anyPerp,
+    parseStep, extractCenterline, extractLines, extractCurves, curveEndTangent,
+    polylineLength, resample, minRadius,
+    buildModel, tessellate, optimizeFromTrajectory, pieCutNodes, tangentAtArc, cumArc, pointAtArc, lineClosest,
+    arcFromTangent, biarc, biarcNodes, biarcFromLines,
+    exportFaceted, exportAnalytic,
+    buildStraight, straightGeometry, orientQuads, trianglesFromQuads, exportStraight, exportStraightAnalytic, validateQuadManifold,
+    validateFacetedMesh, validateGeometry, validateStepRefs,
+    flatPattern,
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+  root.ROBOCORE = API;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+<script>(function(){
+'use strict';
+const C = window.ROBOCORE, V = C.V;
+const $ = id => document.getElementById(id);
+
+/* ---------------- state ---------------- */
+const state = {
+  centerline: null,
+  model: null,
+  parts: null,
+  OD: 45, th: 1.5, seg: 12, lig: 2,
+  tanRelax: 0,           // gradi di tangenza rilassata (solo 2 linee)
+  mode: 'analytic',
+  view: 'both',
+  previewK: 28,
+  straight: null,
+  fpIdx: 0,
+  src: 'centerline',      // 'centerline' | '2lines'
+  line1: null, line2: null,
+  biarcD: null,           // null = auto (max radius)
+  biarc: null,
+};
+
+/* ---------------- path builder (turtle: rette + archi) ---------------- */
+function Turtle(p,t){ this.p=p.slice(); this.t=V.norm(t); this.pts=[p.slice()]; }
+Turtle.prototype.straight=function(L,n){
+  n=n||Math.max(8,Math.round(L/1.5));
+  for(let i=1;i<=n;i++) this.pts.push(V.add(this.p,V.scale(this.t,L*i/n)));
+  this.p=V.add(this.p,V.scale(this.t,L)); return this;
+};
+/* bend of `deg` degrees, centerline radius R, curving TOWARD direction `w`.
+   `w` is orthogonalised against the current tangent, so it can be given loosely
+   (e.g. "up" = +Z) without ever degenerating into a roll about the tangent. */
+Turtle.prototype.bend=function(R,deg,w,n){
+  let d=V.sub(w,V.scale(this.t,V.dot(this.t,w)));          // componente ⊥ tangente
+  if(V.len(d)<1e-7) throw new Error('bend: verso parallelo alla tangente');
+  d=V.norm(d);
+  if(deg<0){ d=V.scale(d,-1); deg=-deg; }
+  const a=V.norm(V.cross(this.t,d)), ang=deg*Math.PI/180;
+  n=n||Math.max(40,Math.round(deg*3));       // ~0.33°/punto: curvatura ben risolta
+  const c=V.add(this.p,V.scale(d,R));                       // centro dal lato della piega
+  const rot=(v,th)=>{ const ct=Math.cos(th),st=Math.sin(th);
+    return V.add(V.add(V.scale(v,ct),V.scale(V.cross(a,v),st)),V.scale(a,V.dot(a,v)*(1-ct))); };
+  const r0=V.sub(this.p,c);
+  for(let i=1;i<=n;i++) this.pts.push(V.add(c,rot(r0,ang*i/n)));
+  this.p=V.add(c,rot(r0,ang)); this.t=V.norm(rot(this.t,ang));
+  return this;
+};
+const LEFT=[0,1,0], RIGHT=[0,-1,0], UP=[0,0,1];
+
+/* ---------------- preset exhaust tracts ---------------- */
+const PRESETS = {
+  collettore: {
+    label:'COLLETTORE · primario testa (85° R55)', OD:42, th:1.2, seg:12,
+    note:'Tratto breve di primario in uscita dalla flangia testa: dritto di attacco, curva di scavalco a 85°, leggera risalita, tratto verso il collettore. R/D 1,31.',
+    make:()=> new Turtle([0,0,0],[1,0,0]).straight(28).bend(55,85,LEFT).bend(70,18,UP).straight(42).pts
+  },
+  curva90: {
+    label:'CURVA 90° · R/D 1.5 (riferimento)', OD:45, th:1.5, seg:12,
+    note:'Curva canonica a 90° con R/D 1,5, il riferimento tipico per una curva di scarico. Dritti di attacco su entrambe le estremità.',
+    make:()=> new Turtle([0,0,0],[1,0,0]).straight(25).bend(67.5,90,LEFT).straight(25).pts
+  },
+  downpipe: {
+    label:'DOWNPIPE · S di scavalco telaio', OD:50.8, th:1.5, seg:16,
+    note:'Doppia curva contrapposta per aggirare il telaio riprendendo l\'asse. Il flesso centrale è il punto in cui la costruzione tangente degenera: gestito con fallback ai nodi inscritti.',
+    make:()=> new Turtle([0,0,0],[1,0,0]).straight(30).bend(60,42,LEFT).straight(28).bend(60,42,RIGHT).straight(30).pts
+  },
+  merge21: {
+    label:'RACCORDO 2-IN-1 · ingresso collettore', OD:45, th:1.5, seg:14,
+    note:'Primario che converge fuori piano sull\'asse del collettore: curva in pianta più risalita. Traiettoria 3D non planare.',
+    make:()=> new Turtle([0,0,0],[1,0,0]).straight(25).bend(60,45,LEFT).bend(85,28,UP).straight(40).pts
+  },
+  sottosella: {
+    label:'SOTTOSELLA · upsweep al silenziatore', OD:60.3, th:1.5, seg:14,
+    note:'Risalita verso il silenziatore sottosella: salita nel piano verticale più correzione laterale. R/D 1,49.',
+    make:()=> new Turtle([0,0,0],[1,0,0]).straight(40).bend(90,35,UP).straight(55).bend(120,22,LEFT).straight(45).pts
+  },
+  ubend: {
+    label:'U-BEND 180° · tratto di ritorno', OD:45, th:1.5, seg:18,
+    note:'Inversione completa a 180°, R/D 1,56. Verifica il caso limite in cui le tangenti agli estremi sono antiparallele.',
+    make:()=> new Turtle([0,0,0],[1,0,0]).straight(20).bend(70,180,LEFT).straight(20).pts
+  },
+  stretta: {
+    label:'CURVA STRETTA · R/D 0.56 (al limite)', OD:45, th:1.5, seg:16,
+    note:'Raggio molto stretto: i tagli occupano il 90% dello spicchio, l\'app segnala «stretta». Sotto R/D 0,5 i piani di taglio si incrociano e la curva è impossibile.',
+    make:()=> new Turtle([0,0,0],[1,0,0]).straight(22).bend(25,90,LEFT).straight(22).pts
+  },
+  sbend3d: {
+    label:'S-BEND 3D · demo fuori piano', OD:45, th:1.5, seg:12,
+    note:'Curva di prova fuori piano con risalita: utile per verificare il clocking delle tacche nel modello rettilineo.',
+    make:()=>{ const pts=[],N=120;
+      for(let i=0;i<=N;i++){ const t=i/N;
+        pts.push([140*t, 48*Math.sin(t*Math.PI*1.15), 30*Math.sin(t*Math.PI*0.7)+18*t]); }
+      return pts; }
+  }
+};
+const PRESET_ORDER=['collettore','curva90','downpipe','merge21','sottosella','ubend','stretta','sbend3d'];
+function demoCenterline(){ return PRESETS.collettore.make(); }
+
+function setSlider(id,valId,key,v,fmt){
+  state[key]=v; const el=$(id); if(el) el.value=v;
+  const lb=$(valId); if(lb) lb.textContent=fmt?fmt(v):v;
+}
+function applyPreset(key){
+  const P=PRESETS[key]; if(!P) return;
+  setSlider('od','odV','OD',P.OD,v=>v.toFixed(1));
+  setSlider('th','thV','th',P.th,v=>v.toFixed(1));
+  setSlider('seg','segV','seg',P.seg);
+  $('hSeg').textContent=P.seg;
+  $('presetInfo').textContent=P.note;
+  cam.auto=true; cam.dist=0;
+  setCenterline(P.make(), P.label.split(' · ')[0]);
+}
+
+/* ---------------- load helpers ---------------- */
+function setCenterline(pts, srcLabel){
+  if(!pts||pts.length<2){ setInfo('Curva non valida.',true); return; }
+  state.src='centerline'; $('dAmp').disabled=(state.tanRelax>0); $('dV').textContent='–';
+  state.centerline = pts; state.trajectory = pts;
+  const L = C.polylineLength(pts);
+  state.trajLabel = `${srcLabel} · ${pts.length} punti · ${L.toFixed(1)} mm`;
+  setInfo(state.trajLabel,false);
+  recompute();
+}
+function setInfo(t,warn){ const el=$('clInfo'); el.textContent=t; el.style.color=warn?'var(--warn)':'var(--dim)'; }
+
+function loadStepText(text){
+  try{
+    const ent = C.parseStep(text);
+    const cl = C.extractCenterline(ent, {steps:500});
+    if(!cl){ setInfo('Nessuna curva riconosciuta nel file STEP. Prova "Incolla XYZ".',true); return; }
+    const pts = cl.points || cl;
+    setCenterline(pts, 'STEP');
+    if(cl.warn) setInfo('⚠ '+cl.warn,true);
+  }catch(e){ setInfo('Errore parsing STEP: '+e.message,true); }
+}
+
+/* ---------------- compute model ---------------- */
+function recompute(){
+  const OD=state.OD, th=Math.min(state.th, OD/2-0.05), seg=state.seg;
+  if(state.src==='2lines'){
+    if(!state.line1||!state.line2) return;
+    const alpha = state.tanRelax*Math.PI/180;
+    const r = C.biarcFromLines(state.line1, state.line2, seg, {d:(alpha>0?null:state.biarcD), Rout:OD/2, alpha});
+    state.biarc = r;
+    const dense = r.dense || r.nodes;
+    // exact tangents of the two generating curves -> first/last spicchio collinear with them
+    state.model = C.buildModel(dense, seg, OD, th, {tStart:r.T0, tEnd:r.T1});
+    syncBiarcUI(r, OD);
+  } else {
+    const traj = state.trajectory || state.centerline;
+    if(!traj) return;
+    const alpha = state.tanRelax*Math.PI/180;
+    if(alpha > 0){
+      // re-optimize the GIVEN trajectory for max radius, trading endpoint tangency
+      const opt = C.optimizeFromTrajectory(traj, seg, {Rout:OD/2, alpha});
+      state.biarc = opt;
+      state.model = C.buildModel(opt.dense, seg, OD, th, {tStart:opt.T0, tEnd:opt.T1});
+    } else {
+      state.biarc = null;                        // 0° = original trajectory, untouched
+      state.model = C.buildModel(traj, seg, OD, th);
+    }
+  }
+  state.parts = C.tessellate(state.model, state.previewK);
+  updateMetrics();
+  buildRenderMesh();
+  render();
+  drawFlat();
+}
+
+function syncBiarcUI(r, OD){
+  const sl=$('dAmp'), Rt=OD/2, relaxed=state.tanRelax>0;
+  sl.disabled=relaxed;
+  sl.min=r.dMin.toFixed(2); sl.max=r.dMax.toFixed(2); sl.step=((r.dMax-r.dMin)/200).toFixed(3);
+  sl.value=r.d.toFixed(2);
+  $('dV').textContent=relaxed?'auto':r.d.toFixed(1);
+  const feas = r.Rmin > Rt*1.02;
+  const ratio = (r.Rmin/Rt);
+  const modeTxt = r.mode==='biarc'
+    ? `biarc · R1 ${r.R1.toFixed(1)} / R2 ${r.R2.toFixed(1)} mm`
+    : `spline 3D · raggio min ${r.Rmin.toFixed(1)} mm`;
+  const warn = feas
+    ? `<span style="color:var(--teal)">OK</span> raggio/tubo ×${ratio.toFixed(2)}`
+    : `<span style="color:var(--warn)">STRETTA</span> raggio min ${r.Rmin.toFixed(1)} < raggio tubo ${Rt.toFixed(1)} mm — allarga le linee, riduci OD o rilassa la tangenza`;
+  const relTxt = (relaxed && r.dev0!=null)
+    ? ` · <span style="color:var(--amber)">tangenza −${(Math.max(r.dev0,r.dev1)*180/Math.PI).toFixed(0)}°</span>`
+    : '';
+  const el=$('biarcInfo'); el.innerHTML = `${modeTxt} · ${warn}${relTxt}`;
+  setInfo(`2 linee → ${r.mode} · ${r.nodes.length-1} spicchi · traiettoria ${C.polylineLength(r.dense||r.nodes).toFixed(1)} mm`, false);
+}
+
+function updateMetrics(){
+  const m=state.model; if(!m) return;
+  $('mLen').textContent = m.length.toFixed(1)+' mm';
+  $('mRad').textContent = (isFinite(m.curveRadius)?m.curveRadius.toFixed(1):'∞')+' mm';
+  const angDeg = m.maxJointAngle*180/Math.PI;
+  const angEl=$('mAng'); angEl.textContent = angDeg.toFixed(1)+'°';
+  angEl.className = 'v'+(angDeg>40?' warn':'');
+  $('mSeg').textContent = (m.length/m.segments).toFixed(1)+' mm';
+  const Rc = isFinite(m.curveRadius) ? m.curveRadius : m.minRadius;
+  const rd = isFinite(Rc) ? Rc/m.OD : Infinity;
+  const rdEl=$('mRD'); rdEl.textContent = isFinite(rd)? rd.toFixed(2) : '∞';
+  rdEl.className='v'+(isFinite(rd)&&rd<0.6?' warn':'');
+  const occEl=$('mOcc'); occEl.textContent=(m.worstClearRatio*100).toFixed(0)+' %';
+  occEl.className='v'+(m.worstClearRatio>=0.85?' warn':'');
+  let strip=Infinity; m.segs.forEach(sg=>{ strip=Math.min(strip, sg.segLen*(1-Math.min(1,sg.clearRatio))); });
+  const stEl=$('mStrip'); stEl.textContent=(isFinite(strip)?strip.toFixed(2):'0.00')+' mm';
+  stEl.className='v'+(strip<0.5?' warn':'');
+  const b=state.biarc, dev = (b&&b.dev0!=null)? Math.max(b.dev0,b.dev1)*180/Math.PI : null;
+  const dvEl=$('mDev'); dvEl.textContent = dev==null?'—':dev.toFixed(1)+'°'; dvEl.className='v';
+  $('hSeg').textContent = m.segments; $('segV').textContent=m.segments;
+  // warning pill (priorità: fattibilità > angolo > raggio)
+  const wp=$('warnPill');
+  const sharp = isFinite(Rc) && Rc < m.OD*0.5;
+  if(!m.feasible){
+    wp.style.display='block';
+    wp.textContent = sharp
+      ? `Curva impossibile: raggio ${Rc.toFixed(0)}mm < OD/2 (${(m.OD/2).toFixed(0)}mm). I piani di taglio si incrociano dentro al tubo. Allarga il raggio o riduci l'OD — aumentare gli spicchi non serve.`
+      : `Spigolo vivo nella traiettoria: i tagli si auto-intersecano (occupazione ${(m.worstClearRatio*100).toFixed(0)}%). Serve un raccordo con raggio reale: usa «GENERA DA 2 LINEE». Aumentare gli spicchi peggiora.`;
+  } else if(m.tightCount>0){
+    wp.style.display='block';
+    wp.textContent=`Curva stretta: i tagli occupano il ${(m.worstClearRatio*100).toFixed(0)}% dello spicchio (R/D ${rd.toFixed(2)}). Allarga il raggio o riduci l'OD — l'occupazione non dipende dal numero di spicchi.`;
+  } else if(angDeg>40){
+    wp.style.display='block'; wp.textContent=`Angolo/giunto ${angDeg.toFixed(0)}° elevato: aumenta il numero di spicchi per un raccordo più dolce.`;
+  } else {
+    wp.style.display='none';
+  }
+}
+
+/* ---------------- render mesh (triangles) ---------------- */
+let MESH=null;
+function buildRenderMesh(){
+  if(!state.model) return;
+  const tris=[]; // {a,b,c, n, tint}
+  const push=(a,b,c,tint)=>{
+    const n=V.norm(V.cross(V.sub(b,a),V.sub(c,a)));
+    tris.push({a,b,c,n,tint});
+  };
+  // --- curved (welded) model ---
+  if(state.view!=='straight' && state.parts){
+    state.parts.forEach((pt,si)=>{
+      const {osO,oeO,isI,ieI,K}=pt;
+      const tint = si%2; // alternate amber tones
+      for(let j=0;j<K;j++){ const j2=(j+1)%K;
+        push(osO[j],osO[j2],oeO[j2],tint); push(osO[j],oeO[j2],oeO[j],tint);
+        push(isI[j],ieI[j],ieI[j2],tint+2); push(isI[j],ieI[j2],isI[j2],tint+2);
+        push(osO[j],isI[j],isI[j2],tint+4); push(osO[j],isI[j2],osO[j2],tint+4);
+        push(oeO[j],oeO[j2],ieI[j2],tint+4); push(oeO[j],ieI[j2],ieI[j],tint+4);
+      }
+    });
+  }
+  // --- straight (pre-bend) model: z-axis rotated to x, placed under the bent one ---
+  if(state.view!=='bent'){
+    const st=C.buildStraight(state.model, state.lig, 40);
+    state.straight=st;
+    const rot=p=>[p[2],p[1],-p[0]];              // [0,0,1] -> [1,0,0]
+    const m=state.model, R=m.Rout;
+    let by0=Infinity,cx=0,cz=0,nc=0;
+    m.nodes.forEach(p=>{ by0=Math.min(by0,p[1]); cx+=p[0]; cz+=p[2]; nc++; });
+    cx/=nc; cz/=nc; by0-=R;
+    const off = (state.view==='straight')
+      ? [-st.length/2, 0, 0]
+      : [cx - st.length/2, by0 - (R*1.4+14) - R, cz];
+    for(const t of C.trianglesFromQuads(st.quads)){
+      const a=V.add(rot(t.a),off), b=V.add(rot(t.b),off), c=V.add(rot(t.c),off);
+      const n=V.norm(V.cross(V.sub(b,a),V.sub(c,a)));
+      tris.push({a,b,c,n,tint:6});
+    }
+  }
+  MESH={tris};
+  $('bTris').textContent = tris.length;
+}
+
+/* ---------------- software renderer ---------------- */
+const cv=$('cv'), ctx=cv.getContext('2d');
+const cam={theta:-0.9, phi:0.5, dist:0, target:[0,0,0], auto:true};
+let DPR=Math.min(window.devicePixelRatio||1,2);
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  cv.width=cv.clientWidth*DPR; cv.height=cv.clientHeight*DPR;
+  render();
+}
+window.addEventListener('resize',resize);
+
+function fitCamera(){
+  const m=state.model; if(!m) return;
+  if(MESH && MESH.tris.length){
+    let lo=[1e9,1e9,1e9], hi=[-1e9,-1e9,-1e9];
+    for(const t of MESH.tris){ for(const p of [t.a,t.b,t.c]){ for(let k=0;k<3;k++){ if(p[k]<lo[k])lo[k]=p[k]; if(p[k]>hi[k])hi[k]=p[k]; } } }
+    cam.target=[(lo[0]+hi[0])/2,(lo[1]+hi[1])/2,(lo[2]+hi[2])/2];
+    const r=0.5*Math.hypot(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2]);
+    cam.dist=Math.max(r*2.2, m.OD*3);
+    return;
+  }
+  let c=[0,0,0]; m.nodes.forEach(p=>c=V.add(c,p)); c=V.scale(c,1/m.nodes.length);
+  cam.target=c;
+  let r=0; m.nodes.forEach(p=>r=Math.max(r,V.dist(p,c)));
+  cam.dist=Math.max(r*2.6, m.OD*3);
+}
+function camBasis(){
+  const ct=Math.cos(cam.theta),st=Math.sin(cam.theta),cp=Math.cos(cam.phi),sp=Math.sin(cam.phi);
+  const dir=[cp*ct, sp, cp*st];
+  const eye=V.add(cam.target, V.scale(dir, cam.dist));
+  const f=V.norm(V.sub(cam.target,eye));
+  let up=[0,1,0];
+  const r=V.norm(V.cross(f,up)); up=V.cross(r,f);
+  return {eye,f,r,up};
+}
+function render(){
+  if(!MESH||!state.model){ ctx.clearRect(0,0,cv.width,cv.height); return; }
+  if(!cam.dist) fitCamera();
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const {eye,f,r,up}=camBasis();
+  const focal=Math.min(W,H)*0.9;
+  const cx=W/2, cy=H/2;
+  const light=V.norm([0.35,0.75,0.5]);
+
+  function proj(p){
+    const v=V.sub(p,eye);
+    const z=V.dot(v,f); if(z<=0.001) return null;
+    const x=V.dot(v,r), y=V.dot(v,up);
+    return [cx + x/z*focal, cy - y/z*focal, z];
+  }
+
+  // draw centerline (behind)
+  const nodes=state.model.nodes;
+  // sort tris by depth (painter)
+  const arr=MESH.tris;
+  const drawList=[];
+  for(let i=0;i<arr.length;i++){
+    const t=arr[i];
+    const ce=V.scale(V.add(V.add(t.a,t.b),t.c),1/3);
+    const toCam=V.sub(eye,ce);
+    // backface cull
+    if(V.dot(t.n,toCam)<=0) continue;
+    const pa=proj(t.a),pb=proj(t.b),pc=proj(t.c);
+    if(!pa||!pb||!pc) continue;
+    const depth=(pa[2]+pb[2]+pc[2])/3;
+    let lit=Math.abs(V.dot(t.n,light)); lit=0.25+0.75*lit;
+    drawList.push({pa,pb,pc,depth,lit,tint:t.tint});
+  }
+  drawList.sort((x,y)=>y.depth-x.depth);
+  const TINTS=[[255,176,0],[255,196,60],[25,230,210],[90,235,220],[150,120,40],[120,150,150],[122,160,184]];
+  for(const d of drawList){
+    const base=TINTS[d.tint]||TINTS[0];
+    const R=(base[0]*d.lit)|0,G=(base[1]*d.lit)|0,B=(base[2]*d.lit)|0;
+    ctx.beginPath();
+    ctx.moveTo(d.pa[0],d.pa[1]); ctx.lineTo(d.pb[0],d.pb[1]); ctx.lineTo(d.pc[0],d.pc[1]); ctx.closePath();
+    ctx.fillStyle=`rgb(${R},${G},${B})`; ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=0.5*DPR; ctx.stroke();
+  }
+  // centerline overlay
+  ctx.beginPath(); let started=false;
+  for(const nd of nodes){ const p=proj(nd); if(!p){started=false;continue;} if(!started){ctx.moveTo(p[0],p[1]);started=true;}else ctx.lineTo(p[0],p[1]); }
+  ctx.strokeStyle='rgba(255,90,77,0.8)'; ctx.lineWidth=1.4*DPR; ctx.stroke();
+  for(const nd of nodes){ const p=proj(nd); if(!p)continue; ctx.beginPath(); ctx.arc(p[0],p[1],2.4*DPR,0,7); ctx.fillStyle='#ff5a4d'; ctx.fill(); }
+}
+
+/* ---------------- interaction ---------------- */
+let drag=null;
+cv.addEventListener('pointerdown',e=>{ cam.auto=false; drag={x:e.clientX,y:e.clientY}; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-drag.x,dy=e.clientY-drag.y; drag.x=e.clientX;drag.y=e.clientY;
+  cam.theta+=dx*0.008; cam.phi=Math.max(-1.5,Math.min(1.5,cam.phi+dy*0.008)); render(); });
+cv.addEventListener('pointerup',()=>drag=null);
+cv.addEventListener('pointercancel',()=>drag=null);
+cv.addEventListener('wheel',e=>{ e.preventDefault(); cam.auto=false; cam.dist*=(1+Math.sign(e.deltaY)*0.1); render(); },{passive:false});
+// pinch
+let pinch=null;
+cv.addEventListener('touchstart',e=>{ if(e.touches.length===2){ pinch=dist2(e); cam.auto=false; } },{passive:false});
+cv.addEventListener('touchmove',e=>{ if(e.touches.length===2&&pinch){ e.preventDefault(); const d=dist2(e); cam.dist*=pinch/d; pinch=d; render(); } },{passive:false});
+cv.addEventListener('touchend',()=>pinch=null);
+function dist2(e){ const a=e.touches[0],b=e.touches[1]; return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY); }
+
+// gentle auto-spin until user interacts
+function tick(){ if(cam.auto&&state.model){ cam.theta+=0.0045; render(); } requestAnimationFrame(tick); }
+
+/* ---------------- flat pattern ---------------- */
+function drawFlat(){
+  const m=state.model; if(!m) return;
+  state.fpIdx=Math.max(0,Math.min(state.fpIdx,m.segs.length-1));
+  const fp=C.flatPattern(m,state.fpIdx);
+  $('fpW').textContent=fp.circ.toFixed(1)+' mm';
+  $('fpL').textContent=fp.minLen.toFixed(0)+'–'+fp.maxLen.toFixed(0)+' mm';
+  $('fpIdx').textContent=(state.fpIdx+1)+'/'+m.segs.length;
+  const svg=$('fpSvg');
+  const w=svg.clientWidth||800, h=svg.clientHeight||110;
+  const pad=14;
+  const xs=(w-2*pad)/fp.circ;
+  // vertical scale from axial extents
+  let minZ=Infinity,maxZ=-Infinity;
+  fp.startWave.concat(fp.endWave).forEach(p=>{minZ=Math.min(minZ,p[1]);maxZ=Math.max(maxZ,p[1]);});
+  const zs=(h-2*pad)/Math.max(1e-3,(maxZ-minZ));
+  const X=x=>pad+x*xs, Y=z=>h-pad-(z-minZ)*zs;
+  const path=w=>w.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' ');
+  let g=`<rect x="0" y="0" width="${w}" height="${h}" fill="#0a1218"/>`;
+  // grid
+  for(let k=0;k<=8;k++){ const x=pad+(w-2*pad)*k/8; g+=`<line x1="${x}" y1="${pad}" x2="${x}" y2="${h-pad}" stroke="#132330" stroke-width="1"/>`; }
+  // fill between waves
+  const top=fp.endWave.map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' ');
+  const bot=fp.startWave.slice().reverse().map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' ');
+  g+=`<polygon points="${top} ${bot}" fill="rgba(25,230,210,0.10)" stroke="none"/>`;
+  g+=`<path d="${path(fp.startWave)}" fill="none" stroke="#ffb000" stroke-width="1.6"/>`;
+  g+=`<path d="${path(fp.endWave)}" fill="none" stroke="#19e6d2" stroke-width="1.6"/>`;
+  g+=`<text x="${pad}" y="12" fill="#6c8496" font-size="10" font-family="monospace">0</text>`;
+  g+=`<text x="${w-pad-40}" y="12" fill="#6c8496" font-size="10" font-family="monospace">π·OD</text>`;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  svg.innerHTML=g;
+}
+
+/* ---------------- export ---------------- */
+function doExport(){
+  const m=state.model; if(!m){ return; }
+  const stat=$('exStat'); stat.textContent='Generazione STEP…'; stat.style.color='var(--dim)';
+  setTimeout(()=>{
+    try{
+      let name, step, solidi;
+      if(state.mode==='straight'){
+        name='piecut_rettilineo_'+m.segments+'sp_OD'+m.OD+'_lig'+state.lig.toFixed(1);
+        const st=C.buildStraight(m, state.lig, 8);
+        step=C.exportStraightAnalytic(m, state.lig, name);
+        solidi=m.segments+' spicchi lisci + linguette · grezzo '+st.length.toFixed(0)+'mm';
+      } else if(state.mode==='faceted'){
+        name='piecut_'+m.segments+'sp_OD'+m.OD;
+        step=C.exportFaceted(m,48,name); solidi=m.segments+' solidi';
+      } else {
+        name='piecut_'+m.segments+'sp_OD'+m.OD;
+        step=C.exportAnalytic(m,name); solidi=m.segments+' solidi';
+      }
+      const refs=C.validateStepRefs(step);
+      const blob=new Blob([step],{type:'application/step'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=name+'.stp'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),4000);
+      stat.textContent=`✓ ${name}.stp · ${(step.length/1024).toFixed(0)} KB · ${solidi} · ref ${refs.ok?'OK':'⚠'}`;
+      stat.style.color='var(--teal)';
+    }catch(e){ stat.textContent='Errore export: '+e.message; stat.style.color='var(--warn)'; }
+  },30);
+}
+
+/* ---------------- wiring ---------------- */
+$('fileIn').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f)return; const rd=new FileReader(); rd.onload=()=>loadStepText(rd.result); rd.readAsText(f); });
+(function initPresets(){
+  const sel=$('preset');
+  PRESET_ORDER.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=PRESETS[k].label; sel.appendChild(o); });
+  sel.value='collettore';
+  sel.addEventListener('change',()=>applyPreset(sel.value));
+})();
+$('btnDemo').addEventListener('click',()=>applyPreset($('preset').value));
+$('btnPaste').addEventListener('click',()=>{ const b=$('pasteBox'); b.style.display=b.style.display==='none'?'block':'none'; });
+$('btnLoadPaste').addEventListener('click',()=>{
+  const raw=$('pasteArea').value.trim().split(/\n+/).map(l=>l.trim().split(/[\s,;]+/).map(Number).filter(x=>!isNaN(x))).filter(a=>a.length>=3).map(a=>[a[0],a[1],a[2]]);
+  if(raw.length<2){ setInfo('Servono almeno 2 punti validi (x y z).',true); return; }
+  cam.dist=0; setCenterline(raw,'Punti incollati');
+});
+
+/* ---- 2 lines mode ---- */
+function parse4pts(text){
+  return text.trim().split(/\n+/)
+    .map(l=>l.trim())
+    .filter(l=>l && !l.startsWith('#'))
+    .map(l=>l.split(/[\s,;]+/).map(Number).filter(x=>!isNaN(x)))
+    .filter(a=>a.length>=3).map(a=>[a[0],a[1],a[2]]);
+}
+function generateFromLines(resetD){
+  const p=parse4pts($('linesArea').value);
+  if(p.length<4){ setInfo('Servono 4 punti: 2 per la linea di partenza, 2 per l\'arrivo.',true); return; }
+  state.line1=[p[0],p[1]]; state.line2=[p[2],p[3]];
+  if(resetD) state.biarcD=null;
+  state.src='2lines'; cam.dist=0; cam.auto=true;
+  recompute();
+}
+$('fileLines').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f)return; const rd=new FileReader(); rd.onload=()=>loadLinesStep(rd.result); rd.readAsText(f); });
+function loadLinesStep(text){
+  try{
+    const ent=C.parseStep(text);
+    const r=C.extractCurves(ent);
+    if(!r){ setInfo('Nel file non ho trovato 2 curve/segmenti. Servono due elementi separati (linee, archi o spline).',true); return; }
+    state.line1=r.curve1; state.line2=r.curve2;
+    const kind=w=> w.length>2 ? `curva (${w.length} pt)` : 'segmento';
+    $('linesArea').value=`# curva 1: ${kind(r.curve1)} — da STEP\n# curva 2: ${kind(r.curve2)} — da STEP\n# (incolla 4 punti per usare invece 2 rette)`;
+    state.biarcD=null; state.src='2lines'; cam.dist=0; cam.auto=true; recompute();
+    if(r.count>2) $('biarcInfo').textContent=`Trovati ${r.count} elementi nel file: uso i 2 più lunghi.`;
+  }catch(err){ setInfo('Errore parsing STEP: '+err.message,true); }
+}
+$('btnLoadLines').addEventListener('click',()=>generateFromLines(true));
+function loadLinesDemo(){
+  $('linesArea').value='# linea di partenza\n0 0 0\n70 0 0\n# linea di arrivo (ravvicinata)\n108 34 0\n108 104 0';
+  generateFromLines(true);
+}
+$('btnLinesDemo').addEventListener('click',loadLinesDemo);
+function switchInput(mode){
+  document.querySelectorAll('#inputSeg button').forEach(b=>b.classList.toggle('on', b.dataset.input===mode));
+  $('trajBox').style.display = mode==='traj' ? 'block' : 'none';
+  $('linesBox').style.display = mode==='lines' ? 'block' : 'none';
+  cam.dist=0; cam.auto=true;
+  if(mode==='lines'){
+    if(state.line1 && state.line2){ state.src='2lines'; recompute(); }
+    else loadLinesDemo();
+  } else {
+    if(state.trajectory){ state.src='centerline'; if(state.trajLabel) setInfo(state.trajLabel,false); recompute(); }
+    else applyPreset($('preset').value);
+  }
+}
+document.querySelectorAll('#inputSeg button').forEach(b=>b.addEventListener('click',()=>switchInput(b.dataset.input)));
+$('btnDauto').addEventListener('click',()=>{ state.biarcD=null; recompute(); });
+$('btnLinesFit').addEventListener('click',()=>{
+  // massimo N (2..48) realizzabile usando il raggio ottimale (auto)
+  if(state.src!=='2lines'||!state.line1) return;
+  state.biarcD=null;
+  const OD=state.OD, th=Math.min(state.th,OD/2-0.05);
+  let bestN=2;
+  for(let n=2;n<=48;n++){
+    const r=C.biarcFromLines(state.line1,state.line2,n,{d:null,Rout:OD/2,alpha:state.tanRelax*Math.PI/180});
+    const m=C.buildModel(r.dense||r.nodes,n,OD,th,{tStart:r.T0, tEnd:r.T1});
+    if(m.feasible) bestN=n;
+  }
+  state.seg=bestN; $('seg').value=bestN; $('segV').textContent=bestN; $('hSeg').textContent=bestN;
+  recompute();
+});
+$('dAmp').addEventListener('input',()=>{ state.biarcD=parseFloat($('dAmp').value); $('dV').textContent=state.biarcD.toFixed(1); recompute(); });
+function bindRange(id,valId,key,fmt){ const el=$(id); el.addEventListener('input',()=>{ state[key]=parseFloat(el.value); $(valId).textContent=fmt?fmt(state[key]):state[key]; if(key==='seg'){$('hSeg').textContent=state.seg;} recompute(); }); }
+bindRange('od','odV','OD',v=>v.toFixed(1));
+bindRange('th','thV','th',v=>v.toFixed(1));
+bindRange('seg','segV','seg',v=>v);
+bindRange('lig','ligV','lig',v=>v.toFixed(1));
+$('tanRel').addEventListener('input',()=>{ state.tanRelax=parseFloat($('tanRel').value); $('relV').textContent=state.tanRelax; $('dAmp').disabled=(state.tanRelax>0); cam.dist=0; if(state.trajectory||state.src==='2lines') recompute(); });
+const MODE_HINT={
+  analytic:'Analitico: superfici cilindriche vere ed ellissi di taglio, file leggero, ri-editabile in CAD. Ogni spicchio è un solido separato da saldare.',
+  faceted:'Faceted: solido planare a facce (48 sett.), pesante ma importabile ovunque. Usalo se il tuo CAD rifiuta l\'analitico.',
+  straight:'Rettilineo pre-piega: tubo grezzo diritto con le tacche a becco già tagliate e il clocking reale, unico solido tenuto insieme dai ponticelli. È il file per il taglio laser 3D: si piega a mano sulle tacche e si salda.'
+};
+const MODE_LABEL={analytic:'ANALITICO',faceted:'FACETED',straight:'RETTILINEO'};
+document.querySelectorAll('#modeSeg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#modeSeg button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  state.mode=b.dataset.mode; $('hMode').textContent=MODE_LABEL[state.mode];
+  $('modeHint').textContent = MODE_HINT[state.mode];
+  // porta la vista sul modello coerente con l'export scelto
+  if(state.mode==='straight') setView('straight');
+  else if(state.view==='straight') setView('both');
+}));
+function setView(v){
+  state.view=v;
+  document.querySelectorAll('#viewSeg button').forEach(x=>x.classList.toggle('on',x.dataset.view===v));
+  cam.dist=0; cam.auto=true; buildRenderMesh(); fitCamera(); render();
+}
+document.querySelectorAll('#viewSeg button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+$('btnExport').addEventListener('click',doExport);
+$('fpPrev').addEventListener('click',()=>{ state.fpIdx--; drawFlat(); });
+$('fpNext').addEventListener('click',()=>{ state.fpIdx++; drawFlat(); });
+
+/* ---------------- boot ---------------- */
+resize();
+applyPreset('collettore');
+requestAnimationFrame(tick);
+window.addEventListener('resize',drawFlat);
+})();
+</script>
+</body>
+</html>
