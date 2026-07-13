@@ -1,0 +1,2223 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>DXF·FIT — Ricostruzione profilo linee/archi</title>
+<style>
+:root{
+  --bg:#07090b; --panel:#0d1114; --panel2:#111820; --line:#1e2a33;
+  --amber:#ffb000; --teal:#19e6d2; --dim:#63727f; --txt:#cfdae2;
+  --red:#ff4d5e; --violet:#a78bfa;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:var(--mono);font-size:13px;overflow:hidden}
+body{display:flex;flex-direction:column}
+
+header{display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0c1114,#080b0d)}
+header .brand{font-weight:700;letter-spacing:.22em;color:var(--amber);font-size:14px}
+header .sub{color:var(--dim);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+header .spacer{flex:1}
+.badge{font-size:10px;letter-spacing:.1em;padding:3px 7px;border:1px solid var(--line);border-radius:3px;color:var(--dim)}
+
+main{flex:1;display:flex;min-height:0}
+#panel{width:320px;flex:none;border-right:1px solid var(--line);background:var(--panel);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:40px}
+#stage{flex:1;position:relative;min-width:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+
+.sec{border-bottom:1px solid var(--line);padding:12px 13px}
+.sec h3{margin:0 0 10px;font-size:10px;letter-spacing:.2em;color:var(--teal);text-transform:uppercase;font-weight:600}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:7px 0}
+.row label{color:var(--dim);font-size:11px;flex:1;line-height:1.3}
+input[type=number]{width:78px;background:#05070a;border:1px solid var(--line);color:var(--amber);font-family:var(--mono);font-size:12px;padding:5px 6px;border-radius:3px;text-align:right}
+input[type=number]:focus{outline:none;border-color:var(--teal)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent}
+select{background:#05070a;border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:11px;padding:5px;border-radius:3px;width:150px}
+.chk{display:flex;align-items:center;gap:7px;margin:6px 0;cursor:pointer;color:var(--dim);font-size:11px}
+.chk input{accent-color:var(--teal);width:14px;height:14px}
+button{width:100%;background:#141b21;border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:11px;letter-spacing:.12em;padding:9px;border-radius:3px;cursor:pointer;text-transform:uppercase}
+button:hover{border-color:var(--teal);color:var(--teal)}
+button.primary{background:linear-gradient(180deg,#2a1e05,#1a1305);border-color:#5c4407;color:var(--amber)}
+button.primary:hover{border-color:var(--amber)}
+button:disabled{opacity:.35;cursor:not-allowed}
+.btns{display:flex;gap:7px;margin-top:9px}
+
+#drop{border:1px dashed #2c3b46;border-radius:4px;padding:18px 10px;text-align:center;color:var(--dim);font-size:11px;cursor:pointer;transition:.15s}
+#drop.hot{border-color:var(--amber);color:var(--amber);background:#150f02}
+#drop b{color:var(--txt);display:block;margin-bottom:4px;font-size:12px}
+
+.stats{display:grid;grid-template-columns:1fr auto;gap:3px 8px;font-size:11px}
+.stats .k{color:var(--dim)}
+.stats .v{color:var(--amber);text-align:right;font-variant-numeric:tabular-nums}
+.stats .v.ok{color:var(--teal)}
+.stats .v.bad{color:var(--red)}
+
+#chains{max-height:190px;overflow-y:auto;font-size:11px;border:1px solid var(--line);border-radius:3px}
+.ch{display:flex;align-items:center;gap:7px;padding:5px 7px;border-bottom:1px solid #141d24;cursor:pointer}
+.ch:last-child{border-bottom:none}
+.ch:hover{background:#121a20}
+.ch.sel{background:#16221f}
+.ch input{accent-color:var(--teal)}
+.ch .n{color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch .m{color:var(--dim);font-size:10px}
+
+.legend{position:absolute;left:10px;bottom:10px;font-size:10px;color:var(--dim);background:#080b0dcc;border:1px solid var(--line);border-radius:3px;padding:6px 9px;line-height:1.7;backdrop-filter:blur(4px)}
+.legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:6px}
+#hud{position:absolute;right:10px;top:10px;font-size:10px;color:var(--dim);background:#080b0dcc;border:1px solid var(--line);border-radius:3px;padding:6px 9px;text-align:right;line-height:1.6;backdrop-filter:blur(4px)}
+#toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:#1a0d0f;border:1px solid var(--red);color:var(--red);padding:7px 13px;border-radius:3px;font-size:11px;opacity:0;pointer-events:none;transition:.25s;max-width:80%}
+#toast.on{opacity:1}
+#toast.ok{background:#0d1a16;border-color:var(--teal);color:var(--teal)}
+
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:9px}
+.md.on{background:linear-gradient(180deg,#0c2a28,#08201e);border-color:#19e6d2;color:var(--teal)}
+#hint{font-size:10px;line-height:1.5;color:#4d5a66;border-left:2px solid var(--line);padding-left:8px;margin:4px 0 2px}
+#editNote{font-size:10px;color:var(--violet);margin-top:8px;min-height:12px}
+#mode{position:absolute;left:10px;top:10px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:#080b0dcc;border:1px solid var(--line);border-radius:3px;padding:6px 10px;color:var(--teal);backdrop-filter:blur(4px)}
+#mode b{color:var(--violet);font-weight:400;letter-spacing:0;text-transform:none;display:block;font-size:10px;margin-top:3px}
+canvas.cross{cursor:crosshair}
+
+#tabs{display:none}
+@media(max-width:820px){
+  main{flex-direction:column}
+  #tabs{display:flex;border-bottom:1px solid var(--line);background:var(--panel)}
+  #tabs button{border:none;border-bottom:2px solid transparent;border-radius:0;background:transparent;padding:11px}
+  #tabs button.on{color:var(--amber);border-bottom-color:var(--amber)}
+  #panel{width:100%;border-right:none;flex:1}
+  #stage{flex:1;min-height:0}
+  body.tab-view #panel{display:none}
+  body.tab-ctl #stage{display:none}
+  header .sub{display:none}
+}
+</style>
+</head>
+<body class="tab-view">
+
+<header>
+  <span class="brand">DXF·FIT</span>
+  <span class="sub">spline dense → linee + archi</span>
+  <span class="spacer"></span>
+  <span class="badge" id="badge">nessun file</span>
+</header>
+
+<div id="tabs">
+  <button id="tbView" class="on">Vista</button>
+  <button id="tbCtl">Controlli</button>
+</div>
+
+<main>
+  <div id="panel">
+
+    <div class="sec">
+      <h3>Sorgente</h3>
+      <div id="drop"><b>Trascina qui un file .dxf</b>oppure tocca per sceglierlo</div>
+      <input type="file" id="file" accept=".dxf,.DXF,text/plain" hidden>
+      <div class="btns">
+        <button id="btnDemo">Carica demo</button>
+        <button id="btnFit">Ricalcola</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>Tolleranza</h3>
+      <div class="row"><label>Tolleranza geometrica (mm)</label><input type="number" id="tol" value="0.05" step="0.01" min="0.0005"></div>
+      <input type="range" id="tolR" min="-3.3" max="0.7" step="0.01" value="-1.3">
+      <div class="row"><label>Pre-semplifica (× tolleranza)<br><span style="color:#3f4c57">rimuove i punti inutili</span></label><input type="number" id="dpf" value="0.2" step="0.05" min="0" max="0.9"></div>
+      <div class="row"><label>Sagitta campionamento spline (× toll.)</label><input type="number" id="sag" value="0.12" step="0.02" min="0.01" max="1"></div>
+      <div class="row"><label>Gap chiusura catene (mm)</label><input type="number" id="gap" value="0.02" step="0.01" min="0"></div>
+    </div>
+
+    <div class="sec">
+      <h3>Ricostruzione</h3>
+      <label class="chk"><input type="checkbox" id="arcs" checked> Usa archi (altrimenti solo linee)</label>
+      <div class="row"><label>Angolo di spigolo (°)<br><span style="color:#3f4c57">sopra = vertice preservato</span></label><input type="number" id="cang" value="30" step="1" min="1" max="179"></div>
+      <div class="row"><label>Finestra spigolo (× toll.)</label><input type="number" id="cwin" value="6" step="1" min="1"></div>
+      <div class="row"><label>Raggio min arco (mm)</label><input type="number" id="minR" value="0.2" step="0.1" min="0.001"></div>
+      <div class="row"><label>Raggio max arco (mm)</label><input type="number" id="maxR" value="5000" step="100" min="1"></div>
+      <div class="row"><label>Apertura max arco (°)</label><input type="number" id="maxSw" value="180" step="10" min="10" max="350"></div>
+      <div class="row"><label>Punti minimi per arco</label><input type="number" id="minP" value="5" step="1" min="4"></div>
+      <div class="row"><label>Bias linee<br><span style="color:#3f4c57">punti extra richiesti all'arco</span></label><input type="number" id="bias" value="1" step="1" min="0" max="50"></div>
+    </div>
+
+    <div class="sec">
+      <h3>Post-elaborazione</h3>
+      <label class="chk"><input type="checkbox" id="mCol" checked> Fondi linee collineari</label>
+      <label class="chk"><input type="checkbox" id="mArc" checked> Fondi archi concentrici</label>
+      <label class="chk"><input type="checkbox" id="ortho"> Snap linee su assi X/Y</label>
+      <div class="row"><label>Soglia snap assi (°)</label><input type="number" id="orthoA" value="1.5" step="0.1" min="0" max="20"></div>
+      <label class="chk"><input type="checkbox" id="rSnap"> Arrotonda raggi</label>
+      <div class="row"><label>Passo raggi (mm)</label><input type="number" id="rStep" value="0.5" step="0.1" min="0.01"></div>
+    </div>
+
+    <div class="sec">
+      <h3>Taglio laser</h3>
+      <div class="btns"><button class="primary" id="btnClose">Chiudi profili</button></div>
+      <div class="row"><label>Salda estremi entro (mm)</label><input type="number" id="closeTol" value="0.2" step="0.05" min="0"></div>
+      <label class="chk"><input type="checkbox" id="forceClose"> Chiudi comunque con segmento retto</label>
+      <label class="chk"><input type="checkbox" id="orient" checked> Esterni antiorari, fori orari</label>
+      <div class="row"><label>Elimina micro-segmenti (mm)</label><input type="number" id="minSeg" value="0.02" step="0.01" min="0"></div>
+      <label class="chk"><input type="checkbox" id="expClosed"> Esporta solo profili chiusi</label>
+    </div>
+
+    <div class="sec">
+      <h3>Modifica geometria</h3>
+      <div class="modes">
+        <button class="md on" data-m="sel">Seleziona</button>
+        <button class="md" data-m="del">Elimina</button>
+        <button class="md" data-m="line">Linea</button>
+        <button class="md" data-m="arc">Arco</button>
+      </div>
+      <div id="hint"></div>
+      <label class="chk"><input type="checkbox" id="tang" checked> Archi tangenti alle curve esistenti</label>
+      <div class="row"><label>Sulla curva accorciata</label>
+        <select id="trimMode" style="width:150px">
+          <option value="trim">Accorcia (trim)</option>
+          <option value="split">Dividi in due</option>
+          <option value="none">Lascia com'è</option>
+        </select>
+      </div>
+      <div class="btns">
+        <button id="btnDel">Elimina selezionato</button>
+        <button id="btnUndo">Annulla</button>
+      </div>
+      <div class="btns"><button id="btnJoin">Unisci catene</button></div>
+      <div id="editNote"></div>
+    </div>
+
+    <div class="sec">
+      <h3>Risultato</h3>
+      <div class="stats">
+        <div class="k">Entità lette</div><div class="v" id="sEnt">—</div>
+        <div class="k">Punti in ingresso</div><div class="v" id="sPts">—</div>
+        <div class="k">Catene</div><div class="v" id="sChn">—</div>
+        <div class="k">Profili chiusi</div><div class="v" id="sCls">—</div>
+        <div class="k">Linee</div><div class="v" id="sLin">—</div>
+        <div class="k">Archi</div><div class="v" id="sArc">—</div>
+        <div class="k">Riduzione</div><div class="v ok" id="sRed">—</div>
+        <div class="k">Deviazione max</div><div class="v" id="sDev">—</div>
+        <div class="k">Tempo</div><div class="v" id="sTim">—</div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>Catene</h3>
+      <div id="chains"><div style="padding:9px;color:#3f4c57">nessuna catena</div></div>
+      <div class="btns">
+        <button id="btnAll">Tutte</button>
+        <button id="btnNone">Nessuna</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>Vista</h3>
+      <label class="chk"><input type="checkbox" id="vOrig" checked> Profilo originale</label>
+      <label class="chk"><input type="checkbox" id="vPts"> Punti originali</label>
+      <label class="chk"><input type="checkbox" id="vVert" checked> Vertici ricostruiti</label>
+      <label class="chk"><input type="checkbox" id="vCorn" checked> Spigoli rilevati</label>
+      <label class="chk"><input type="checkbox" id="vCen"> Centri archi</label>
+      <label class="chk"><input type="checkbox" id="vGrid" checked> Griglia</label>
+      <div class="btns"><button id="btnZoom">Adatta vista</button></div>
+    </div>
+
+    <div class="sec">
+      <h3>Esportazione</h3>
+      <div class="row"><label>Formato entità</label>
+        <select id="expMode">
+          <option value="pl12">POLYLINE R12 (consigliato)</option>
+          <option value="la12">LINE + ARC R12</option>
+          <option value="lw15">LWPOLYLINE AC1015</option>
+        </select>
+      </div>
+      <div class="row"><label>Decimali</label><input type="number" id="dec" value="6" step="1" min="2" max="10"></div>
+      <div class="row"><label>Layer</label><input type="text" id="lay" value="FIT" style="width:110px;background:#05070a;border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:5px 6px;border-radius:3px"></div>
+      <label class="chk"><input type="checkbox" id="keepLay"> Mantieni layer originali</label>
+      <div class="btns">
+        <button class="primary" id="btnExp">Esporta DXF</button>
+      </div>
+      <div class="btns"><button id="btnOpen">Apri in nuova scheda</button></div>
+    </div>
+
+  </div>
+
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="mode">Seleziona</div>
+    <div id="hud">—</div>
+    <div class="legend">
+      <div><i style="background:#4a5765"></i>originale</div>
+      <div><i style="background:#ffb000"></i>linee</div>
+      <div><i style="background:#19e6d2"></i>archi</div>
+      <div><i style="background:#ff4d5e"></i>spigoli / estremi liberi</div>
+      <div><i style="background:#a78bfa"></i>selezione · anteprima</div>
+    </div>
+    <div id="toast"></div>
+  </div>
+</main>
+
+<script>
+"use strict";
+/* ============================================================
+   DXF·FIT — pulizia profili: spline/polilinee dense → linee+archi
+   Tutto client-side, nessuna dipendenza esterna.
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const EPS = 1e-9;
+const TAU = Math.PI * 2;
+
+const S = {
+  polys: [],       // polilinee discretizzate dal DXF
+  chains: [],      // catene unite {pts,closed,layer}
+  geo: [],         // geometria di lavoro: profili {verts,bulges,closed,...}
+  entCount: 0,
+  ptCount: 0,
+  name: "profilo",
+  view: { s: 1, ox: 0, oy: 0 },
+  sel: -1,         // profilo selezionato
+  selSeg: null,    // {p, s} segmento selezionato
+  mode: "sel",
+  pick: [],        // punti in attesa (creazione)
+  hover: null,
+  undoStack: [],
+  edited: false
+};
+
+/* ---------------- utilità ---------------- */
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+function toast(msg, ok) {
+  const t = $("toast"); t.textContent = msg;
+  t.className = "on" + (ok ? " ok" : "");
+  clearTimeout(t._t); t._t = setTimeout(() => t.className = "", 3200);
+}
+
+/* ---------------- parser DXF ---------------- */
+function parseDXF(text) {
+  const L = text.split(/\r\n|\r|\n/);
+  const ents = [];
+  const KNOWN = new Set(["LINE", "LWPOLYLINE", "POLYLINE", "VERTEX", "SPLINE", "ARC", "CIRCLE", "ELLIPSE"]);
+  const SKIP = new Set(["INSERT", "TEXT", "MTEXT", "DIMENSION", "HATCH", "POINT", "SOLID"]);
+  let section = null, expectSec = false, cur = null;
+  const skipped = {};
+  let i = 0;
+  while (i < L.length - 1) {
+    const code = parseInt(L[i].trim(), 10);
+    if (Number.isNaN(code)) { i++; continue; }
+    const val = L[i + 1];
+    i += 2;
+    if (code === 0) {
+      const t = val.trim().toUpperCase();
+      if (t === "SECTION") { expectSec = true; cur = null; continue; }
+      if (t === "ENDSEC") { section = null; cur = null; continue; }
+      if (t === "EOF") break;
+      cur = null;
+      if (section === "ENTITIES" && KNOWN.has(t)) { cur = { type: t, g: [] }; ents.push(cur); }
+      else if (section === "ENTITIES" && SKIP.has(t)) skipped[t] = (skipped[t] || 0) + 1;
+      continue;
+    }
+    if (expectSec && code === 2) { section = val.trim().toUpperCase(); expectSec = false; continue; }
+    if (cur) cur.g.push([code, val]);
+  }
+  return { ents, skipped };
+}
+const gf = (e, c, d) => { for (const [k, v] of e.g) if (k === c) return parseFloat(v); return d; };
+const gi = (e, c, d) => { for (const [k, v] of e.g) if (k === c) return parseInt(v, 10); return d; };
+const gs = (e, c, d) => { for (const [k, v] of e.g) if (k === c) return v.trim(); return d; };
+const gall = (e, c) => { const r = []; for (const [k, v] of e.g) if (k === c) r.push(parseFloat(v)); return r; };
+function pairs(e, cx, cy, extra) {
+  const out = []; let p = null;
+  for (const [k, v] of e.g) {
+    if (k === cx) { if (p) out.push(p); p = [parseFloat(v), 0, 0]; }
+    else if (k === cy && p) p[1] = parseFloat(v);
+    else if (extra != null && k === extra && p) p[2] = parseFloat(v);
+  }
+  if (p) out.push(p);
+  return out;
+}
+
+/* ---------------- NURBS ---------------- */
+function findSpan(n, p, u, U) {
+  if (u >= U[n + 1]) return n;
+  if (u <= U[p]) return p;
+  let lo = p, hi = n + 1, m = (lo + hi) >> 1;
+  while (u < U[m] || u >= U[m + 1]) { if (u < U[m]) hi = m; else lo = m; m = (lo + hi) >> 1; }
+  return m;
+}
+function basisFuns(sp, u, p, U) {
+  const N = new Float64Array(p + 1), left = new Float64Array(p + 1), right = new Float64Array(p + 1);
+  N[0] = 1;
+  for (let j = 1; j <= p; j++) {
+    left[j] = u - U[sp + 1 - j]; right[j] = U[sp + j] - u;
+    let saved = 0;
+    for (let r = 0; r < j; r++) {
+      const den = right[r + 1] + left[j - r];
+      const tmp = Math.abs(den) < 1e-14 ? 0 : N[r] / den;
+      N[r] = saved + right[r + 1] * tmp;
+      saved = left[j - r] * tmp;
+    }
+    N[j] = saved;
+  }
+  return N;
+}
+function makeSplineEval(deg, P, W, U) {
+  const n = P.length - 1;
+  return u => {
+    u = clamp(u, U[deg], U[n + 1]);
+    const sp = findSpan(n, deg, u, U);
+    const N = basisFuns(sp, u, deg, U);
+    let x = 0, y = 0, w = 0;
+    for (let j = 0; j <= deg; j++) {
+      const idx = sp - deg + j, ww = W[idx] * N[j];
+      x += P[idx][0] * ww; y += P[idx][1] * ww; w += ww;
+    }
+    return w > 1e-12 ? [x / w, y / w] : [P[sp][0], P[sp][1]];
+  };
+}
+function ptSegDist(p, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy;
+  if (L2 < EPS) return dist(p, a);
+  let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2;
+  t = clamp(t, 0, 1);
+  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+}
+function adaptive(ev, u0, u1, tol, out, depth, budget) {
+  const p0 = ev(u0), p1 = ev(u1), um = (u0 + u1) / 2, pm = ev(um);
+  if (depth > 15 || budget.n > 60000 || ptSegDist(pm, p0, p1) <= tol) { out.push(p1); budget.n++; return; }
+  adaptive(ev, u0, um, tol, out, depth + 1, budget);
+  adaptive(ev, um, u1, tol, out, depth + 1, budget);
+}
+
+/* ---------------- discretizzazione entità ---------------- */
+function entToPolys(e, opt) {
+  const layer = gs(e, 8, "0");
+  const mk = (pts, closed) => ({ pts, closed: !!closed, layer });
+  const sag = opt.sag;
+
+  if (e.type === "LINE") {
+    const a = [gf(e, 10, 0), gf(e, 20, 0)], b = [gf(e, 11, 0), gf(e, 21, 0)];
+    return dist(a, b) < EPS ? [] : [mk([a, b], false)];
+  }
+  if (e.type === "ARC" || e.type === "CIRCLE") {
+    const cx = gf(e, 10, 0), cy = gf(e, 20, 0), r = gf(e, 40, 1);
+    let a0 = 0, a1 = TAU, closed = true;
+    if (e.type === "ARC") {
+      a0 = gf(e, 50, 0) * Math.PI / 180; a1 = gf(e, 51, 0) * Math.PI / 180;
+      while (a1 <= a0) a1 += TAU;
+      closed = false;
+    }
+    return [mk(sampleCircle(cx, cy, r, a0, a1, sag), closed)];
+  }
+  if (e.type === "ELLIPSE") {
+    const cx = gf(e, 10, 0), cy = gf(e, 20, 0);
+    const mx = gf(e, 11, 1), my = gf(e, 21, 0);
+    const ratio = gf(e, 40, 1);
+    let t0 = gf(e, 41, 0), t1 = gf(e, 42, TAU);
+    while (t1 <= t0) t1 += TAU;
+    const a = Math.hypot(mx, my), b = a * ratio, rot = Math.atan2(my, mx);
+    const N = clamp(Math.ceil((t1 - t0) / (2 * Math.acos(clamp(1 - sag / Math.max(a, EPS), -1, 1)) || 0.02)), 32, 4000);
+    const pts = [];
+    for (let k = 0; k <= N; k++) {
+      const t = t0 + (t1 - t0) * k / N;
+      const X = a * Math.cos(t), Y = b * Math.sin(t);
+      pts.push([cx + X * Math.cos(rot) - Y * Math.sin(rot), cy + X * Math.sin(rot) + Y * Math.cos(rot)]);
+    }
+    return [mk(pts, Math.abs(t1 - t0 - TAU) < 1e-6)];
+  }
+  if (e.type === "LWPOLYLINE") {
+    const flag = gi(e, 70, 0);
+    const vs = pairs(e, 10, 20, 42);
+    return [mk(expandBulge(vs, !!(flag & 1), sag), !!(flag & 1))];
+  }
+  if (e.type === "POLYLINE") {
+    const flag = gi(e, 70, 0);
+    const vs = (e.verts || []).map(v => [gf(v, 10, 0), gf(v, 20, 0), gf(v, 42, 0)]);
+    if (vs.length < 2) return [];
+    return [mk(expandBulge(vs, !!(flag & 1), sag), !!(flag & 1))];
+  }
+  if (e.type === "SPLINE") {
+    const deg = gi(e, 71, 3);
+    const P = pairs(e, 10, 20, null).map(p => [p[0], p[1]]);
+    const fit = pairs(e, 11, 21, null).map(p => [p[0], p[1]]);
+    const flag = gi(e, 70, 0);
+    const closed = !!(flag & 1);
+    // Caso NURBS completo: control points sufficienti + knot vector.
+    if (P.length >= deg + 1) {
+      let U = gall(e, 40);
+      let W = gall(e, 41);
+      if (W.length !== P.length) W = new Array(P.length).fill(1);
+      if (U.length !== P.length + deg + 1) {
+        const n = P.length - 1; U = [];
+        for (let k = 0; k <= deg; k++) U.push(0);
+        for (let k = 1; k <= n - deg; k++) U.push(k / (n - deg + 1));
+        for (let k = 0; k <= deg; k++) U.push(1);
+      }
+      const ev = makeSplineEval(deg, P, W, U);
+      const u0 = U[deg], u1 = U[P.length];
+      const seg = Math.max(16, P.length * 4);
+      const out = [ev(u0)], budget = { n: 0 };
+      for (let k = 0; k < seg; k++) adaptive(ev, u0 + (u1 - u0) * k / seg, u0 + (u1 - u0) * (k + 1) / seg, sag, out, 0, budget);
+      return [mk(out, closed)];
+    }
+    // Caso solo fit points (spline per interpolazione): NON collegare con rette,
+    // ma passare una curva liscia attraverso i punti (Catmull-Rom centripeta).
+    if (fit.length >= 2) return [mk(interpFit(fit, closed, sag), closed)];
+    // Ultimo ripiego: pochi control point senza knot -> polilinea di controllo.
+    if (P.length >= 2) return [mk(interpFit(P, closed, sag), closed)];
+    return [];
+  }
+  return [];
+}
+/** Curva liscia che passa per i punti dati (Catmull-Rom centripeta), campionata per sagitta. */
+function interpFit(pts, closed, sag) {
+  const p = pts.slice();
+  if (closed && dist(p[0], p[p.length - 1]) < 1e-9) p.pop();
+  const n = p.length;
+  if (n === 2) return [p[0], p[1]];
+  const get = i => closed ? p[((i % n) + n) % n] : p[clamp(i, 0, n - 1)];
+  const out = [p[0]];
+  const last = closed ? n : n - 1;
+  for (let i = 0; i < last; i++) {
+    const P0 = get(i - 1), P1 = get(i), P2 = get(i + 1), P3 = get(i + 2);
+    // parametrizzazione centripeta (alpha=0.5): evita cuspidi e loop
+    const t = [0, 0, 0, 0];
+    for (let k = 1; k < 4; k++) {
+      const a = [P0, P1, P2, P3][k - 1], b = [P0, P1, P2, P3][k];
+      t[k] = t[k - 1] + Math.sqrt(dist(a, b)) || t[k - 1] + 1e-6;
+    }
+    const seg = clamp(Math.ceil(dist(P1, P2) / Math.max(sag * 6, 1e-3)), 4, 240);
+    for (let s = 1; s <= seg; s++) {
+      const tt = t[1] + (t[2] - t[1]) * s / seg;
+      out.push(catmull(P0, P1, P2, P3, t, tt));
+    }
+  }
+  return out;
+}
+function catmull(P0, P1, P2, P3, t, tt) {
+  const lerp = (a, b, ta, tb) => {
+    const d = tb - ta; if (Math.abs(d) < 1e-12) return a.slice();
+    const f = (tt - ta) / d;
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+  };
+  const A1 = lerp(P0, P1, t[0], t[1]);
+  const A2 = lerp(P1, P2, t[1], t[2]);
+  const A3 = lerp(P2, P3, t[2], t[3]);
+  const B1 = lerp(A1, A2, t[0], t[2]);
+  const B2 = lerp(A2, A3, t[1], t[3]);
+  return lerp(B1, B2, t[1], t[2]);
+}
+function sampleCircle(cx, cy, r, a0, a1, sag) {
+  const sw = a1 - a0;
+  let step = 2 * Math.acos(clamp(1 - sag / Math.max(r, EPS), -1, 1));
+  if (!isFinite(step) || step < 1e-4) step = 1e-4;
+  const N = clamp(Math.ceil(Math.abs(sw) / step), 8, 6000);
+  const pts = [];
+  for (let k = 0; k <= N; k++) { const a = a0 + sw * k / N; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  return pts;
+}
+function expandBulge(vs, closed, sag) {
+  const out = [];
+  const n = vs.length;
+  const last = closed ? n : n - 1;
+  for (let i = 0; i < last; i++) {
+    const A = vs[i], B = vs[(i + 1) % n], b = A[2] || 0;
+    out.push([A[0], A[1]]);
+    if (Math.abs(b) > 1e-9) {
+      const g = arcGeom([A[0], A[1]], [B[0], B[1]], b);
+      if (g) {
+        const p = sampleCircle(g.cx, g.cy, g.r, g.a0, g.a0 + g.th, sag);
+        for (let k = 1; k < p.length - 1; k++) out.push(p[k]);
+      }
+    }
+  }
+  if (!closed) out.push([vs[n - 1][0], vs[n - 1][1]]);
+  return out;
+}
+
+/* ---------------- geometria arco da bulge ---------------- */
+function arcGeom(A, B, b) {
+  const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy);
+  if (L < EPS || Math.abs(b) < 1e-12) return null;
+  const th = 4 * Math.atan(b);
+  const s = Math.sin(th / 2);
+  if (Math.abs(s) < 1e-12) return null;
+  const r = L / (2 * s);
+  const nx = -dy / L, ny = dx / L;
+  const mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2;
+  const cx = mx + r * Math.cos(th / 2) * nx, cy = my + r * Math.cos(th / 2) * ny;
+  return { cx, cy, r: Math.abs(r), th, a0: Math.atan2(A[1] - cy, A[0] - cx) };
+}
+function arcPts(A, B, b, n) {
+  const g = arcGeom(A, B, b);
+  if (!g) return [A, B];
+  const N = n || clamp(Math.ceil(Math.abs(g.th) / 0.08), 6, 240);
+  const out = [];
+  for (let k = 0; k <= N; k++) { const a = g.a0 + g.th * k / N; out.push([g.cx + g.r * Math.cos(a), g.cy + g.r * Math.sin(a)]); }
+  return out;
+}
+function distToSeg(P, A, B, b) {
+  if (Math.abs(b) < 1e-12) return ptSegDist(P, A, B);
+  const g = arcGeom(A, B, b);
+  if (!g) return ptSegDist(P, A, B);
+  const ang = Math.atan2(P[1] - g.cy, P[0] - g.cx);
+  let d = ang - g.a0;
+  if (g.th > 0) { while (d < 0) d += TAU; while (d > TAU) d -= TAU; }
+  else { while (d > 0) d -= TAU; while (d < -TAU) d += TAU; }
+  const t = d / g.th;
+  if (t >= 0 && t <= 1) return Math.abs(Math.hypot(P[0] - g.cx, P[1] - g.cy) - g.r);
+  return Math.min(dist(P, A), dist(P, B));
+}
+
+/* ---------------- catene ---------------- */
+function dedupe(pts, eps) {
+  const o = [pts[0]];
+  for (let i = 1; i < pts.length; i++) if (dist(pts[i], o[o.length - 1]) > eps) o.push(pts[i]);
+  return o;
+}
+function buildChains(polys, gapTol, closeTol, forceClose) {
+  closeTol = Math.max(gapTol, closeTol || 0);
+  const open = [], out = [];
+  for (const p of polys) { if (p.closed) out.push({ pts: p.pts, closed: true, layer: p.layer }); else open.push(p); }
+  const used = new Array(open.length).fill(false);
+  for (let i = 0; i < open.length; i++) {
+    if (used[i]) continue;
+    used[i] = true;
+    let pts = open[i].pts.slice();
+    const layer = open[i].layer;
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (let j = 0; j < open.length; j++) {
+        if (used[j]) continue;
+        const q = open[j].pts, qn = q.length;
+        const tail = pts[pts.length - 1], head = pts[0];
+        if (dist(tail, q[0]) <= gapTol) { pts = pts.concat(q.slice(1)); }
+        else if (dist(tail, q[qn - 1]) <= gapTol) { pts = pts.concat(q.slice(0, qn - 1).reverse()); }
+        else if (dist(head, q[qn - 1]) <= gapTol) { pts = q.slice(0, qn - 1).concat(pts); }
+        else if (dist(head, q[0]) <= gapTol) { pts = q.slice(1).reverse().concat(pts); }
+        else continue;
+        used[j] = true; grew = true;
+      }
+    }
+    let closed = false;
+    const gapEnd = pts.length > 3 ? dist(pts[0], pts[pts.length - 1]) : Infinity;
+    if (gapEnd <= closeTol) {
+      // salda: media dei due estremi, poi elimina il duplicato
+      const a = pts[0], b = pts[pts.length - 1];
+      pts[0] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      pts.pop(); closed = true;
+    } else if (forceClose && pts.length > 3) {
+      closed = true; // il segmento di chiusura viene generato dal fit
+    }
+    out.push({ pts, closed, layer, gapEnd: isFinite(gapEnd) ? gapEnd : 0 });
+  }
+  return out;
+}
+
+/* ---------------- Douglas–Peucker ---------------- */
+function douglasPeucker(pts, eps) {
+  const n = pts.length;
+  if (n < 3 || eps <= 0) return pts.slice();
+  const keep = new Uint8Array(n); keep[0] = keep[n - 1] = 1;
+  const stack = [[0, n - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop();
+    if (b - a < 2) continue;
+    let best = -1, bd = eps;
+    for (let k = a + 1; k < b; k++) {
+      const d = ptSegDist(pts[k], pts[a], pts[b]);
+      if (d > bd) { bd = d; best = k; }
+    }
+    if (best > 0) { keep[best] = 1; stack.push([a, best], [best, b]); }
+  }
+  const out = [];
+  for (let i = 0; i < n; i++) if (keep[i]) out.push(pts[i]);
+  return out;
+}
+
+/* ---------------- rilevamento spigoli ---------------- */
+function detectCorners(pts, closed, win, thrDeg) {
+  const n = pts.length, thr = thrDeg * Math.PI / 180;
+  const idx = [];
+  if (n < 5) return idx;
+  const cum = new Float64Array(n);
+  for (let i = 1; i < n; i++) cum[i] = cum[i - 1] + dist(pts[i - 1], pts[i]);
+  const total = cum[n - 1] + (closed ? dist(pts[n - 1], pts[0]) : 0);
+  const at = i => pts[((i % n) + n) % n];
+  const arcLen = (i, j) => {
+    if (!closed) return Math.abs(cum[j] - cum[i]);
+    let d = cum[j] - cum[i]; if (d < 0) d += total; return d;
+  };
+  const turn = new Float64Array(n);
+  const lo = closed ? 0 : 1, hi = closed ? n - 1 : n - 2;
+  for (let k = lo; k <= hi; k++) {
+    let a = k, b = k;
+    let guard = 0;
+    while (guard++ < n && arcLen(((a - 1) % n + n) % n, k) < win) { a = ((a - 1) % n + n) % n; if (!closed && a === 0) break; }
+    guard = 0;
+    while (guard++ < n && arcLen(k, (b + 1) % n) < win) { b = (b + 1) % n; if (!closed && b === n - 1) break; }
+    if (a === k || b === k) continue;
+    const v1x = pts[k][0] - at(a)[0], v1y = pts[k][1] - at(a)[1];
+    const v2x = at(b)[0] - pts[k][0], v2y = at(b)[1] - pts[k][1];
+    const l1 = Math.hypot(v1x, v1y), l2 = Math.hypot(v2x, v2y);
+    if (l1 < EPS || l2 < EPS) continue;
+    const c = clamp((v1x * v2x + v1y * v2y) / (l1 * l2), -1, 1);
+    turn[k] = Math.acos(c);
+  }
+  // massimi locali sopra soglia
+  for (let k = lo; k <= hi; k++) {
+    if (turn[k] < thr) continue;
+    let isMax = true;
+    for (let d = 1; d <= 4; d++) {
+      const a = ((k - d) % n + n) % n, b = (k + d) % n;
+      if (turn[a] > turn[k] || turn[b] > turn[k]) { isMax = false; break; }
+    }
+    if (isMax) idx.push(k);
+  }
+  return idx;
+}
+
+/* ---------------- fitting linee/archi ---------------- */
+function maxDevLine(pts, i, j) {
+  const A = pts[i], B = pts[j];
+  const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy);
+  let m = 0;
+  if (L < EPS) { for (let k = i + 1; k < j; k++) m = Math.max(m, dist(pts[k], A)); return m; }
+  for (let k = i + 1; k < j; k++) {
+    const d = Math.abs((pts[k][0] - A[0]) * dy - (pts[k][1] - A[1]) * dx) / L;
+    if (d > m) m = d;
+  }
+  return m;
+}
+function centerFromPhi(A, B, phi) {
+  const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy), h = L / 2;
+  const s = Math.sin(phi);
+  const d = h * Math.cos(phi) / s;
+  return [(A[0] + B[0]) / 2 - dy / L * d, (A[1] + B[1]) / 2 + dx / L * d, Math.abs(h / s)];
+}
+function fitArc(pts, i, j, opt) {
+  const npts = j - i + 1;
+  if (npts < opt.minArcPts) return null;
+  const A = pts[i], B = pts[j];
+  const L = dist(A, B);
+  if (L < EPS) return null;
+
+  const dev = phi => {
+    const s = Math.sin(phi);
+    if (Math.abs(s) < 1e-6) return 1e9;
+    const [cx, cy, r] = centerFromPhi(A, B, phi);
+    if (r > opt.maxR * 1.2) return 1e9;
+    let m = 0;
+    for (let k = i + 1; k < j; k++) {
+      const e = Math.abs(Math.hypot(pts[k][0] - cx, pts[k][1] - cy) - r);
+      if (e > m) { m = e; if (m > opt.tol * 3) return m; }
+    }
+    return m;
+  };
+
+  // candidati: scansione grossolana + cerchio per 3 punti
+  const cands = [];
+  const NS = 26;
+  for (let k = 1; k < NS; k++) cands.push(Math.PI * k / NS);
+  const mi = (i + j) >> 1;
+  const c3 = circum(A, pts[mi], B);
+  if (c3) {
+    const dx = B[0] - A[0], dy = B[1] - A[1];
+    const d = (c3[0] - (A[0] + B[0]) / 2) * (-dy / L) + (c3[1] - (A[1] + B[1]) / 2) * (dx / L);
+    cands.push(Math.atan2(L / 2, d));
+  }
+  let bp = cands[0], bd = 1e18;
+  for (const p of cands) { const d = dev(p); if (d < bd) { bd = d; bp = p; } }
+  // raffinamento sezione aurea
+  let a = Math.max(1e-4, bp - Math.PI / NS), b = Math.min(Math.PI - 1e-4, bp + Math.PI / NS);
+  const g = 0.6180339887;
+  let x1 = b - g * (b - a), x2 = a + g * (b - a), f1 = dev(x1), f2 = dev(x2);
+  for (let it = 0; it < 28; it++) {
+    if (f1 < f2) { b = x2; x2 = x1; f2 = f1; x1 = b - g * (b - a); f1 = dev(x1); }
+    else { a = x1; x1 = x2; f1 = f2; x2 = a + g * (b - a); f2 = dev(x2); }
+  }
+  const phi = f1 < f2 ? x1 : x2;
+  const err = Math.min(bd, f1, f2);
+  if (err > opt.tol) return null;
+
+  const [cx, cy, r] = centerFromPhi(A, B, phi);
+  if (!isFinite(r) || r < opt.minR || r > opt.maxR) return null;
+
+  // sweep + monotonicità angolare
+  let prev = Math.atan2(A[1] - cy, A[0] - cx), total = 0, sign = 0;
+  for (let k = i + 1; k <= j; k++) {
+    const ang = Math.atan2(pts[k][1] - cy, pts[k][0] - cx);
+    let d = ang - prev;
+    while (d > Math.PI) d -= TAU;
+    while (d < -Math.PI) d += TAU;
+    if (Math.abs(d) > 1e-9) {
+      const sg = Math.sign(d);
+      if (sign === 0) sign = sg;
+      else if (sg !== sign && Math.abs(d) > 1e-6) return null;
+    }
+    total += d; prev = ang;
+  }
+  if (Math.abs(total) < 1e-4 || Math.abs(total) > (opt.maxSweep || TAU * 0.97)) return null;
+  const bulge = Math.tan(total / 4);
+  if (!isFinite(bulge)) return null;
+  return { bulge, r, cx, cy, sweep: total, dev: err };
+}
+function circum(A, B, C) {
+  const d = 2 * (A[0] * (B[1] - C[1]) + B[0] * (C[1] - A[1]) + C[0] * (A[1] - B[1]));
+  if (Math.abs(d) < 1e-12) return null;
+  const a2 = A[0] * A[0] + A[1] * A[1], b2 = B[0] * B[0] + B[1] * B[1], c2 = C[0] * C[0] + C[1] * C[1];
+  return [(a2 * (B[1] - C[1]) + b2 * (C[1] - A[1]) + c2 * (A[1] - B[1])) / d,
+          (a2 * (C[0] - B[0]) + b2 * (A[0] - C[0]) + c2 * (B[0] - A[0])) / d];
+}
+function extendFit(i, n, test, minLen) {
+  if (i + minLen > n - 1) {
+    if (n - 1 - i >= minLen && test(i, n - 1)) return n - 1;
+    return -1;
+  }
+  if (!test(i, i + minLen)) return -1;
+  let good = i + minLen, len = minLen * 2, fail = -1;
+  for (;;) {
+    const j = i + len;
+    if (j > n - 1) { if (test(i, n - 1)) return n - 1; fail = n - 1; break; }
+    if (test(i, j)) { good = j; len *= 2; } else { fail = j; break; }
+  }
+  let a = good, b = fail;
+  while (a + 1 < b) { const m = (a + b) >> 1; if (test(i, m)) a = m; else b = m; }
+  return a;
+}
+function fitRun(pts, opt) {
+  const n = pts.length;
+  const verts = [pts[0]], bulges = [];
+  if (n < 2) return { verts, bulges };
+  let i = 0, guard = 0;
+  while (i < n - 1 && guard++ < n * 3) {
+    const jL = extendFit(i, n, (a, b) => maxDevLine(pts, a, b) <= opt.tol, 1);
+    let jA = -1, arc = null;
+    if (opt.arcs) {
+      jA = extendFit(i, n, (a, b) => fitArc(pts, a, b, opt) !== null, Math.max(3, opt.minArcPts - 1));
+      if (jA > i) arc = fitArc(pts, i, jA, opt);
+    }
+    if (arc && (jA - i) > (jL - i) + opt.bias) { verts.push(pts[jA]); bulges.push(arc.bulge); i = jA; }
+    else { verts.push(pts[jL]); bulges.push(0); i = jL; }
+  }
+  return { verts, bulges };
+}
+
+/* ---------------- fit di una catena ---------------- */
+function fitChain(ch, opt) {
+  let pts = dedupe(ch.pts, opt.tol * 0.02);
+  if (ch.closed && pts.length > 2 && dist(pts[0], pts[pts.length - 1]) < opt.tol * 0.02) pts.pop();
+  if (pts.length < 2) return null;
+
+  const corners = detectCorners(pts, ch.closed, opt.cwin, opt.cang);
+  const cornerPts = corners.map(k => pts[k]);
+
+  let runs = [];
+  if (ch.closed) {
+    if (corners.length) {
+      const r = corners[0];
+      const rot = pts.slice(r).concat(pts.slice(0, r));
+      const cs = corners.map(c => (c - r + pts.length) % pts.length).sort((a, b) => a - b);
+      const rotClosed = rot.concat([rot[0]]);
+      const cuts = cs.filter(c => c > 0).concat([rotClosed.length - 1]);
+      let s = 0;
+      for (const c of cuts) { if (c > s) runs.push(rotClosed.slice(s, c + 1)); s = c; }
+    } else runs = [pts.concat([pts[0]])];
+  } else {
+    if (corners.length) {
+      const cs = corners.filter(c => c > 0 && c < pts.length - 1).sort((a, b) => a - b);
+      let s = 0;
+      for (const c of cs) { runs.push(pts.slice(s, c + 1)); s = c; }
+      runs.push(pts.slice(s));
+    } else runs = [pts];
+  }
+
+  const verts = [], bulges = [];
+  for (const run of runs) {
+    const simp = douglasPeucker(run, opt.tol * opt.dpf);
+    if (simp.length < 2) continue;
+    const f = fitRun(simp, opt);
+    if (verts.length === 0) verts.push(f.verts[0]);
+    for (let k = 1; k < f.verts.length; k++) { verts.push(f.verts[k]); bulges.push(f.bulges[k - 1]); }
+  }
+  let closed = ch.closed;
+  if (closed && verts.length > 1) verts.pop(); // ultimo == primo
+
+  let P = { verts, bulges, closed, layer: ch.layer, corners: cornerPts };
+
+  if (opt.mCol) mergeCollinear(P, opt);
+  if (opt.mArc) mergeArcs(P, opt);
+  if (opt.ortho) orthoSnap(P, opt);
+  if (opt.rSnap) radiusSnap(P, opt);
+  applyMinSeg(P, opt.minSeg);
+
+  // deviazione reale contro i punti densi originali
+  let maxd = 0;
+  const step = Math.max(1, Math.floor(ch.pts.length / 6000));
+  for (let k = 0; k < ch.pts.length; k += step) {
+    const p = ch.pts[k];
+    let best = Infinity;
+    for (let s = 0; s < P.bulges.length; s++) {
+      const A = P.verts[s], B = P.verts[(s + 1) % P.verts.length];
+      const d = distToSeg(p, A, B, P.bulges[s]);
+      if (d < best) best = d;
+      if (best < 1e-7) break;
+    }
+    if (best > maxd) maxd = best;
+  }
+  P.dev = maxd;
+  P.nLine = P.bulges.filter(b => Math.abs(b) < 1e-12).length;
+  P.nArc = P.bulges.length - P.nLine;
+  return P;
+}
+
+/* ---------------- post-processi ---------------- */
+function segAt(P, i) { return [P.verts[i], P.verts[(i + 1) % P.verts.length], P.bulges[i]]; }
+function mergeCollinear(P, opt) {
+  let i = 0;
+  while (P.bulges.length > (P.closed ? 3 : 1) && i < P.bulges.length - (P.closed ? 0 : 1)) {
+    const j = (i + 1) % P.bulges.length;
+    if (Math.abs(P.bulges[i]) < 1e-12 && Math.abs(P.bulges[j]) < 1e-12) {
+      const A = P.verts[i], M = P.verts[(i + 1) % P.verts.length], B = P.verts[(i + 2) % P.verts.length];
+      if (ptSegDist(M, A, B) <= opt.tol) {
+        P.verts.splice((i + 1) % P.verts.length, 1);
+        P.bulges.splice(j, 1);
+        if (j < i) i = 0;
+        continue;
+      }
+    }
+    i++;
+  }
+}
+function mergeArcs(P, opt) {
+  let i = 0;
+  while (P.bulges.length > (P.closed ? 3 : 1) && i < P.bulges.length - (P.closed ? 0 : 1)) {
+    const j = (i + 1) % P.bulges.length;
+    const b1 = P.bulges[i], b2 = P.bulges[j];
+    if (Math.abs(b1) > 1e-12 && Math.abs(b2) > 1e-12 && Math.sign(b1) === Math.sign(b2)) {
+      const g1 = arcGeom(P.verts[i], P.verts[(i + 1) % P.verts.length], b1);
+      const g2 = arcGeom(P.verts[(i + 1) % P.verts.length], P.verts[(i + 2) % P.verts.length], b2);
+      if (g1 && g2 && Math.abs(g1.r - g2.r) <= opt.tol && Math.hypot(g1.cx - g2.cx, g1.cy - g2.cy) <= opt.tol
+        && Math.abs(g1.th + g2.th) < (opt.maxSweep || TAU * 0.97)) {
+        const nb = Math.tan((g1.th + g2.th) / 4);
+        const A = P.verts[i], B = P.verts[(i + 2) % P.verts.length];
+        const M = P.verts[(i + 1) % P.verts.length];
+        if (isFinite(nb) && distToSeg(M, A, B, nb) <= opt.tol) {
+          P.verts.splice((i + 1) % P.verts.length, 1);
+          P.bulges.splice(j, 1);
+          P.bulges[Math.min(i, P.bulges.length - 1)] = nb;
+          if (j < i) i = 0;
+          continue;
+        }
+      }
+    }
+    i++;
+  }
+}
+function orthoSnap(P, opt) {
+  const thr = opt.orthoA * Math.PI / 180;
+  const n = P.verts.length;
+  for (let i = 0; i < P.bulges.length; i++) {
+    if (Math.abs(P.bulges[i]) > 1e-12) continue;
+    const a = i, b = (i + 1) % n;
+    const A = P.verts[a], B = P.verts[b];
+    const ang = Math.atan2(B[1] - A[1], B[0] - A[0]);
+    const dh = Math.min(Math.abs(ang), Math.abs(Math.abs(ang) - Math.PI));
+    const dv = Math.abs(Math.abs(ang) - Math.PI / 2);
+    if (dh < thr && dh < dv) {
+      const y = (A[1] + B[1]) / 2;
+      if (Math.abs(A[1] - y) <= opt.tol && Math.abs(B[1] - y) <= opt.tol) { A[1] = y; B[1] = y; }
+    } else if (dv < thr) {
+      const x = (A[0] + B[0]) / 2;
+      if (Math.abs(A[0] - x) <= opt.tol && Math.abs(B[0] - x) <= opt.tol) { A[0] = x; B[0] = x; }
+    }
+  }
+}
+function radiusSnap(P, opt) {
+  const n = P.verts.length;
+  for (let i = 0; i < P.bulges.length; i++) {
+    const b = P.bulges[i];
+    if (Math.abs(b) < 1e-12) continue;
+    const A = P.verts[i], B = P.verts[(i + 1) % n];
+    const g = arcGeom(A, B, b);
+    if (!g) continue;
+    const rt = Math.round(g.r / opt.rStep) * opt.rStep;
+    if (rt <= 0) continue;
+    const L = dist(A, B), h = L / 2;
+    if (rt < h * 1.0000001) continue;
+    let half = Math.asin(clamp(h / rt, -1, 1));         // semiapertura arco minore
+    if (Math.abs(g.th) > Math.PI) half = Math.PI - half; // arco maggiore
+    const th = Math.sign(g.th) * 2 * half;
+    const nb = Math.tan(th / 4);
+    if (isFinite(nb)) P.bulges[i] = nb;
+  }
+}
+
+/* ---------------- preparazione taglio ---------------- */
+function applyMinSeg(P, minSeg) {
+  if (minSeg <= 0) return;
+  const floor = P.closed ? 3 : 1;
+  let i = 0, guard = 0;
+  while (P.bulges.length > floor && i < P.bulges.length && guard++ < 20000) {
+    const n = P.verts.length;
+    const A = P.verts[i], B = P.verts[(i + 1) % n];
+    if (dist(A, B) < minSeg) {
+      P.verts[i] = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+      P.verts.splice((i + 1) % n, 1);
+      P.bulges.splice(i, 1);
+      i = 0; continue;
+    }
+    i++;
+  }
+}
+function polyArea(P) {
+  const n = P.verts.length;
+  let a = 0;
+  for (let i = 0; i < n; i++) { const A = P.verts[i], B = P.verts[(i + 1) % n]; a += A[0] * B[1] - B[0] * A[1]; }
+  a /= 2;
+  for (let i = 0; i < P.bulges.length; i++) {
+    const b = P.bulges[i]; if (Math.abs(b) < 1e-12) continue;
+    const g = arcGeom(P.verts[i], P.verts[(i + 1) % n], b); if (!g) continue;
+    a += 0.5 * g.r * g.r * (g.th - Math.sin(g.th));
+  }
+  return a;
+}
+function reversePoly(P) {
+  const n = P.verts.length;
+  const nv = P.verts.slice().reverse(), nb = [];
+  if (P.closed) for (let j = 0; j < n; j++) nb.push(-P.bulges[(((n - 2 - j) % n) + n) % n]);
+  else for (let j = 0; j < n - 1; j++) nb.push(-P.bulges[n - 2 - j]);
+  P.verts = nv; P.bulges = nb;
+}
+function outline(P) {
+  const n = P.verts.length, o = [];
+  for (let i = 0; i < P.bulges.length; i++) {
+    const A = P.verts[i], B = P.verts[(i + 1) % n], b = P.bulges[i];
+    if (Math.abs(b) < 1e-12) o.push(A);
+    else { const pp = arcPts(A, B, b, 24); for (let k = 0; k < pp.length - 1; k++) o.push(pp[k]); }
+  }
+  return o;
+}
+function inPoly(p, poly) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i], b = poly[j];
+    if (((a[1] > p[1]) !== (b[1] > p[1])) && (p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0])) c = !c;
+  }
+  return c;
+}
+function orientAll(geo) {
+  const cl = geo.filter(P => P.closed && P.verts.length > 2);
+  const outs = cl.map(P => outline(P));
+  cl.forEach((P, i) => {
+    const p = P.verts[0];
+    let depth = 0;
+    for (let j = 0; j < cl.length; j++) if (i !== j && inPoly(p, outs[j])) depth++;
+    const wantCCW = depth % 2 === 0;
+    P.hole = !wantCCW;
+    if ((polyArea(P) > 0) !== wantCCW) reversePoly(P);
+  });
+}
+
+/* ---------------- modifica geometria ---------------- */
+function statsP(P) {
+  P.nLine = P.bulges.filter(b => Math.abs(b) < 1e-12).length;
+  P.nArc = P.bulges.length - P.nLine;
+  return P;
+}
+const cloneP = P => JSON.parse(JSON.stringify(P));
+function pushUndo() {
+  S.undoStack.push(JSON.stringify(S.geo));
+  if (S.undoStack.length > 50) S.undoStack.shift();
+}
+function undo() {
+  if (!S.undoStack.length) { toast("Niente da annullare"); return; }
+  S.geo = JSON.parse(S.undoStack.pop());
+  S.selSeg = null; S.pick = [];
+  refreshEdit("Annullato");
+}
+function refreshEdit(msg, ok) {
+  S.edited = true; warnedEdit = false;
+  $("editNote").textContent = "Geometria modificata a mano. «Ricalcola» rigenera dal DXF e scarta le modifiche.";
+  updateStats();
+  renderProfileList();
+  draw();
+  if (msg) toast(msg, ok !== false);
+}
+function baseP(P) {
+  return { layer: P.layer, include: true, dev: P.dev || 0, manual: !!P.manual, hole: false, closed: false };
+}
+/** Rimuove un singolo segmento. Un profilo chiuso si apre, uno aperto si spezza. */
+function deleteSeg(pi, si) {
+  const P = S.geo[pi], n = P.verts.length;
+  const res = [];
+  if (P.closed) {
+    const verts = [], bulges = [];
+    for (let k = 1; k <= n; k++) verts.push(P.verts[(si + k) % n]);
+    for (let k = 1; k <= n - 1; k++) bulges.push(P.bulges[(si + k) % n]);
+    res.push(Object.assign(baseP(P), { verts, bulges }));
+  } else {
+    const lv = P.verts.slice(0, si + 1), lb = P.bulges.slice(0, si);
+    const rv = P.verts.slice(si + 1), rb = P.bulges.slice(si + 1);
+    if (lv.length >= 2) res.push(Object.assign(baseP(P), { verts: lv, bulges: lb }));
+    if (rv.length >= 2) res.push(Object.assign(baseP(P), { verts: rv, bulges: rb }));
+  }
+  res.forEach(statsP);
+  S.geo.splice(pi, 1, ...res);
+  return res.length;
+}
+function addSeg(A, B, bulge) {
+  const P = statsP({ verts: [A, B], bulges: [bulge], closed: false, layer: "MANUALE", include: true, dev: 0, manual: true });
+  S.geo.push(P);
+  return P;
+}
+/** bulge dell'arco che va da A a B passando per M */
+function bulge3(A, B, M) {
+  const c = circum(A, M, B);
+  if (!c) return 0;
+  const nrm = x => { while (x < 0) x += TAU; while (x >= TAU) x -= TAU; return x; };
+  const aA = Math.atan2(A[1] - c[1], A[0] - c[0]);
+  const aB = Math.atan2(B[1] - c[1], B[0] - c[0]);
+  const aM = Math.atan2(M[1] - c[1], M[0] - c[0]);
+  const dM = nrm(aM - aA), dB = nrm(aB - aA);
+  if (dB < 1e-9) return 0;
+  const th = dM < dB ? dB : dB - TAU;
+  const b = Math.tan(th / 4);
+  return isFinite(b) ? b : 0;
+}
+function appendP(P, Q) {
+  const t = P.verts[P.verts.length - 1], h = Q.verts[0];
+  P.verts[P.verts.length - 1] = [(t[0] + h[0]) / 2, (t[1] + h[1]) / 2];
+  P.verts = P.verts.concat(Q.verts.slice(1));
+  P.bulges = P.bulges.concat(Q.bulges);
+}
+/** Ricollega i profili aperti (compresi i segmenti disegnati a mano) e chiude gli anelli. */
+function joinGeo(tol) {
+  const open = S.geo.filter(p => !p.closed), keep = S.geo.filter(p => p.closed);
+  const used = new Array(open.length).fill(false), out = [];
+  for (let i = 0; i < open.length; i++) {
+    if (used[i]) continue;
+    used[i] = true;
+    let P = cloneP(open[i]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (let j = 0; j < open.length; j++) {
+        if (used[j]) continue;
+        const Q = cloneP(open[j]);
+        const pt = P.verts[P.verts.length - 1], ph = P.verts[0];
+        const qh = Q.verts[0], qt = Q.verts[Q.verts.length - 1];
+        if (dist(pt, qh) <= tol) appendP(P, Q);
+        else if (dist(pt, qt) <= tol) { reversePoly(Q); appendP(P, Q); }
+        else if (dist(ph, qt) <= tol) { appendP(Q, P); P = Q; }
+        else if (dist(ph, qh) <= tol) { reversePoly(Q); appendP(Q, P); P = Q; }
+        else continue;
+        used[j] = true; grew = true;
+      }
+    }
+    out.push(statsP(P));
+  }
+  S.geo = keep.concat(out);
+}
+function closeAll(tol, force) {
+  let welded = 0, forced = 0, left = 0;
+  for (const P of S.geo) {
+    if (P.closed) continue;
+    const n = P.verts.length;
+    if (n < 3) { left++; continue; }
+    const a = P.verts[0], b = P.verts[n - 1], g = dist(a, b);
+    if (g <= tol) {
+      P.verts[0] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      P.verts.pop(); P.closed = true; welded++;
+    } else if (force) {
+      P.bulges.push(0); P.closed = true; forced++;
+    } else left++;
+    statsP(P);
+  }
+  return { welded, forced, left };
+}
+
+/* ---------------- archi tangenti ---------------- */
+/* Il nuovo arco è definito da centro C e raggio r: tre incognite.
+   Ogni estremo appoggiato a una curva esistente impone una condizione di tangenza,
+   ogni estremo libero impone il passaggio per il punto cliccato, e il terzo clic
+   impone il passaggio per il punto di forma. Sempre 3 equazioni in 3 incognite.
+   I punti di tangenza si ricavano poi dalla soluzione: è così che "scorrono"
+   lungo la curva ospite finché la tangenza non è esatta. */
+
+function hostAt(h) {
+  const P = S.geo[h.p], n = P.verts.length;
+  const A = P.verts[h.s], B = P.verts[(h.s + 1) % n], b = P.bulges[h.s];
+  if (Math.abs(b) < 1e-12) {
+    const L = dist(A, B);
+    if (L < EPS) return null;
+    return { type: "line", A, B, ux: (B[0] - A[0]) / L, uy: (B[1] - A[1]) / L, nx: -(B[1] - A[1]) / L, ny: (B[0] - A[0]) / L, len: L };
+  }
+  const g = arcGeom(A, B, b);
+  if (!g) return null;
+  return { type: "arc", A, B, b, C: [g.cx, g.cy], r: g.r, g };
+}
+function projOnHost(h, w) {
+  const d = hostAt(h);
+  if (!d) return w;
+  if (d.type === "line") {
+    const t = clamp((w[0] - d.A[0]) * d.ux + (w[1] - d.A[1]) * d.uy, 0, d.len);
+    return [d.A[0] + d.ux * t, d.A[1] + d.uy * t];
+  }
+  const dx = w[0] - d.C[0], dy = w[1] - d.C[1], D = Math.hypot(dx, dy);
+  if (D < EPS) return d.A;
+  return [d.C[0] + d.r * dx / D, d.C[1] + d.r * dy / D];
+}
+const eqThrough = P => x => Math.hypot(x[0] - P[0], x[1] - P[1]) - x[2];
+function eqTangent(d, s) {
+  if (d.type === "line") return x => ((x[0] - d.A[0]) * d.nx + (x[1] - d.A[1]) * d.ny) - s * x[2];
+  return x => {
+    const D = Math.hypot(x[0] - d.C[0], x[1] - d.C[1]);
+    return s > 0 ? D - (d.r + x[2]) : D - Math.abs(d.r - x[2]);
+  };
+}
+function tangencyPt(d, C, r) {
+  if (d.type === "line") {
+    const t = (C[0] - d.A[0]) * d.ux + (C[1] - d.A[1]) * d.uy;
+    return [d.A[0] + d.ux * t, d.A[1] + d.uy * t];
+  }
+  const dx = C[0] - d.C[0], dy = C[1] - d.C[1], D = Math.hypot(dx, dy);
+  if (D < 1e-12) return null;
+  const c1 = [d.C[0] + d.r * dx / D, d.C[1] + d.r * dy / D];
+  const c2 = [d.C[0] - d.r * dx / D, d.C[1] - d.r * dy / D];
+  return Math.abs(dist(c1, C) - r) <= Math.abs(dist(c2, C) - r) ? c1 : c2;
+}
+function solve3(J, b) {
+  const M = [[...J[0], b[0]], [...J[1], b[1]], [...J[2], b[2]]];
+  for (let i = 0; i < 3; i++) {
+    let pv = i;
+    for (let k = i + 1; k < 3; k++) if (Math.abs(M[k][i]) > Math.abs(M[pv][i])) pv = k;
+    if (Math.abs(M[pv][i]) < 1e-14) return null;
+    [M[i], M[pv]] = [M[pv], M[i]];
+    for (let k = i + 1; k < 3; k++) { const f = M[k][i] / M[i][i]; for (let j = i; j < 4; j++) M[k][j] -= f * M[i][j]; }
+  }
+  const x = [0, 0, 0];
+  for (let i = 2; i >= 0; i--) { let s = M[i][3]; for (let j = i + 1; j < 3; j++) s -= M[i][j] * x[j]; x[i] = s / M[i][i]; }
+  return x.every(isFinite) ? x : null;
+}
+/** Gauss-Newton smorzato sul sistema dei tre vincoli. */
+function solveCircle(eqs, guess) {
+  let x = guess.slice();
+  const F = xx => eqs.map(e => e(xx));
+  const nrm = v => Math.max(...v.map(Math.abs));
+  for (let it = 0; it < 60; it++) {
+    const f = F(x);
+    if (nrm(f) < 1e-13) break;
+    const J = eqs.map((e, i) => {
+      const row = [];
+      for (let k = 0; k < 3; k++) {
+        const h = 1e-7 * Math.max(1, Math.abs(x[k]));
+        const xp = x.slice(); xp[k] += h;
+        row.push((e(xp) - f[i]) / h);
+      }
+      return row;
+    });
+    const dx = solve3(J, f.map(v => -v));
+    if (!dx) break;
+    let lam = 1, nx = null;
+    for (let t = 0; t < 24; t++) {
+      const c = [x[0] + lam * dx[0], x[1] + lam * dx[1], x[2] + lam * dx[2]];
+      if (c[2] > 1e-9 && nrm(F(c)) < nrm(f)) { nx = c; break; }
+      lam /= 2;
+    }
+    if (!nx) break;
+    x = nx;
+  }
+  return x.every(isFinite) && x[2] > 1e-9 ? x : null;
+}
+function bulgeFromCenter(C, r, A, B, M) {
+  const nrm = a => { while (a < 0) a += TAU; while (a >= TAU) a -= TAU; return a; };
+  const aA = Math.atan2(A[1] - C[1], A[0] - C[0]);
+  const aB = Math.atan2(B[1] - C[1], B[0] - C[0]);
+  const th = nrm(aB - aA), th2 = th - TAU;
+  const mid = t => [C[0] + r * Math.cos(aA + t / 2), C[1] + r * Math.sin(aA + t / 2)];
+  const t = dist(mid(th), M) <= dist(mid(th2), M) ? th : th2;
+  const b = Math.tan(t / 4);
+  return isFinite(b) ? b : 0;
+}
+/** Il punto di tangenza cade dentro l'estensione del segmento ospite? */
+function hostContains(d, T) {
+  if (d.type === "line") {
+    const t = (T[0] - d.A[0]) * d.ux + (T[1] - d.A[1]) * d.uy;
+    return t >= -1e-7 && t <= d.len + 1e-7;
+  }
+  const aA = Math.atan2(d.A[1] - d.C[1], d.A[0] - d.C[0]);
+  let t = Math.atan2(T[1] - d.C[1], T[0] - d.C[0]) - aA;
+  if (d.g.th > 0) { while (t < -1e-7) t += TAU; return t <= d.g.th + 1e-7; }
+  while (t > 1e-7) t -= TAU;
+  return t >= d.g.th - 1e-7;
+}
+/** p0, p1 = {pt, host}. M = punto di forma. Restituisce l'arco con i punti di tangenza. */
+function makeArc(p0, p1, M) {
+  const dA = p0.host ? hostAt(p0.host) : null;
+  const dB = p1.host ? hostAt(p1.host) : null;
+  if (!dA && !dB) {
+    const b = bulge3(p0.pt, p1.pt, M);
+    if (Math.abs(b) < 1e-9) return null;
+    const g = arcGeom(p0.pt, p1.pt, b);
+    return { A: p0.pt, B: p1.pt, b, C: [g.cx, g.cy], r: g.r, slideA: 0, slideB: 0, outside: false };
+  }
+  const combos = [];
+  if (dA && dB) for (const a of [1, -1]) for (const b of [1, -1]) combos.push([a, b]);
+  else if (dA) for (const a of [1, -1]) combos.push([a, null]);
+  else for (const b of [1, -1]) combos.push([null, b]);
+
+  const c3 = circum(p0.pt, M, p1.pt);
+  const guess = c3 ? [c3[0], c3[1], dist(c3, p0.pt)]
+    : [(p0.pt[0] + p1.pt[0]) / 2, (p0.pt[1] + p1.pt[1]) / 2, Math.max(dist(p0.pt, p1.pt), 1e-3)];
+
+  let best = null;
+  for (const [sa, sb] of combos) {
+    const eqs = [
+      dA ? eqTangent(dA, sa) : eqThrough(p0.pt),
+      dB ? eqTangent(dB, sb) : eqThrough(p1.pt),
+      eqThrough(M)
+    ];
+    const x = solveCircle(eqs, guess);
+    if (!x) continue;
+    const scale = Math.max(1, x[2]);
+    if (Math.max(...eqs.map(e => Math.abs(e(x)))) > 1e-6 * scale) continue;
+    const C = [x[0], x[1]], r = x[2];
+    const TA = dA ? tangencyPt(dA, C, r) : p0.pt;
+    const TB = dB ? tangencyPt(dB, C, r) : p1.pt;
+    if (!TA || !TB || dist(TA, TB) < 1e-9) continue;
+    const outside = (dA && !hostContains(dA, TA)) || (dB && !hostContains(dB, TB));
+    const score = dist(TA, p0.pt) + dist(TB, p1.pt) + (outside ? 1e9 : 0);
+    if (!best || score < best.score) best = { C, r, TA, TB, score, outside };
+  }
+  if (!best) return null;
+  const b = bulgeFromCenter(best.C, best.r, best.TA, best.TB, M);
+  if (Math.abs(b) < 1e-9) return null;
+  return {
+    A: best.TA, B: best.TB, b, C: best.C, r: best.r, outside: best.outside,
+    slideA: dist(best.TA, p0.pt), slideB: dist(best.TB, p1.pt)
+  };
+}
+/** Aggiorna un'estremità ('A' o 'B') del segmento si mantenendo l'arco se presente. */
+function setEndpoint(P, si, which, T) {
+  const n = P.verts.length;
+  const iA = si, iB = (si + 1) % n;
+  const A = P.verts[iA], B = P.verts[iB], b = P.bulges[si];
+  if (Math.abs(b) < 1e-12) {
+    if (which === "A") P.verts[iA] = [T[0], T[1]]; else P.verts[iB] = [T[0], T[1]];
+    return;
+  }
+  const g = arcGeom(A, B, b);
+  const aA = Math.atan2(A[1] - g.cy, A[0] - g.cx);
+  const aB = Math.atan2(B[1] - g.cy, B[0] - g.cx);
+  const aT = Math.atan2(T[1] - g.cy, T[0] - g.cx);
+  const sub = (f, t) => { let d = t - f; if (g.th > 0) { while (d < 0) d += TAU; while (d > TAU) d -= TAU; } else { while (d > 0) d -= TAU; while (d < -TAU) d += TAU; } return d; };
+  if (which === "A") { P.verts[iA] = [T[0], T[1]]; P.bulges[si] = Math.tan(sub(aT, aB) / 4); }
+  else { P.verts[iB] = [T[0], T[1]]; P.bulges[si] = Math.tan(sub(aA, aT) / 4); }
+}
+/** Raccordo tra due segmenti adiacenti dello stesso profilo: accorcia entrambi ai
+    punti di tangenza e inserisce l'arco al posto del vertice condiviso. */
+function filletCorner(pi, sA, sB, res) {
+  const P = S.geo[pi], n = P.verts.length;
+  // determino quale segmento viene prima nel verso del profilo
+  let first, Tf, Ts, arcB;
+  if ((sA + 1) % n === sB) { first = sA; Tf = res.A; Ts = res.B; arcB = res.b; }
+  else if ((sB + 1) % n === sA) { first = sB; Tf = res.B; Ts = res.A; arcB = -res.b; }
+  else return false;
+  const shared = (first + 1) % n;          // vertice condiviso
+  const second = shared;                    // il segmento 'second' ha indice = shared
+  // salvo i bulge originali dei due lati per ricalcolarli sui tratti accorciati
+  const bFirst = P.bulges[first], bSecond = P.bulges[second];
+  const Vf0 = P.verts[first], Vf1 = P.verts[shared];       // primo lato: Vf0 -> Vf1
+  const Vs0 = P.verts[shared], Vs1 = P.verts[(shared + 1) % n]; // secondo lato: Vs0 -> Vs1
+  // nuovi bulge dei lati accorciati
+  const bFirstNew = subBulge(Vf0, Vf1, bFirst, "B", Tf);
+  const bSecondNew = subBulge(Vs0, Vs1, bSecond, "A", Ts);
+  // ricostruisco: vertice shared diventa Tf, inserisco Ts subito dopo
+  P.verts[shared] = [Tf[0], Tf[1]];
+  P.verts.splice(shared + 1, 0, [Ts[0], Ts[1]]);
+  P.bulges[first] = bFirstNew;              // primo lato ora finisce in Tf
+  P.bulges.splice(shared, 0, arcB);         // arco tra Tf e Ts
+  P.bulges[shared + 1] = bSecondNew;        // secondo lato ora inizia in Ts
+  statsP(P);
+  return true;
+}
+/** Nuovo bulge di un segmento quando sposto la sua estremità 'A' o 'B' su T. */
+function subBulge(A, B, b, which, T) {
+  if (Math.abs(b) < 1e-12) return 0;
+  const g = arcGeom(A, B, b);
+  const aA = Math.atan2(A[1] - g.cy, A[0] - g.cx);
+  const aB = Math.atan2(B[1] - g.cy, B[0] - g.cx);
+  const aT = Math.atan2(T[1] - g.cy, T[0] - g.cx);
+  const sub = (f, t) => { let d = t - f; if (g.th > 0) { while (d < 0) d += TAU; while (d > TAU) d -= TAU; } else { while (d > 0) d -= TAU; while (d < -TAU) d += TAU; } return d; };
+  return which === "A" ? Math.tan(sub(aT, aB) / 4) : Math.tan(sub(aA, aT) / 4);
+}
+/** Accorcia il segmento ospite spostando l'estremità più vicina al nuovo arco fino a T. */
+function trimHostAt(pi, si, T, awayFrom) {
+  const P = S.geo[pi], n = P.verts.length;
+  const iA = si, iB = (si + 1) % n;
+  const A = P.verts[iA], B = P.verts[iB], b = P.bulges[si];
+  if (dist(T, A) < 1e-9 || dist(T, B) < 1e-9) return true;   // già all'estremità: niente da fare
+  // tengo l'estremo più lontano dal nuovo arco, sposto quello più vicino su T
+  const moveA = dist(A, awayFrom) < dist(B, awayFrom);
+  if (Math.abs(b) < 1e-12) {
+    if (moveA) P.verts[iA] = [T[0], T[1]];
+    else P.verts[iB] = [T[0], T[1]];
+  } else {
+    // arco: ricalcolo il bulge della porzione rimanente
+    const g = arcGeom(A, B, b);
+    const aA = Math.atan2(A[1] - g.cy, A[0] - g.cx);
+    const aB = Math.atan2(B[1] - g.cy, B[0] - g.cx);
+    const aT = Math.atan2(T[1] - g.cy, T[0] - g.cx);
+    const sub = (from, to) => { let d = to - from; if (g.th > 0) { while (d < 0) d += TAU; while (d > TAU) d -= TAU; } else { while (d > 0) d -= TAU; while (d < -TAU) d += TAU; } return d; };
+    if (moveA) { P.verts[iA] = [T[0], T[1]]; P.bulges[si] = Math.tan(sub(aT, aB) / 4); }
+    else { P.verts[iB] = [T[0], T[1]]; P.bulges[si] = Math.tan(sub(aA, aT) / 4); }
+  }
+  // se il segmento è diventato lunghezza ~0, elimino il segmento (non il profilo)
+  const A2 = P.verts[iA], B2 = P.verts[(si + 1) % P.verts.length];
+  if (dist(A2, B2) < 1e-7 && P.bulges.length > 1) deleteSegOnly(pi, si);
+  statsP(P);
+  return true;
+}
+/** Rimuove il solo segmento si fondendo il vertice, senza aprire il profilo. */
+function deleteSegOnly(pi, si) {
+  const P = S.geo[pi], n = P.verts.length;
+  if (P.bulges.length <= 1) return;
+  P.verts.splice((si + 1) % n, 1);
+  P.bulges.splice(si, 1);
+  statsP(P);
+}
+function splitHostAt(pi, si, T) {
+  const P = S.geo[pi], n = P.verts.length;
+  const A = P.verts[si], B = P.verts[(si + 1) % n], b = P.bulges[si];
+  if (dist(T, A) < 1e-9 || dist(T, B) < 1e-9) return false;   // già su un vertice
+  if (Math.abs(b) < 1e-12) {
+    P.verts.splice(si + 1, 0, [T[0], T[1]]);
+    P.bulges.splice(si + 1, 0, 0);
+  } else {
+    const g = arcGeom(A, B, b);
+    const aA = Math.atan2(A[1] - g.cy, A[0] - g.cx), aT = Math.atan2(T[1] - g.cy, T[0] - g.cx);
+    let d = aT - aA;
+    if (g.th > 0) { while (d < 0) d += TAU; while (d > g.th) d -= TAU; }
+    else { while (d > 0) d -= TAU; while (d < g.th) d += TAU; }
+    if (Math.abs(d) < 1e-9 || Math.abs(g.th - d) < 1e-9) return false;
+    P.verts.splice(si + 1, 0, [T[0], T[1]]);
+    P.bulges.splice(si, 1, Math.tan(d / 4), Math.tan((g.th - d) / 4));
+  }
+  statsP(P);
+  return true;
+}
+
+/* ---------------- pipeline ---------------- */
+function opts() {
+  const tol = Math.max(1e-4, parseFloat($("tol").value) || 0.05);
+  return {
+    tol,
+    dpf: clamp(parseFloat($("dpf").value) || 0, 0, 0.9),
+    sag: tol * clamp(parseFloat($("sag").value) || 0.12, 0.01, 1),
+    gap: Math.max(0, parseFloat($("gap").value) || 0),
+    closeTol: Math.max(0, parseFloat($("closeTol").value) || 0),
+    forceClose: $("forceClose").checked,
+    orient: $("orient").checked,
+    minSeg: Math.max(0, parseFloat($("minSeg").value) || 0),
+    arcs: $("arcs").checked,
+    cang: clamp(parseFloat($("cang").value) || 30, 1, 179),
+    cwin: tol * Math.max(1, parseFloat($("cwin").value) || 6),
+    minR: Math.max(1e-3, parseFloat($("minR").value) || 0.2),
+    maxR: Math.max(1, parseFloat($("maxR").value) || 5000),
+    maxSweep: clamp(parseFloat($("maxSw").value) || 180, 10, 350) * Math.PI / 180,
+    minArcPts: Math.max(4, parseInt($("minP").value) || 5),
+    bias: clamp(parseInt($("bias").value) || 0, 0, 50),
+    mCol: $("mCol").checked, mArc: $("mArc").checked,
+    ortho: $("ortho").checked, orthoA: parseFloat($("orthoA").value) || 0,
+    rSnap: $("rSnap").checked, rStep: Math.max(0.001, parseFloat($("rStep").value) || 0.5)
+  };
+}
+
+function loadDXFText(text, name) {
+  const o = opts();
+  const { ents, skipped } = parseDXF(text);
+  // aggancia VERTEX al POLYLINE precedente
+  const clean = [];
+  for (const e of ents) {
+    if (e.type === "VERTEX") { const last = clean[clean.length - 1]; if (last && last.type === "POLYLINE") (last.verts = last.verts || []).push(e); continue; }
+    clean.push(e);
+  }
+  const polys = [];
+  for (const e of clean) {
+    try { for (const p of entToPolys(e, o)) if (p.pts.length >= 2) polys.push(p); }
+    catch (err) { console.warn(e.type, err); }
+  }
+  if (!polys.length) { toast("Nessuna geometria supportata trovata nel DXF"); return; }
+  S.entCount = clean.length;
+  S.ptCount = polys.reduce((a, p) => a + p.pts.length, 0);
+  S.polys = polys;
+  S.name = (name || "profilo").replace(/\.dxf$/i, "");
+  $("badge").textContent = S.name + " · " + S.ptCount.toLocaleString("it") + " pt";
+  const sk = Object.keys(skipped);
+  if (sk.length) toast("Entità ignorate: " + sk.join(", "));
+  S.chains = buildChains(polys, o.gap, o.closeTol, o.forceClose);
+  fitAll();
+  zoomFit();
+}
+
+function fitAll() {
+  if (!S.chains.length) return;
+  const o = opts();
+  const t0 = performance.now();
+  S.chains = buildChains(S.polys, o.gap, o.closeTol, o.forceClose);
+  S.geo = [];
+  for (const c of S.chains) {
+    const P = fitChain(c, o);
+    if (!P) continue;
+    P.layer = c.layer; P.include = true; P.gapEnd = c.gapEnd; P.manual = false;
+    S.geo.push(P);
+  }
+  if (o.orient) orientAll(S.geo);
+  S.lastMs = performance.now() - t0;
+  S.sel = -1; S.selSeg = null; S.pick = []; S.undoStack = []; S.edited = false;
+  $("editNote").textContent = "";
+  updateStats();
+  renderProfileList();
+  draw();
+}
+
+function updateStats() {
+  const o = opts();
+  let nl = 0, na = 0, dev = 0, nClosed = 0;
+  for (const P of S.geo) { nl += P.nLine; na += P.nArc; dev = Math.max(dev, P.dev || 0); if (P.closed) nClosed++; }
+  $("sEnt").textContent = S.entCount;
+  $("sPts").textContent = S.ptCount.toLocaleString("it");
+  $("sChn").textContent = S.geo.length;
+  const cls = $("sCls");
+  cls.textContent = nClosed + " / " + S.geo.length;
+  cls.className = "v " + (S.geo.length && nClosed === S.geo.length ? "ok" : "bad");
+  $("sLin").textContent = nl;
+  $("sArc").textContent = na;
+  const outN = nl + na;
+  $("sRed").textContent = (S.ptCount ? 100 * (1 - outN / S.ptCount) : 0).toFixed(2) + " %";
+  const dv = $("sDev");
+  dv.textContent = dev.toFixed(4) + " mm";
+  dv.className = "v " + (dev <= o.tol * 1.001 ? "ok" : "bad");
+  $("sTim").textContent = (S.lastMs || 0).toFixed(0) + " ms";
+}
+
+function renderProfileList() {
+  const box = $("chains");
+  if (!S.geo.length) { box.innerHTML = '<div style="padding:9px;color:#3f4c57">nessun profilo</div>'; return; }
+  box.innerHTML = "";
+  S.geo.forEach((P, i) => {
+    const d = document.createElement("div");
+    d.className = "ch" + (S.sel === i ? " sel" : "");
+    const kind = P.closed ? (P.hole ? "foro" : "esterno") : '<span style="color:#ff4d5e">aperto</span>';
+    const tag = P.manual ? ' <span style="color:#a78bfa">·M</span>' : "";
+    d.innerHTML = `<input type="checkbox" ${P.include ? "checked" : ""}>
+      <span class="n">${i + 1}. ${kind}${tag} · ${P.layer}</span>
+      <span class="m">${P.nLine}L / ${P.nArc}A</span>`;
+    d.querySelector("input").onclick = ev => { ev.stopPropagation(); P.include = ev.target.checked; draw(); };
+    d.onclick = () => { S.sel = S.sel === i ? -1 : i; S.selSeg = null; renderProfileList(); draw(); };
+    box.appendChild(d);
+  });
+}
+
+/* ---------------- canvas ---------------- */
+const cv = $("cv"), ctx = cv.getContext("2d");
+let DPR = 1;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = cv.clientWidth * DPR; cv.height = cv.clientHeight * DPR;
+  draw();
+}
+function bbox() {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const p of S.polys) for (const q of p.pts) {
+    if (q[0] < x0) x0 = q[0]; if (q[0] > x1) x1 = q[0];
+    if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1];
+  }
+  if (!isFinite(x0)) return null;
+  return { x0, y0, x1, y1 };
+}
+function zoomFit() {
+  const b = bbox(); if (!b) return;
+  const w = Math.max(b.x1 - b.x0, 1e-6), h = Math.max(b.y1 - b.y0, 1e-6);
+  const s = Math.min(cv.width / (w * 1.15), cv.height / (h * 1.15));
+  S.view.s = s;
+  S.view.ox = cv.width / 2 - (b.x0 + b.x1) / 2 * s;
+  S.view.oy = cv.height / 2 + (b.y0 + b.y1) / 2 * s;
+  draw();
+}
+const X = x => x * S.view.s + S.view.ox;
+const Y = y => -y * S.view.s + S.view.oy;
+
+function drawGrid() {
+  const s = S.view.s;
+  let step = Math.pow(10, Math.floor(Math.log10(60 / s)));
+  if (step * s < 30) step *= 2;
+  if (step * s < 30) step *= 2.5;
+  ctx.lineWidth = 1;
+  const x0 = Math.floor((-S.view.ox / s) / step) * step;
+  const x1 = (cv.width - S.view.ox) / s;
+  const y0 = Math.floor(((S.view.oy - cv.height) / s) / step) * step;
+  const y1 = S.view.oy / s;
+  ctx.strokeStyle = "#111a20";
+  ctx.beginPath();
+  for (let x = x0; x <= x1; x += step) { ctx.moveTo(X(x), 0); ctx.lineTo(X(x), cv.height); }
+  for (let y = y0; y <= y1; y += step) { ctx.moveTo(0, Y(y)); ctx.lineTo(cv.width, Y(y)); }
+  ctx.stroke();
+  ctx.strokeStyle = "#1e2b33";
+  ctx.beginPath();
+  ctx.moveTo(X(0), 0); ctx.lineTo(X(0), cv.height);
+  ctx.moveTo(0, Y(0)); ctx.lineTo(cv.width, Y(0));
+  ctx.stroke();
+  $("hud").innerHTML = `griglia ${step} mm<br>scala ${(s / DPR).toFixed(3)} px/mm`;
+}
+function draw() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#07090b";
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  if ($("vGrid").checked) drawGrid();
+  if (!S.chains.length && !S.geo.length) {
+    ctx.fillStyle = "#2e3a44"; ctx.font = `${12 * DPR}px ui-monospace,monospace`; ctx.textAlign = "center";
+    ctx.fillText("carica un DXF o premi «Carica demo»", cv.width / 2, cv.height / 2);
+    return;
+  }
+  const lw = DPR;
+
+  if ($("vOrig").checked) {
+    ctx.strokeStyle = "#3d4954"; ctx.lineWidth = lw;
+    for (const c of S.chains) {
+      ctx.beginPath();
+      c.pts.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])));
+      if (c.closed) ctx.closePath();
+      ctx.stroke();
+    }
+  }
+  if ($("vPts").checked) {
+    ctx.fillStyle = "#2b3a45";
+    for (const c of S.chains) for (const p of c.pts) ctx.fillRect(X(p[0]) - 1, Y(p[1]) - 1, 2, 2);
+  }
+
+  S.geo.forEach((P, pi) => {
+    if (!P.include) return;
+    const hi = S.sel === -1 || S.sel === pi;
+    const n = P.verts.length;
+    for (let i = 0; i < P.bulges.length; i++) {
+      const A = P.verts[i], B = P.verts[(i + 1) % n], b = P.bulges[i];
+      const isArc = Math.abs(b) > 1e-12;
+      const isSel = S.selSeg && S.selSeg.p === pi && S.selSeg.s === i;
+      ctx.strokeStyle = isSel ? "#a78bfa" : isArc ? (hi ? "#19e6d2" : "#0d5f58") : (hi ? "#ffb000" : "#5e4406");
+      ctx.lineWidth = lw * (isSel ? 3.2 : hi ? 1.8 : 1);
+      ctx.beginPath();
+      if (isArc) {
+        const pp = arcPts(A, B, b);
+        pp.forEach((p, k) => k ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])));
+      } else { ctx.moveTo(X(A[0]), Y(A[1])); ctx.lineTo(X(B[0]), Y(B[1])); }
+      ctx.stroke();
+      if (isArc && $("vCen").checked && hi) {
+        const g = arcGeom(A, B, b);
+        if (g) {
+          ctx.strokeStyle = "#0f3d3a"; ctx.lineWidth = lw * .7;
+          ctx.beginPath(); ctx.moveTo(X(g.cx), Y(g.cy)); ctx.lineTo(X(A[0]), Y(A[1]));
+          ctx.moveTo(X(g.cx), Y(g.cy)); ctx.lineTo(X(B[0]), Y(B[1])); ctx.stroke();
+          ctx.fillStyle = "#19e6d2"; ctx.fillRect(X(g.cx) - 1.5, Y(g.cy) - 1.5, 3, 3);
+        }
+      }
+    }
+    if ($("vVert").checked && hi) {
+      ctx.fillStyle = "#e7f0f5";
+      for (const v of P.verts) ctx.fillRect(X(v[0]) - 2 * DPR, Y(v[1]) - 2 * DPR, 4 * DPR, 4 * DPR);
+    }
+    if (!P.closed && P.verts.length) {
+      ctx.strokeStyle = "#ff4d5e"; ctx.lineWidth = lw * 1.6;
+      for (const v of [P.verts[0], P.verts[P.verts.length - 1]]) {
+        ctx.beginPath();
+        ctx.moveTo(X(v[0]) - 5 * DPR, Y(v[1]) - 5 * DPR); ctx.lineTo(X(v[0]) + 5 * DPR, Y(v[1]) + 5 * DPR);
+        ctx.moveTo(X(v[0]) - 5 * DPR, Y(v[1]) + 5 * DPR); ctx.lineTo(X(v[0]) + 5 * DPR, Y(v[1]) - 5 * DPR);
+        ctx.stroke();
+      }
+    }
+    if ($("vCorn").checked && hi && P.corners) {
+      ctx.strokeStyle = "#ff4d5e"; ctx.lineWidth = lw * 1.4;
+      for (const v of P.corners) { ctx.beginPath(); ctx.arc(X(v[0]), Y(v[1]), 4 * DPR, 0, TAU); ctx.stroke(); }
+    }
+  });
+
+  drawPreview(lw);
+}
+
+/** Anteprima dei punti in attesa nelle modalità Linea e Arco. */
+function drawPreview(lw) {
+  if (!S.pick.length) return;
+  const H = S.hover;
+  const P0 = S.pick[0], P1 = S.pick[1];
+  ctx.strokeStyle = "#a78bfa"; ctx.lineWidth = lw * 1.6;
+  ctx.setLineDash([5 * DPR, 4 * DPR]);
+  let tang = null;
+  if (H && S.pick.length === 1) {
+    ctx.beginPath(); ctx.moveTo(X(P0.pt[0]), Y(P0.pt[1])); ctx.lineTo(X(H[0]), Y(H[1])); ctx.stroke();
+  } else if (H && S.pick.length === 2 && S.mode === "arc") {
+    const r = makeArc(P0, P1, H);
+    if (r) {
+      tang = r;
+      const pp = arcPts(r.A, r.B, r.b);
+      ctx.beginPath();
+      pp.forEach((p, k) => k ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])));
+      ctx.stroke();
+    }
+  }
+  ctx.setLineDash([]);
+  // punti cliccati
+  ctx.fillStyle = "#a78bfa";
+  for (const q of S.pick) ctx.fillRect(X(q.pt[0]) - 3 * DPR, Y(q.pt[1]) - 3 * DPR, 6 * DPR, 6 * DPR);
+  // punti di tangenza effettivi (dopo lo scorrimento)
+  if (tang) {
+    ctx.strokeStyle = "#19e6d2"; ctx.lineWidth = lw * 1.4;
+    for (const t of [tang.A, tang.B]) { ctx.beginPath(); ctx.arc(X(t[0]), Y(t[1]), 5 * DPR, 0, TAU); ctx.stroke(); }
+    ctx.fillStyle = "#19e6d2";
+    ctx.font = `${10 * DPR}px ui-monospace,monospace`; ctx.textAlign = "left";
+    ctx.fillText("R " + tang.r.toFixed(3), X(tang.C[0]) + 6 * DPR, Y(tang.C[1]) - 4 * DPR);
+    ctx.fillRect(X(tang.C[0]) - 1.5 * DPR, Y(tang.C[1]) - 1.5 * DPR, 3 * DPR, 3 * DPR);
+  }
+  if (S.snapped && H) {
+    ctx.strokeStyle = "#a78bfa"; ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.arc(X(H[0]), Y(H[1]), 7 * DPR, 0, TAU); ctx.stroke();
+  }
+}
+
+/* ---------------- interazione ---------------- */
+function toWorld(clientX, clientY) {
+  const r = cv.getBoundingClientRect();
+  const sx = (clientX - r.left) * DPR, sy = (clientY - r.top) * DPR;
+  return [(sx - S.view.ox) / S.view.s, (S.view.oy - sy) / S.view.s];
+}
+const pixW = px => px * DPR / S.view.s;
+
+/** Aggancio al vertice più vicino entro 12 px. */
+function snap(w) {
+  const tolW = pixW(12);
+  let best = null, bd = tolW;
+  for (const P of S.geo) {
+    if (!P.include) continue;
+    for (const v of P.verts) { const d = dist(w, v); if (d < bd) { bd = d; best = v; } }
+  }
+  S.snapped = !!best;
+  return best ? [best[0], best[1]] : w;
+}
+/** Segmento più vicino al punto, entro 8 px. */
+function hitSeg(w) {
+  const tolW = pixW(8);
+  let best = null, bd = tolW;
+  S.geo.forEach((P, pi) => {
+    if (!P.include) return;
+    const n = P.verts.length;
+    for (let s = 0; s < P.bulges.length; s++) {
+      const d = distToSeg(w, P.verts[s], P.verts[(s + 1) % n], P.bulges[s]);
+      if (d < bd) { bd = d; best = { p: pi, s }; }
+    }
+  });
+  return best;
+}
+
+/** Punto scelto dall'utente: agganciato a un vertice, oppure appoggiato a una curva ospite. */
+function nearestVertex(w, tolW) {
+  let best = null, bd = tolW;
+  for (const P of S.geo) {
+    if (!P.include) continue;
+    for (const v of P.verts) { const d = dist(w, v); if (d < bd) { bd = d; best = v; } }
+  }
+  return best;
+}
+function pickPoint(w, allowHost) {
+  if (allowHost && $("tang").checked) {
+    const h = hitSeg(w);
+    if (h) { S.snapped = true; return { pt: projOnHost(h, w), host: h }; }
+  }
+  const v = nearestVertex(w, pixW(12));
+  S.snapped = !!v;
+  return { pt: v ? [v[0], v[1]] : w, host: null };
+}
+
+function handleClick(w) {
+  if (S.mode === "sel") {
+    const h = hitSeg(w);
+    S.selSeg = h; S.sel = h ? h.p : -1;
+    renderProfileList(); draw();
+    if (h) {
+      const P = S.geo[h.p], n = P.verts.length, b = P.bulges[h.s];
+      if (Math.abs(b) < 1e-12) toast("Linea · lung. " + dist(P.verts[h.s], P.verts[(h.s + 1) % n]).toFixed(3) + " mm", true);
+      else {
+        const g = arcGeom(P.verts[h.s], P.verts[(h.s + 1) % n], b);
+        toast("Arco · R " + g.r.toFixed(3) + " mm · " + (g.th * 180 / Math.PI).toFixed(1) + "°", true);
+      }
+    }
+    return;
+  }
+  if (S.mode === "del") {
+    const h = hitSeg(w);
+    if (!h) { toast("Nessun segmento sotto il cursore"); return; }
+    pushUndo();
+    const wasClosed = S.geo[h.p].closed;
+    deleteSeg(h.p, h.s);
+    S.selSeg = null; S.sel = -1;
+    refreshEdit(wasClosed ? "Segmento eliminato · profilo ora aperto" : "Segmento eliminato");
+    return;
+  }
+  if (S.mode === "line") {
+    S.pick.push(pickPoint(w, false));
+    if (S.pick.length === 2) {
+      const [a, b] = S.pick.map(q => q.pt);
+      S.pick = [];
+      if (dist(a, b) < 1e-6) { toast("Punti coincidenti"); draw(); return; }
+      pushUndo(); addSeg(a, b, 0);
+      refreshEdit("Linea creata · " + dist(a, b).toFixed(3) + " mm");
+    } else draw();
+    return;
+  }
+  if (S.mode === "arc") {
+    if (S.pick.length < 2) { S.pick.push(pickPoint(w, true)); draw(); return; }
+    const res = makeArc(S.pick[0], S.pick[1], w);
+    if (!res) { S.pick = []; draw(); toast("Nessun arco tangente possibile con questi punti"); return; }
+    pushUndo();
+    const hA = S.pick[0].host, hB = S.pick[1].host;
+    const trimMode = $("trimMode").value;
+    // Applico prima al secondo ospite (indice più alto o profilo diverso) per non invalidare
+    // gli indici del primo; se sono lo stesso segmento gestisco a parte.
+    const apply = (h, T, away) => {
+      if (!h) return;
+      if (trimMode === "trim") trimHostAt(h.p, h.s, T, away);
+      else if (trimMode === "split") splitHostAt(h.p, h.s, T);
+    };
+    // Caso classico del raccordo d'angolo: i due estremi cadono su segmenti adiacenti
+    // dello stesso profilo che condividono un vertice. Sostituisco quel vertice con
+    // T1, arco, T2, così non resta alcun moncone.
+    if (hA && hB && hA.p === hB.p && trimMode === "trim"
+        && filletCorner(hA.p, hA.s, hB.s, res)) {
+      S.pick = [];
+      refreshEdit("Raccordo d'angolo · R " + res.r.toFixed(3) + " mm", true);
+      return;
+    }
+    if (hA && hB && hA.p === hB.p && hA.s === hB.s) {
+      // entrambi gli estremi sullo stesso segmento: divido comunque nei due punti
+      const P = S.geo[hA.p];
+      // ordino T lungo il segmento e inserisco due vertici
+      splitHostAt(hA.p, hA.s, res.A);
+      // dopo lo split il segmento è diviso: trovo dove cade res.B
+      const n = P.verts.length;
+      let sB = hA.s;
+      let d0 = distToSeg(res.B, P.verts[hA.s], P.verts[(hA.s + 1) % n], P.bulges[hA.s]);
+      let d1 = distToSeg(res.B, P.verts[hA.s + 1], P.verts[(hA.s + 2) % n], P.bulges[hA.s + 1]);
+      sB = d1 < d0 ? hA.s + 1 : hA.s;
+      splitHostAt(hA.p, sB, res.B);
+    } else if (hA && hB && hA.p === hB.p) {
+      // stesso profilo, segmenti diversi: applico all'indice maggiore per primo
+      if (hA.s >= hB.s) { apply(hA, res.A, res.B); apply(hB, res.B, res.A); }
+      else { apply(hB, res.B, res.A); apply(hA, res.A, res.B); }
+    } else {
+      apply(hA, res.A, res.B);
+      apply(hB, res.B, res.A);
+    }
+    addSeg(res.A, res.B, res.b);
+    joinGeo(Math.max(opts().closeTol, 1e-4));   // ricuce l'arco al profilo accorciato
+    const slide = res.slideA + res.slideB;
+    S.pick = [];
+    refreshEdit("Arco tangente · R " + res.r.toFixed(3) + " mm"
+      + (slide > 1e-6 ? " · scorrimento " + slide.toFixed(3) + " mm" : "")
+      + (res.outside ? " · contatto oltre il segmento" : ""), !res.outside);
+    return;
+  }
+}
+
+let ptrs = new Map(), lastDist = 0, lastMid = null, downAt = null, moved = false;
+cv.addEventListener("pointerdown", e => {
+  cv.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (ptrs.size === 1) { downAt = [e.clientX, e.clientY]; moved = false; }
+});
+cv.addEventListener("pointerup", e => {
+  const single = ptrs.size === 1;
+  ptrs.delete(e.pointerId); lastDist = 0; lastMid = null;
+  if (single && downAt && !moved) handleClick(toWorld(e.clientX, e.clientY));
+  downAt = null;
+});
+cv.addEventListener("pointercancel", e => { ptrs.delete(e.pointerId); lastDist = 0; lastMid = null; downAt = null; });
+cv.addEventListener("pointermove", e => {
+  if (!ptrs.has(e.pointerId)) {
+    // hover: anteprima di creazione (solo con mouse/penna)
+    if (S.pick.length && e.pointerType !== "touch") {
+      const w = toWorld(e.clientX, e.clientY);
+      S.hover = (S.mode === "arc" && S.pick.length === 2) ? w : pickPoint(w, S.mode === "arc").pt;
+      draw();
+    }
+    return;
+  }
+  const prev = ptrs.get(e.pointerId);
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  const a = [...ptrs.values()];
+  if (downAt && Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) moved = true;
+  if (a.length === 1) {
+    if (!moved) return;
+    S.view.ox += (e.clientX - prev[0]) * DPR;
+    S.view.oy += (e.clientY - prev[1]) * DPR;
+    draw();
+  } else if (a.length === 2) {
+    moved = true;
+    const d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]);
+    const mid = [(a[0][0] + a[1][0]) / 2 * DPR, (a[0][1] + a[1][1]) / 2 * DPR];
+    if (lastDist) {
+      const k = d / lastDist;
+      S.view.ox = mid[0] + (S.view.ox - lastMid[0]) * k;
+      S.view.oy = mid[1] + (S.view.oy - lastMid[1]) * k;
+      S.view.s *= k;
+    }
+    lastDist = d; lastMid = mid;
+    draw();
+  }
+});
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  const mx = (e.clientX - r.left) * DPR, my = (e.clientY - r.top) * DPR;
+  const k = Math.exp(-e.deltaY * 0.0016);
+  S.view.ox = mx + (S.view.ox - mx) * k;
+  S.view.oy = my + (S.view.oy - my) * k;
+  S.view.s *= k;
+  draw();
+}, { passive: false });
+
+/* ---------------- export DXF ---------------- */
+function buildDXF() {
+  const dec = clamp(parseInt($("dec").value) || 6, 2, 10);
+  const mode = $("expMode").value;
+  const defLayer = ($("lay").value || "FIT").trim().toUpperCase().replace(/[^A-Z0-9_\-$]/g, "_") || "FIT";
+  const keep = $("keepLay").checked;
+  const onlyClosed = $("expClosed").checked;
+  const F = v => (+v).toFixed(dec);
+  const L = [];
+  const p = (c, v) => { L.push(String(c)); L.push(String(v)); };
+
+  const prof = S.geo.filter(P => P.include && P.verts.length >= 2 && (!onlyClosed || P.closed));
+  const lyOf = P => (keep ? (P.layer || "0") : defLayer).toUpperCase().replace(/[^A-Z0-9_\-$]/g, "_") || "0";
+  const layers = [...new Set(prof.map(lyOf))];
+  if (!layers.length) layers.push(defLayer);
+
+  let x0 = 1e30, y0 = 1e30, x1 = -1e30, y1 = -1e30;
+  for (const P of prof) for (const v of P.verts) {
+    x0 = Math.min(x0, v[0]); y0 = Math.min(y0, v[1]);
+    x1 = Math.max(x1, v[0]); y1 = Math.max(y1, v[1]);
+  }
+  if (x0 > x1) { x0 = y0 = 0; x1 = y1 = 1; }
+
+  const arcOf = (A, B, b) => {
+    const g = arcGeom(A, B, b);
+    let a0 = Math.atan2(A[1] - g.cy, A[0] - g.cx), a1 = Math.atan2(B[1] - g.cy, B[0] - g.cx);
+    if (g.th < 0) { const t = a0; a0 = a1; a1 = t; }   // in DXF l'arco è sempre antiorario
+    return { g, a0: (a0 * 180 / Math.PI + 360) % 360, a1: (a1 * 180 / Math.PI + 360) % 360 };
+  };
+
+  /* ---------- R12 / AC1009: massima compatibilità CAM ---------- */
+  if (mode === "pl12" || mode === "la12") {
+    p(0, "SECTION"); p(2, "HEADER");
+    p(9, "$ACADVER"); p(1, "AC1009");
+    p(9, "$EXTMIN"); p(10, F(x0)); p(20, F(y0)); p(30, "0.0");
+    p(9, "$EXTMAX"); p(10, F(x1)); p(20, F(y1)); p(30, "0.0");
+    p(0, "ENDSEC");
+    p(0, "SECTION"); p(2, "TABLES");
+    p(0, "TABLE"); p(2, "LTYPE"); p(70, 1);
+    p(0, "LTYPE"); p(2, "CONTINUOUS"); p(70, 0); p(3, "Solid line"); p(72, 65); p(73, 0); p(40, "0.0");
+    p(0, "ENDTAB");
+    p(0, "TABLE"); p(2, "LAYER"); p(70, layers.length);
+    for (const ly of layers) { p(0, "LAYER"); p(2, ly); p(70, 0); p(62, 7); p(6, "CONTINUOUS"); }
+    p(0, "ENDTAB");
+    p(0, "ENDSEC");
+    p(0, "SECTION"); p(2, "ENTITIES");
+    for (const P of prof) {
+      const ly = lyOf(P), n = P.verts.length;
+      if (mode === "pl12") {
+        p(0, "POLYLINE"); p(8, ly); p(66, 1); p(70, P.closed ? 1 : 0);
+        p(10, "0.0"); p(20, "0.0"); p(30, "0.0");
+        for (let i = 0; i < n; i++) {
+          p(0, "VERTEX"); p(8, ly);
+          p(10, F(P.verts[i][0])); p(20, F(P.verts[i][1])); p(30, "0.0");
+          const b = P.bulges[i];
+          if (b !== undefined && Math.abs(b) > 1e-12) p(42, F(b));
+          p(70, 0);
+        }
+        p(0, "SEQEND"); p(8, ly);
+      } else {
+        for (let i = 0; i < P.bulges.length; i++) {
+          const A = P.verts[i], B = P.verts[(i + 1) % n], b = P.bulges[i];
+          if (Math.abs(b) < 1e-12) {
+            p(0, "LINE"); p(8, ly);
+            p(10, F(A[0])); p(20, F(A[1])); p(30, "0.0"); p(11, F(B[0])); p(21, F(B[1])); p(31, "0.0");
+          } else {
+            const a = arcOf(A, B, b);
+            p(0, "ARC"); p(8, ly);
+            p(10, F(a.g.cx)); p(20, F(a.g.cy)); p(30, "0.0"); p(40, F(a.g.r)); p(50, F(a.a0)); p(51, F(a.a1));
+          }
+        }
+      }
+    }
+    p(0, "ENDSEC"); p(0, "EOF");
+    return L.join("\r\n") + "\r\n";
+  }
+
+  /* ---------- AC1015 con LWPOLYLINE: handle, owner, block record ---------- */
+  let hs = 0x30;
+  const H = () => (hs++).toString(16).toUpperCase();
+  const MS = "1F", PS = "1B";
+  const layerH = {}; layers.forEach(ly => layerH[ly] = H());
+
+  p(0, "SECTION"); p(2, "HEADER");
+  p(9, "$ACADVER"); p(1, "AC1015");
+  p(9, "$HANDSEED"); p(5, "FFFF");
+  p(9, "$INSUNITS"); p(70, 4);
+  p(9, "$EXTMIN"); p(10, F(x0)); p(20, F(y0)); p(30, "0.0");
+  p(9, "$EXTMAX"); p(10, F(x1)); p(20, F(y1)); p(30, "0.0");
+  p(0, "ENDSEC");
+  p(0, "SECTION"); p(2, "CLASSES"); p(0, "ENDSEC");
+  p(0, "SECTION"); p(2, "TABLES");
+
+  const tbl = (name, handle, count, body) => {
+    p(0, "TABLE"); p(2, name); p(5, handle); p(330, "0"); p(100, "AcDbSymbolTable"); p(70, count);
+    body(); p(0, "ENDTAB");
+  };
+  tbl("VPORT", "8", 0, () => { });
+  tbl("LTYPE", "5", 3, () => {
+    for (const [h, nm, desc] of [["14", "ByBlock", ""], ["15", "ByLayer", ""], ["16", "Continuous", "Solid line"]]) {
+      p(0, "LTYPE"); p(5, h); p(330, "5"); p(100, "AcDbSymbolTableRecord"); p(100, "AcDbLinetypeTableRecord");
+      p(2, nm); p(70, 0); p(3, desc); p(72, 65); p(73, 0); p(40, "0.0");
+    }
+  });
+  tbl("LAYER", "2", layers.length, () => {
+    for (const ly of layers) {
+      p(0, "LAYER"); p(5, layerH[ly]); p(330, "2"); p(100, "AcDbSymbolTableRecord"); p(100, "AcDbLayerTableRecord");
+      p(2, ly); p(70, 0); p(62, 7); p(6, "Continuous"); p(370, -3); p(390, "F");
+    }
+  });
+  tbl("STYLE", "3", 1, () => {
+    p(0, "STYLE"); p(5, "11"); p(330, "3"); p(100, "AcDbSymbolTableRecord"); p(100, "AcDbTextStyleTableRecord");
+    p(2, "Standard"); p(70, 0); p(40, "0.0"); p(41, "1.0"); p(50, "0.0"); p(71, 0); p(42, "2.5"); p(3, "txt"); p(4, "");
+  });
+  tbl("VIEW", "6", 0, () => { });
+  tbl("UCS", "7", 0, () => { });
+  tbl("APPID", "9", 1, () => {
+    p(0, "APPID"); p(5, "12"); p(330, "9"); p(100, "AcDbSymbolTableRecord"); p(100, "AcDbRegAppTableRecord"); p(2, "ACAD"); p(70, 0);
+  });
+  p(0, "TABLE"); p(2, "DIMSTYLE"); p(5, "A"); p(330, "0"); p(100, "AcDbSymbolTable"); p(70, 1); p(100, "AcDbDimStyleTable"); p(71, 0);
+  p(0, "DIMSTYLE"); p(105, "27"); p(330, "A"); p(100, "AcDbSymbolTableRecord"); p(100, "AcDbDimStyleTableRecord"); p(2, "Standard"); p(70, 0);
+  p(0, "ENDTAB");
+  tbl("BLOCK_RECORD", "1", 2, () => {
+    p(0, "BLOCK_RECORD"); p(5, MS); p(330, "1"); p(100, "AcDbSymbolTableRecord"); p(100, "AcDbBlockTableRecord"); p(2, "*Model_Space"); p(70, 0);
+    p(0, "BLOCK_RECORD"); p(5, PS); p(330, "1"); p(100, "AcDbSymbolTableRecord"); p(100, "AcDbBlockTableRecord"); p(2, "*Paper_Space"); p(70, 0);
+  });
+  p(0, "ENDSEC");
+
+  p(0, "SECTION"); p(2, "BLOCKS");
+  const blk = (bh, eh, owner, nm, paper) => {
+    p(0, "BLOCK"); p(5, bh); p(330, owner); p(100, "AcDbEntity"); if (paper) p(67, 1); p(8, "0"); p(100, "AcDbBlockBegin");
+    p(2, nm); p(70, 0); p(10, "0.0"); p(20, "0.0"); p(30, "0.0"); p(3, nm); p(1, "");
+    p(0, "ENDBLK"); p(5, eh); p(330, owner); p(100, "AcDbEntity"); if (paper) p(67, 1); p(8, "0"); p(100, "AcDbBlockEnd");
+  };
+  blk("20", "21", MS, "*Model_Space", false);
+  blk("1C", "1D", PS, "*Paper_Space", true);
+  p(0, "ENDSEC");
+
+  p(0, "SECTION"); p(2, "ENTITIES");
+  for (const P of prof) {
+    const ly = lyOf(P);
+    p(0, "LWPOLYLINE"); p(5, H()); p(330, MS); p(100, "AcDbEntity"); p(8, ly); p(100, "AcDbPolyline");
+    p(90, P.verts.length); p(70, P.closed ? 1 : 0); p(43, "0.0");
+    for (let i = 0; i < P.verts.length; i++) {
+      p(10, F(P.verts[i][0])); p(20, F(P.verts[i][1]));
+      const b = P.bulges[i];
+      if (b !== undefined && Math.abs(b) > 1e-12) p(42, F(b));
+    }
+  }
+  p(0, "ENDSEC");
+
+  p(0, "SECTION"); p(2, "OBJECTS");
+  p(0, "DICTIONARY"); p(5, "C"); p(330, "0"); p(100, "AcDbDictionary"); p(281, 1); p(3, "ACAD_GROUP"); p(350, "D");
+  p(0, "DICTIONARY"); p(5, "D"); p(330, "C"); p(100, "AcDbDictionary"); p(281, 1);
+  p(0, "ENDSEC"); p(0, "EOF");
+  return L.join("\r\n") + "\r\n";
+}
+
+function exportDXF(newTab) {
+  if (!S.geo.some(P => P.include)) { toast("Nessun profilo selezionato"); return; }
+  const txt = buildDXF();
+  const blob = new Blob([txt], { type: "application/dxf" });
+  const url = URL.createObjectURL(blob);
+  if (newTab) { window.open(url, "_blank"); return; }
+  const a = document.createElement("a");
+  a.href = url; a.download = S.name + "_fit.dxf";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast("DXF esportato (" + (txt.length / 1024).toFixed(1) + " KB)", true);
+}
+
+/* ---------------- demo ---------------- */
+function demoDXF() {
+  const L = [];
+  const p = (c, v) => { L.push(String(c)); L.push(String(v)); };
+  p(0, "SECTION"); p(2, "ENTITIES");
+
+  // 1) rettangolo raccordato campionato fittissimo (i "punti inutili")
+  const W = 120, Hh = 60, R = 12, ds = 0.05;
+  const pts = [];
+  const seg = (a, b) => { const n = Math.max(2, Math.ceil(dist(a, b) / ds)); for (let k = 0; k < n; k++) pts.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]); };
+  const arc = (cx, cy, a0, a1) => { const n = Math.max(4, Math.ceil(Math.abs(a1 - a0) * R / ds)); for (let k = 0; k < n; k++) { const a = a0 + (a1 - a0) * k / n; pts.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]); } };
+  seg([-W / 2 + R, -Hh / 2], [W / 2 - R, -Hh / 2]);
+  arc(W / 2 - R, -Hh / 2 + R, -Math.PI / 2, 0);
+  seg([W / 2, -Hh / 2 + R], [W / 2, Hh / 2 - R]);
+  arc(W / 2 - R, Hh / 2 - R, 0, Math.PI / 2);
+  seg([W / 2 - R, Hh / 2], [-W / 2 + R, Hh / 2]);
+  arc(-W / 2 + R, Hh / 2 - R, Math.PI / 2, Math.PI);
+  seg([-W / 2, Hh / 2 - R], [-W / 2, -Hh / 2 + R]);
+  arc(-W / 2 + R, -Hh / 2 + R, Math.PI, 1.5 * Math.PI);
+  p(0, "LWPOLYLINE"); p(8, "PROFILO"); p(90, pts.length); p(70, 1);
+  for (const q of pts) { p(10, q[0].toFixed(6)); p(20, q[1].toFixed(6)); }
+
+  // 2) foro circolare denso
+  const cp = [];
+  for (let k = 0; k < 2200; k++) { const a = TAU * k / 2200; cp.push([-30 + 15 * Math.cos(a), 15 * Math.sin(a)]); }
+  p(0, "LWPOLYLINE"); p(8, "FORI"); p(90, cp.length); p(70, 1);
+  for (const q of cp) { p(10, q[0].toFixed(6)); p(20, q[1].toFixed(6)); }
+
+  // 3) vera SPLINE NURBS grado 3
+  const C = [[-80, 80], [-50, 120], [-10, 40], [20, 130], [60, 50], [100, 110], [130, 60], [160, 100]];
+  const K = [0, 0, 0, 0, 1, 2, 3, 4, 5, 5, 5, 5];
+  p(0, "SPLINE"); p(8, "SPLINE"); p(100, "AcDbEntity"); p(100, "AcDbSpline");
+  p(70, 8); p(71, 3); p(72, K.length); p(73, C.length); p(74, 0);
+  for (const k of K) p(40, k);
+  for (const c of C) { p(10, c[0].toFixed(6)); p(20, c[1].toFixed(6)); p(30, 0); }
+
+  p(0, "ENDSEC"); p(0, "EOF");
+  return L.join("\r\n");
+}
+
+/* ---------------- UI ---------------- */
+$("drop").onclick = () => $("file").click();
+$("file").onchange = e => { const f = e.target.files[0]; if (f) readFile(f); };
+["dragenter", "dragover"].forEach(ev => $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.add("hot"); }));
+["dragleave", "drop"].forEach(ev => $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.remove("hot"); }));
+$("drop").addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) readFile(f); });
+document.body.addEventListener("dragover", e => e.preventDefault());
+document.body.addEventListener("drop", e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) readFile(f); });
+
+function readFile(f) {
+  const r = new FileReader();
+  r.onload = () => { try { loadDXFText(r.result, f.name); } catch (err) { console.error(err); toast("Errore di lettura: " + err.message); } };
+  r.onerror = () => toast("Impossibile leggere il file");
+  r.readAsText(f);
+}
+
+$("btnDemo").onclick = () => loadDXFText(demoDXF(), "demo");
+$("btnFit").onclick = () => {
+  if (!S.polys.length) { toast("Carica prima un DXF"); return; }
+  if (S.edited && !confirm("Ricalcolare dal DXF? Le modifiche manuali andranno perse.")) return;
+  fitAll();
+};
+$("btnExp").onclick = () => exportDXF(false);
+$("btnOpen").onclick = () => exportDXF(true);
+$("btnZoom").onclick = zoomFit;
+$("btnClose").onclick = () => {
+  if (!S.geo.length) { toast("Carica prima un DXF"); return; }
+  const o = opts();
+  pushUndo();
+  joinGeo(o.closeTol);                       // 1. ricollega le catene aperte, anche quelle disegnate a mano
+  const r = closeAll(o.closeTol, o.forceClose); // 2. salda gli estremi vicini, 3. chiude il resto se richiesto
+  if (o.orient) orientAll(S.geo);
+  S.sel = -1; S.selSeg = null;
+  const msg = [];
+  if (r.welded) msg.push(r.welded + " saldati");
+  if (r.forced) msg.push(r.forced + " chiusi con segmento");
+  if (r.left) msg.push(r.left + " ancora aperti");
+  refreshEdit(msg.length ? msg.join(" · ") : "Tutti i profili erano già chiusi", !r.left);
+};
+
+$("btnJoin").onclick = () => {
+  if (!S.geo.length) return;
+  const before = S.geo.length;
+  pushUndo();
+  joinGeo(opts().closeTol);
+  if (opts().orient) orientAll(S.geo);
+  S.sel = -1; S.selSeg = null;
+  refreshEdit(before - S.geo.length > 0 ? (before - S.geo.length) + " catene unite" : "Nessuna catena da unire");
+};
+
+$("btnDel").onclick = () => {
+  if (!S.selSeg) { toast("Seleziona prima un segmento"); return; }
+  pushUndo();
+  deleteSeg(S.selSeg.p, S.selSeg.s);
+  S.selSeg = null; S.sel = -1;
+  refreshEdit("Segmento eliminato");
+};
+$("btnUndo").onclick = undo;
+
+/* modalità */
+const HINTS = {
+  sel: "Clic su un segmento per selezionarlo e leggerne raggio o lunghezza. Trascina per spostare la vista.",
+  del: "Clic su un segmento per eliminarlo. Un profilo chiuso diventa aperto; uno aperto si spezza in due.",
+  line: "Clic sul punto iniziale, poi sul punto finale. I vertici esistenti si agganciano entro 12 px.",
+  arc: "Clic sull'inizio, poi sulla fine, poi su un punto di passaggio. Se entrambi gli estremi cadono su due lati adiacenti, si crea un raccordo tangente che accorcia i lati senza lasciare monconi."
+};
+function setMode(m) {
+  S.mode = m; S.pick = []; S.hover = null;
+  document.querySelectorAll(".md").forEach(b => b.className = "md" + (b.dataset.m === m ? " on" : ""));
+  $("hint").textContent = HINTS[m];
+  $("mode").innerHTML = { sel: "Seleziona", del: "Elimina", line: "Linea", arc: "Arco" }[m]
+    + (m === "line" ? "<b>punto 1 → punto 2</b>"
+      : m === "arc" ? "<b>inizio → fine → passaggio" + ($("tang").checked ? " · tangente" : "") + "</b>" : "");
+  cv.className = (m === "line" || m === "arc") ? "cross" : "";
+  draw();
+}
+document.querySelectorAll(".md").forEach(b => b.onclick = () => setMode(b.dataset.m));
+$("tang").onchange = () => { S.pick = []; setMode(S.mode); };
+
+window.addEventListener("keydown", e => {
+  if (/input|textarea|select/i.test(e.target.tagName)) return;
+  if (e.key === "Escape") { S.pick = []; S.selSeg = null; draw(); }
+  else if (e.key === "Delete" || e.key === "Backspace") {
+    if (S.selSeg) { e.preventDefault(); $("btnDel").onclick(); }
+  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); }
+  else if (e.key === "1") setMode("sel");
+  else if (e.key === "2") setMode("del");
+  else if (e.key === "3") setMode("line");
+  else if (e.key === "4") setMode("arc");
+});
+
+["closeTol", "minSeg"].forEach(id => $(id).oninput = schedule);
+["forceClose", "orient"].forEach(id => $(id).onchange = schedule);
+$("btnAll").onclick = () => { S.geo.forEach(P => P.include = true); renderProfileList(); draw(); };
+$("btnNone").onclick = () => { S.geo.forEach(P => P.include = false); renderProfileList(); draw(); };
+
+// slider tolleranza (logaritmico 0.0005 → 5 mm)
+const tolR = $("tolR"), tolI = $("tol");
+tolR.oninput = () => { tolI.value = Math.pow(10, parseFloat(tolR.value)).toPrecision(2); schedule(); };
+tolI.oninput = () => { const v = parseFloat(tolI.value); if (v > 0) tolR.value = clamp(Math.log10(v), -3.3, 0.7); schedule(); };
+
+let timer = null, warnedEdit = false;
+function schedule() {
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    if (!S.polys.length) return;
+    if (S.edited) {
+      if (!warnedEdit) { toast("Modifiche manuali presenti: premi «Ricalcola» per rigenerare"); warnedEdit = true; }
+      return;
+    }
+    fitAll();
+  }, 220);
+}
+["dpf", "sag", "gap", "cang", "cwin", "minR", "maxR", "maxSw", "minP", "bias", "orthoA", "rStep"].forEach(id => $(id).oninput = schedule);
+["arcs", "mCol", "mArc", "ortho", "rSnap"].forEach(id => $(id).onchange = schedule);
+["vOrig", "vPts", "vVert", "vCorn", "vCen", "vGrid"].forEach(id => $(id).onchange = draw);
+
+$("tbView").onclick = () => { document.body.className = "tab-view"; $("tbView").className = "on"; $("tbCtl").className = ""; resize(); };
+$("tbCtl").onclick = () => { document.body.className = "tab-ctl"; $("tbCtl").className = "on"; $("tbView").className = ""; };
+
+window.addEventListener("resize", resize);
+setMode("sel");
+resize();
+draw();
+</script>
+</body>
+</html>
