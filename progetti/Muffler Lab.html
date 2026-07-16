@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#07090c">
+<title>SIL·LAB — Simulatore Parametrico Silenziatore</title>
+<style>
+:root{
+  --bg:#07090c; --bg2:#0d1116; --panel:#11161c; --panel2:#161c24;
+  --line:#232c37; --line2:#2f3a48;
+  --amb:#ffb000; --amb-d:#8a5f00; --teal:#19e6d2; --teal-d:#0b6b62;
+  --txt:#c8d2dd; --txt-d:#6b7887; --txt-b:#eef4fa;
+  --red:#ff4d4d; --grn:#4dff88; --vio:#a06bff;
+  --mono:'JetBrains Mono','SF Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;
+  --sbw:352px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden}
+body{
+  background:var(--bg); color:var(--txt); font-family:var(--mono); font-size:12px;
+  -webkit-font-smoothing:antialiased; overscroll-behavior:none;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 1px,transparent 1px 3px);
+  opacity:.5;mix-blend-mode:multiply;
+}
+#app{display:grid;grid-template-columns:var(--sbw) 1fr;height:100%;overflow:hidden}
+
+/* ---------- HEADER ---------- */
+#top{
+  grid-column:1/-1;height:44px;display:flex;align-items:center;gap:14px;
+  padding:0 12px;background:linear-gradient(180deg,#0f141a,#0a0e13);
+  border-bottom:1px solid var(--line);
+}
+.brand{font-weight:700;letter-spacing:3px;color:var(--amb);font-size:14px;white-space:nowrap}
+.brand small{color:var(--txt-d);font-weight:400;letter-spacing:1px;font-size:9px;display:block;margin-top:-2px}
+#top .sep{width:1px;height:26px;background:var(--line)}
+select.preset{
+  background:var(--panel2);color:var(--teal);border:1px solid var(--line2);border-radius:3px;
+  font-family:var(--mono);font-size:10px;padding:5px 6px;outline:none;max-width:230px;
+}
+.btn{
+  background:var(--panel2);border:1px solid var(--line2);color:var(--txt);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:1px;padding:6px 9px;border-radius:3px;cursor:pointer;
+  white-space:nowrap;
+}
+.btn:hover{border-color:var(--amb);color:var(--amb)}
+.btn.on{border-color:var(--teal);color:var(--teal);background:#0d1f1e}
+.spacer{flex:1}
+#tabs{display:none}
+
+/* ---------- SIDEBAR ---------- */
+#side{
+  background:var(--bg2);border-right:1px solid var(--line);overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;padding-bottom:60px;
+}
+.grp{border-bottom:1px solid var(--line)}
+.grp>h3{
+  margin:0;padding:9px 10px;font-size:10px;letter-spacing:2.2px;color:var(--amb);
+  background:linear-gradient(90deg,#141a21,#0d1116);cursor:pointer;
+  display:flex;align-items:center;gap:8px;user-select:none;font-weight:600;
+}
+.grp>h3 .car{color:var(--txt-d);font-size:8px;transition:transform .18s}
+.grp.col>h3 .car{transform:rotate(-90deg)}
+.grp.col .gbody{display:none}
+.grp>h3 .tag{margin-left:auto;color:var(--txt-d);font-size:8.5px;letter-spacing:.5px;font-weight:400}
+.gbody{padding:8px 10px 12px}
+
+.row{margin-bottom:11px}
+.row .lab{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:4px}
+.row .lab span:first-child{color:var(--txt);font-size:10px;letter-spacing:.3px}
+.row .lab .val{color:var(--teal);font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.row .lab .val i{color:var(--txt-d);font-style:normal;font-weight:400;font-size:8.5px;margin-left:2px}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;cursor:pointer;margin:0;display:block;
+}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--line2);border-radius:2px}
+input[type=range]::-moz-range-track{height:3px;background:var(--line2);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--amb);
+  border:2px solid #1a1207;margin-top:-5px;box-shadow:0 0 6px rgba(255,176,0,.55)
+}
+input[type=range]::-moz-range-thumb{
+  width:13px;height:13px;border-radius:50%;background:var(--amb);border:2px solid #1a1207;box-shadow:0 0 6px rgba(255,176,0,.55)
+}
+select.p{
+  width:100%;background:var(--panel2);color:var(--txt-b);border:1px solid var(--line2);border-radius:3px;
+  font-family:var(--mono);font-size:10px;padding:5px 6px;outline:none
+}
+.tog{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:2px 0}
+.tog .sw{width:32px;height:16px;border-radius:9px;background:#232c37;border:1px solid var(--line2);position:relative;transition:.15s;flex:none}
+.tog .sw::after{content:'';position:absolute;left:2px;top:1.5px;width:11px;height:11px;border-radius:50%;background:var(--txt-d);transition:.15s}
+.tog.on .sw{background:#0d2b28;border-color:var(--teal-d)}
+.tog.on .sw::after{left:17px;background:var(--teal);box-shadow:0 0 6px var(--teal)}
+.tog span{font-size:10px}
+.hint{color:var(--txt-d);font-size:8.5px;line-height:1.5;margin:-4px 0 8px;letter-spacing:.2px}
+.derived{
+  background:#0a0f14;border:1px solid var(--line);border-radius:3px;padding:6px 7px;margin-top:6px;
+  display:grid;grid-template-columns:1fr 1fr;gap:3px 8px;
+}
+.derived div{display:flex;justify-content:space-between;font-size:8.7px}
+.derived div b{color:var(--amb);font-weight:600;font-variant-numeric:tabular-nums}
+.derived div span{color:var(--txt-d)}
+
+/* ---------- MAIN ---------- */
+#main{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:10px;display:flex;flex-direction:column;gap:10px}
+#main>*{flex:0 0 auto}   /* le card non devono essere compresse dal flex: overflow:hidden azzera la loro min-height automatica */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.card>h4{
+  margin:0;padding:7px 10px;font-size:9.5px;letter-spacing:2px;color:var(--txt-d);
+  border-bottom:1px solid var(--line);background:#0d1116;display:flex;align-items:center;gap:8px;font-weight:600;
+}
+.card>h4 b{color:var(--teal);font-weight:600}
+.card>h4 .rt{margin-left:auto;color:var(--txt-d);font-weight:400;letter-spacing:.5px;font-size:8.5px}
+.cbody{padding:8px}
+
+#secWrap{position:relative;background:#05070a}
+#sec{display:block;width:100%;height:auto}
+#secData{display:flex;flex-wrap:wrap;align-items:center;padding:5px 4px;background:#0b0f14;border-top:1px solid var(--line);font-size:9px;line-height:1.6}
+#secData span{padding:1px 8px;border-right:1px solid var(--line);white-space:nowrap;color:var(--txt-d)}
+#secData span.br{border-right:none}
+#secData b{color:var(--amb);font-weight:700;font-variant-numeric:tabular-nums;margin-left:3px}
+#secData b.t{color:var(--teal)} #secData b.v{color:var(--vio)} #secData b.r{color:var(--red)}
+
+/* rpm control */
+#rpmBar{display:flex;align-items:center;gap:10px;padding:7px 10px;background:#0d1116;border-top:1px solid var(--line)}
+#rpmBar .rl{font-size:9px;letter-spacing:1.5px;color:var(--txt-d);white-space:nowrap}
+#rpmBar input{flex:1}
+#rpmBar .rv{font-size:15px;font-weight:700;color:var(--amb);font-variant-numeric:tabular-nums;min-width:78px;text-align:right}
+#rpmBar .rv i{font-size:8px;color:var(--txt-d);font-style:normal;font-weight:400}
+#simBar{display:flex;align-items:center;gap:10px;padding:6px 10px;background:#0b0f14;border-top:1px solid var(--line);flex-wrap:wrap}
+#simBar .rl{font-size:9px;letter-spacing:1.5px;color:var(--txt-d);white-space:nowrap}
+#simBar input{flex:1;min-width:70px}
+#simBar .rv2{font-size:11px;font-weight:700;color:var(--teal);font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
+#simBar .lay{display:flex;gap:3px;margin-left:auto}
+#simBar .lb{padding:4px 6px;font-size:8px;letter-spacing:.5px;opacity:.45}
+#simBar .lb.on{opacity:1;border-color:var(--teal);color:var(--teal);background:#0d1f1e}
+
+
+/* tiles */
+#tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:6px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:7px 8px;position:relative;overflow:hidden}
+.tile .k{font-size:8px;letter-spacing:1.1px;color:var(--txt-d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .v{font-size:17px;font-weight:700;color:var(--txt-b);font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.tile .v i{font-size:9px;font-weight:400;color:var(--txt-d);font-style:normal;margin-left:2px}
+.tile.a .v{color:var(--amb)} .tile.t .v{color:var(--teal)}
+.tile.warn{border-color:#5a2a10} .tile.warn .v{color:var(--red)}
+.tile.ok{border-color:#1c4a2c}
+.tile::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:var(--bw,0%);background:var(--amb);opacity:.5;transition:width .2s}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+canvas.ch{display:block;width:100%;height:auto}
+
+/* legend */
+.leg{display:flex;flex-wrap:wrap;gap:10px;padding:5px 10px;font-size:8.5px;color:var(--txt-d);border-top:1px solid var(--line);background:#0b0f14}
+.leg i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:4px}
+
+/* emissions */
+.em{display:flex;flex-direction:column;gap:8px;padding:4px 2px}
+.emr{display:grid;grid-template-columns:52px 1fr 96px;gap:8px;align-items:center}
+.emr .n{font-size:10px;color:var(--txt-b);font-weight:600}
+.emr .n small{display:block;color:var(--txt-d);font-weight:400;font-size:7.5px;letter-spacing:.5px}
+.bar{height:14px;background:#0a0f14;border:1px solid var(--line);border-radius:2px;position:relative;overflow:hidden}
+.bar .f{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--teal),#1fa;);transition:width .25s}
+.bar .lim{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--red);box-shadow:0 0 5px var(--red)}
+.emr .q{text-align:right;font-size:10px;font-variant-numeric:tabular-nums;color:var(--txt-b);font-weight:600}
+.emr .q small{color:var(--txt-d);font-weight:400;font-size:8px;display:block}
+
+/* warnings */
+#warn{display:flex;flex-direction:column;gap:0}
+.wi{display:flex;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:9.5px;line-height:1.5;align-items:flex-start}
+.wi:last-child{border-bottom:none}
+.wi .ic{flex:none;width:14px;text-align:center;font-size:10px}
+.wi.e{color:#ffb3b3} .wi.e .ic{color:var(--red)}
+.wi.w{color:#ffdca8} .wi.w .ic{color:var(--amb)}
+.wi.i{color:#a8ede6} .wi.i .ic{color:var(--teal)}
+.wi b{color:#fff;font-weight:600}
+
+/* refs table */
+table.ref{width:100%;border-collapse:collapse;font-size:9px}
+table.ref th,table.ref td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left}
+table.ref th{color:var(--txt-d);font-weight:600;letter-spacing:.8px;font-size:8px}
+table.ref td{font-variant-numeric:tabular-nums}
+table.ref td:first-child{color:var(--txt-b)}
+table.ref tr.hl td{color:var(--teal)}
+
+/* scrollbars */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#0a0e13}
+::-webkit-scrollbar-thumb{background:#2a3542;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--amb-d)}
+
+/* ---------- MOBILE ---------- */
+@media(max-width:900px){
+  #app{grid-template-columns:1fr}
+  #top{height:auto;flex-wrap:wrap;padding:6px 8px;gap:8px}
+  #top .sep{display:none}
+  .brand{font-size:12px}
+  select.preset{max-width:150px;flex:1}
+  #tabs{display:flex;gap:0;width:100%;border-top:1px solid var(--line);padding-top:6px}
+  #tabs .btn{flex:1;border-radius:0;border-right:none;letter-spacing:.5px;padding:8px 2px;font-size:9px}
+  #tabs .btn:first-child{border-radius:3px 0 0 3px}
+  #tabs .btn:last-child{border-radius:0 3px 3px 0;border-right:1px solid var(--line2)}
+  #tabs .btn.on{background:#0d1f1e}
+  #side{border-right:none;display:none}
+  #main{display:none;padding:8px;gap:8px}
+  body.tab-setup #side{display:block}
+  body.tab-view #main{display:flex}
+  body.tab-view #main>*[data-t="res"]{display:none}
+  body.tab-res #main{display:flex}
+  body.tab-res #main>*[data-t="view"]{display:none}
+  .grid2{grid-template-columns:1fr}
+  #tiles{grid-template-columns:repeat(2,1fr)}
+  #secData{font-size:8.5px;padding:4px 2px}
+  #secData span{padding:1px 5px}
+  .tile .v{font-size:15px}
+  #rpmBar .rv{font-size:13px;min-width:66px}
+}
+</style>
+</head>
+<body class="tab-view">
+<div id="app">
+
+  <div id="top">
+    <div class="brand">SIL·LAB<small>MUFFLER PARAM SIM · b4</small></div>
+    <div class="sep"></div>
+    <select class="preset" id="preset"></select>
+    <button class="btn" id="bRef">SALVA RIF</button>
+    <button class="btn" id="bClrRef">×</button>
+    <div class="sep"></div>
+    <button class="btn on" id="bPlay">❚❚</button>
+    <div class="spacer"></div>
+    <button class="btn" id="bJson">JSON</button>
+    <button class="btn" id="bCsv">CSV</button>
+    <div id="tabs">
+      <button class="btn" data-tab="setup">SETUP</button>
+      <button class="btn on" data-tab="view">SEZIONE</button>
+      <button class="btn" data-tab="res">RISULTATI</button>
+    </div>
+  </div>
+
+  <div id="side"></div>
+
+  <div id="main">
+
+    <div class="card" data-t="view">
+      <h4>SEZIONE LONGITUDINALE — <b id="secTitle">SILENZIATORE</b><span class="rt" id="secDim"></span></h4>
+      <div id="secWrap">
+        <canvas id="sec"></canvas>
+      </div>
+      <div id="secData"></div>
+      <div id="rpmBar">
+        <div class="rl">REGIME</div>
+        <input type="range" id="rpmS" min="1500" max="14000" step="50" value="9000">
+        <div class="rv" id="rpmV">9000<i> rpm</i></div>
+      </div>
+      <div id="simBar">
+        <div class="rl">RALLENTATORE</div>
+        <input type="range" id="tsS" min="1.9" max="3.4" step="0.01" value="2.65">
+        <div class="rv2" id="tsV">1:450</div>
+        <div class="lay">
+          <button class="btn lb on" data-l="gas">GAS</button>
+          <button class="btn lb on" data-l="wave">ONDE</button>
+          <button class="btn lb on" data-l="px">p(x)</button>
+          <button class="btn lb on" data-l="abs">ASSORB.</button>
+          <button class="btn lb on" data-l="therm">TERMICA</button>
+          <button class="btn lb" id="bZoom" title="inquadra solo il silenziatore">⤢</button>
+          <button class="btn lb" id="bFlip" title="ribalta orizzontalmente">↔</button>
+        </div>
+      </div>
+      <div class="leg" id="secLeg">
+        <span><i style="background:linear-gradient(90deg,#fff6d0,#e03a16)"></i>gas — colore = T, lunghezza = velocità istantanea</span>
+        <span><i style="background:#ff7a2f"></i>compressione</span>
+        <span><i style="background:#6b9cff"></i>espansione (rarefazione)</span>
+        <span><i style="background:#19e6d2"></i>energia acustica nei fori</span>
+        <span><i style="background:#ff4d4d"></i>dissipata in calore</span>
+        <span>↤ R = coefficiente di riflessione della discontinuità</span>
+      </div>
+    </div>
+
+    <div id="tiles" data-t="view"></div>
+
+    <div class="card" data-t="res">
+      <h4>DIAGNOSTICA</h4>
+      <div id="warn"></div>
+    </div>
+
+    <div class="grid2" data-t="res">
+      <div class="card">
+        <h4>POTENZA / COPPIA<span class="rt">vs regime</span></h4>
+        <canvas class="ch" id="chP"></canvas>
+        <div class="leg">
+          <span><i style="background:#ffb000"></i>Potenza [kW]</span>
+          <span><i style="background:#19e6d2"></i>Coppia [Nm]</span>
+          <span><i style="background:#556"></i>Scarico libero (rif. teorico)</span>
+          <span><i style="background:#a06bff"></i>Rif. salvato</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>CONTROPRESSIONE / VELOCITÀ GAS</h4>
+        <canvas class="ch" id="chB"></canvas>
+        <div class="leg">
+          <span><i style="background:#ffb000"></i>Δp totale [kPa]</span>
+          <span><i style="background:#19e6d2"></i>v uscita [m/s]</span>
+          <span><i style="background:#ff4d4d"></i>v dB-killer [m/s]</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2" data-t="res">
+      <div class="card">
+        <h4>ACUSTICA<span class="rt" id="acRt"></span></h4>
+        <canvas class="ch" id="chA"></canvas>
+        <div class="leg">
+          <span><i style="background:#19e6d2"></i>TL silenziatore [dB]</span>
+          <span><i style="background:#ffb000"></i>SPL @0,5 m [dB(A)]</span>
+          <span><i style="background:#556"></i>Sorgente non silenziata</span>
+          <span><i style="background:#a06bff"></i>Rif. salvato</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>RIPARTIZIONE Δp<span class="rt" id="dpRt"></span></h4>
+        <canvas class="ch" id="chD"></canvas>
+        <div class="leg"><span>contributo di ciascun elemento alla contropressione al regime selezionato</span></div>
+      </div>
+    </div>
+
+    <div class="card" data-t="res">
+      <h4>EMISSIONI — stima ciclo (3 punti pesati)<span class="rt">limite = riferimento Euro 5+ L3e</span></h4>
+      <div class="cbody"><div class="em" id="em"></div></div>
+    </div>
+
+    <div class="grid2" data-t="res">
+      <div class="card">
+        <h4>MATERIALE AFONIZZANTE<span class="rt">alle condizioni gas correnti</span></h4>
+        <canvas class="ch" id="chW"></canvas>
+        <div class="leg">
+          <span><i style="background:#19e6d2"></i>α (coeff. assorbimento)</span>
+          <span><i style="background:#ffb000"></i>α efficace (limitato da POA)</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>BILANCIO MASSE</h4>
+        <div class="cbody"><table class="ref" id="mass"></table></div>
+      </div>
+    </div>
+
+    <div class="card" data-t="res">
+      <h4>NOTE MODELLO</h4>
+      <div class="cbody" style="font-size:9px;line-height:1.75;color:var(--txt-d)">
+        <b style="color:var(--txt)">Motore</b> — riempimento gaussiano asimmetrico attorno al regime di picco; λ commuta con continuità dal valore closed-loop (carico &lt;60 %) a quello di pieno carico (&gt;95 %), così il ciclo di omologazione gira a λ=1 e la potenza gira in arricchimento, come sul motore vero; IMEP da rendimento indicato (funzione di CR e λ) meno FMEP polinomiale in rpm. Sintonizzazione d'onda dal primario secondo la relazione classica L[in]=(ED·850)/rpm−3, con armonica secondaria e risonanza del link-pipe.<br>
+        <b style="color:var(--txt)">Fluidodinamica</b> — Darcy–Weisbach per condotto con f=0,184·Re<sup>−0,2</sup>; catalizzatore con canale quadrato in regime laminare (28,5·μ·v·L/d<sub>h</sub>²) + perdite di ingresso/uscita; dB-killer come contrazione brusca. Perdita di potenza ≈ 0,24 %/kPa di contropressione.<br>
+        <b style="color:var(--txt)">Acustica</b> — assorbimento del pacco fibroso con modello Delany–Bazley (σ da Bies–Hansen, σ=3,18·10⁻⁹·ρ<sup>1,53</sup>/d<sub>f</sub>²) valutato alle proprietà del gas caldo (ρ, c); TL dissipativa secondo Bies–Hansen TL=1,05·α<sup>1,4</sup>·(P·L/A); componente reattiva da camera di espansione e dal dB-killer; limite superiore da irraggiamento del mantello (legge di massa sulla massa superficiale).<br><b style="color:var(--txt)">Termica</b> — il gas si raffredda lungo il collettore con legge esponenziale in L/ṁ (per questo un link lungo a basso carico spegne il catalizzatore); la pelle del mantello è il gas attenuato dallo spessore del pacco, con un 10 % di ponte termico da fondelli e irraggiamento del tubo perforato.<br>
+        <b style="color:var(--txt)">Emissioni</b> — concentrazioni motore in funzione di λ, efficienza TWC da light-off (T50 dipendente dal carico PGM), space velocity e finestra λ; perdita termica del collettore modellata come exp(−k·L/ṁ), che è il motivo per cui la lunghezza collettori sposta il light-off.<br>
+        <b style="color:var(--txt)">Animazione</b> — non è decorativa: è un tracciatore d'onda 1D che gira sulla stessa geometria. Ogni scoppio immette un impulso di blowdown che viaggia alla velocità assoluta ±c + u, quindi risale controcorrente solo finché u &lt; c. A ogni salto di sezione riflette con R = (A₁−A₂)/(A₁+A₂): un'<b style="color:#6b9cff">espansione rimanda indietro una rarefazione</b> (è così che il collettore lava il cilindro), una <b style="color:#ff7a2f">contrazione rimanda indietro una compressione</b> (è così che il dB-killer toglie potenza), lo sbocco aperto riflette con R ≈ −0,92. Nel tratto forato l'ampiezza decade di 10^(−TL/20) usando la TL dissipativa calcolata alla banda della frequenza di scoppio. Le particelle di gas si muovono a u = ū(x) + p′(x)/ρc: per questo pulsano, e a basso regime possono tornare indietro. La traccia sull'asse è il campo p(x) istantaneo, somma di tutte le onde presenti nei due versi.<br>
+        <b style="color:var(--txt)">Scala tempo</b> — la fisica è troppo veloce per l'occhio: un'onda attraversa il silenziatore in ~1 ms. Il rallentatore applica un unico fattore a onde e flusso, così il rapporto fra le due velocità resta quello vero e si vede l'onda superare il gas.<br>
+        <b style="color:var(--amb)">Modello ingegneristico a parametri concentrati, non un CFD/FEM. Serve a leggere le tendenze e le sensibilità, non a certificare.</b>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   SIL·LAB — simulatore parametrico silenziatore
+   single-file, offline, vanilla JS
+   ============================================================ */
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lg=Math.log10, PI=Math.PI;
+const fmt=(v,d=1)=>(!isFinite(v)?'—':v.toFixed(d));
+
+/* ---------- COSTANTI FISICHE ---------- */
+const R_GAS=287.05, P_ATM=101325, RHO_AIR=1.184, LHV=44.0e6, MU_EXH=4.2e-5, CP=1150;
+
+/* ---------- MATERIALI ---------- */
+const WOOL={
+  vetro:   {n:'Lana di vetro E',       df:9e-6,  tmax:600, dens:2550, col:'#e6dfc2'},
+  roccia:  {n:'Lana di roccia',        df:6e-6,  tmax:760, dens:2700, col:'#d6d0c2'},
+  basalto: {n:'Fibra di basalto',      df:9e-6,  tmax:820, dens:2750, col:'#cdc5b1'},
+  silice:  {n:'Lana di silice (SiO₂)', df:9e-6,  tmax:1050,dens:2200, col:'#f0ecdd'},
+  eglass:  {n:'E-glass texturizzato',  df:13e-6, tmax:660, dens:2550, col:'#ddd8bd'},
+  acciaio: {n:'Lana d\'acciaio inox',  df:50e-6, tmax:950, dens:7900, col:'#b9bec4'},
+};
+const SHELL={
+  carbon: {n:'Carbonio prepreg',  rho:1600, tmax:280, col:'#20242a', k:'weave'},
+  titan:  {n:'Titanio Gr.2',      rho:4510, tmax:600, col:'#8d949c', k:'metal'},
+  inox:   {n:'Inox AISI 304',     rho:7900, tmax:850, col:'#a9b1b9', k:'metal'},
+  alu:    {n:'Alluminio 6082',    rho:2700, tmax:200, col:'#b8bec6', k:'metal'},
+};
+
+/* ---------- SPEC PARAMETRI ---------- */
+const SPEC=[
+ {id:'eng',t:'MOTORE',tag:'sorgente',items:[
+   {k:'disp',  l:'Cilindrata',           u:'cc',  min:50,   max:1400, s:5,   v:1099},
+   {k:'ncyl',  l:'N° cilindri',          u:'',    min:1,    max:6,    s:1,   v:4},
+   {k:'rpmMax',l:'Regime massimo',       u:'rpm', min:6000, max:18000,s:100, v:14000},
+   {k:'cr',    l:'Rapporto compressione',u:':1',  min:9,    max:15,   s:0.1, v:13.6},
+   {k:'lambda',l:'λ closed-loop (ciclo)', u:'',    min:0.85, max:1.15, s:0.01,v:1.00, d:2},
+   {k:'lamW',  l:'λ a pieno carico',      u:'',    min:0.78, max:1.10, s:0.01,v:0.88, d:2},
+   {k:'exhDur',l:'Durata scarico',       u:'°',   min:220,  max:310,  s:1,   v:272},
+   {k:'vePeak',l:'Riempimento di picco', u:'%',   min:80,   max:125,  s:1,   v:104},
+ ]},
+ {id:'hdr',t:'COLLETTORI',tag:'sintonizzazione',items:[
+   {k:'Lprim', l:'Lunghezza primario',   u:'mm',  min:120,  max:750,  s:5,   v:420},
+   {k:'Dprim', l:'Ø interno primario',   u:'mm',  min:22,   max:60,   s:0.5, v:41,  d:1},
+   {k:'Llink', l:'Lungh. collettore+link',u:'mm', min:80,   max:700,  s:5,   v:300},
+   {k:'Dlink', l:'Ø interno link-pipe',  u:'mm',  min:30,   max:80,   s:0.5, v:54,  d:1},
+   {k:'nBend', l:'Curve equivalenti 90°',u:'',    min:0,    max:6,    s:0.5, v:2,   d:1},
+ ]},
+ {id:'cat',t:'CATALIZZATORE',tag:'emissioni',items:[
+   {k:'catOn', l:'Catalizzatore presente',type:'tog', v:1},
+   {k:'Dcat',  l:'Ø substrato',          u:'mm',  min:35,   max:120,  s:1,   v:80},
+   {k:'Lcat',  l:'Lunghezza substrato',  u:'mm',  min:30,   max:220,  s:5,   v:100},
+   {k:'cpsi',  l:'Densità celle',        u:'cpsi',min:100,  max:600,  s:10,  v:300},
+   {k:'wall',  l:'Spessore parete',      u:'mil', min:2,    max:8,    s:0.5, v:4,   d:1},
+   {k:'pgm',   l:'Carico PGM',           u:'g/ft³',min:5,   max:120,  s:1,   v:40},
+ ]},
+ {id:'body',t:'CORPO SILENZIATORE',tag:'volume',items:[
+   {k:'Dbi',   l:'Ø corpo lato ingresso',u:'mm',  min:60,   max:180,  s:1,   v:96},
+   {k:'Dbo',   l:'Ø corpo lato uscita',  u:'mm',  min:60,   max:200,  s:1,   v:128},
+   {k:'Lbody', l:'Lunghezza corpo',      u:'mm',  min:120,  max:600,  s:5,   v:330},
+   {k:'shell', l:'Materiale mantello',   type:'sel', opts:SHELL, v:'carbon'},
+   {k:'tShell',l:'Spessore mantello',    u:'mm',  min:0.4,  max:2.5,  s:0.1, v:1.2, d:1},
+ ]},
+ {id:'perf',t:'TUBO PERFORATO',tag:'accoppiamento',items:[
+   {k:'Dperf', l:'Ø tubo perforato',     u:'mm',  min:28,   max:90,   s:1,   v:58},
+   {k:'Lperf', l:'Lunghezza forata',     u:'%',   min:40,   max:100,  s:1,   v:92},
+   {k:'dHole', l:'Ø foro',               u:'mm',  min:1.5,  max:9,    s:0.1, v:4.5, d:1},
+   {k:'pitch', l:'Passo fori',           u:'mm',  min:3,    max:22,   s:0.5, v:7.5, d:1},
+   {k:'tPerf', l:'Spessore tubo',        u:'mm',  min:0.5,  max:2,    s:0.1, v:1.0, d:1},
+ ]},
+ {id:'wool',t:'MATERIALE AFONIZZANTE',tag:'dissipazione',items:[
+   {k:'wmat',  l:'Materiale',            type:'sel', opts:WOOL, v:'silice'},
+   {k:'wrho',  l:'Densità di stipamento',u:'kg/m³',min:40,  max:320,  s:5,   v:80},
+   {k:'wfill', l:'Riempimento anulare',  u:'%',   min:30,   max:100,  s:1,   v:95},
+   {k:'liner', l:'Liner di contenimento (rete/tessuto)',type:'tog', v:1},
+ ]},
+ {id:'out',t:'TERMINALE / dB-KILLER',tag:'uscita',items:[
+   {k:'Dout',  l:'Ø tubo di uscita',     u:'mm',  min:25,   max:80,   s:1,   v:52},
+   {k:'Lcone', l:'Lunghezza cono uscita',u:'mm',  min:20,   max:140,  s:5,   v:55},
+   {k:'Ltail', l:'Lunghezza terminale',  u:'mm',  min:30,   max:200,  s:5,   v:70},
+   {k:'dbkOn', l:'dB-killer installato', type:'tog', v:1},
+   {k:'Ddbk',  l:'Ø interno dB-killer',  u:'mm',  min:14,   max:60,   s:1,   v:34},
+   {k:'Ldbk',  l:'Lunghezza dB-killer',  u:'mm',  min:40,   max:220,  s:5,   v:120},
+   {k:'dbkTyp',l:'Tipo dB-killer',       type:'sel', opts:{
+        semplice:{n:'Tubo semplice'}, deflettore:{n:'Con deflettore'}, bistadio:{n:'Bi-stadio + camera'}
+     }, v:'deflettore'},
+ ]},
+];
+
+/* ---------- PRESET ---------- */
+const PRESETS={
+ 'custom':{n:'— configurazione libera —'},
+ 'sc_s1':{n:'Slip-on race 4-in-1 · 1100 I4 (tipo S1)', p:{disp:1099,ncyl:4,rpmMax:14000,cr:13.6,lambda:1.0,lamW:0.88,exhDur:272,vePeak:108,
+      Lprim:420,Dprim:41,Llink:300,Dlink:54,nBend:2,catOn:0,Dcat:80,Lcat:100,cpsi:200,wall:4,pgm:25,
+      Dbi:96,Dbo:128,Lbody:330,shell:'carbon',tShell:1.2,Dperf:58,Lperf:92,dHole:4.5,pitch:7.5,tPerf:1.0,
+      wmat:'silice',wrho:80,wfill:95,liner:1,Dout:56,Lcone:55,Ltail:70,dbkOn:0,Ddbk:40,Ldbk:120,dbkTyp:'semplice'}},
+ 'sc_cr':{n:'Slip-on stradale · 955 V2 (tipo CR-T)', p:{disp:955,ncyl:2,rpmMax:11500,cr:13.0,lambda:0.99,lamW:0.89,exhDur:266,vePeak:120,
+      Lprim:380,Dprim:45,Llink:340,Dlink:58,nBend:2.5,catOn:1,Dcat:85,Lcat:110,cpsi:300,wall:4,pgm:45,
+      Dbi:100,Dbo:132,Lbody:340,shell:'carbon',tShell:1.2,Dperf:60,Lperf:90,dHole:4,pitch:8,tPerf:1.0,
+      wmat:'basalto',wrho:100,wfill:95,liner:1,Dout:54,Lcone:60,Ltail:75,dbkOn:1,Ddbk:36,Ldbk:130,dbkTyp:'deflettore'}},
+ 'oem5':{n:'OEM Euro 5 · 560 twin (scooter GT)', p:{disp:562,ncyl:2,rpmMax:7500,cr:10.9,lambda:1.0,lamW:0.95,exhDur:240,vePeak:104,
+      Lprim:300,Dprim:34,Llink:260,Dlink:44,nBend:3,catOn:1,Dcat:90,Lcat:130,cpsi:400,wall:4,pgm:70,
+      Dbi:110,Dbo:120,Lbody:380,shell:'inox',tShell:1.0,Dperf:48,Lperf:95,dHole:3,pitch:6,tPerf:1.2,
+      wmat:'eglass',wrho:120,wfill:100,liner:1,Dout:42,Lcone:70,Ltail:90,dbkOn:1,Ddbk:30,Ldbk:150,dbkTyp:'bistadio'}},
+ 'm2':{n:'Racing full titanio · 765 I3 (tipo Moto2)', p:{disp:765,ncyl:3,rpmMax:14500,cr:13.8,lambda:1.0,lamW:0.86,exhDur:284,vePeak:98,
+      Lprim:460,Dprim:40,Llink:220,Dlink:52,nBend:1.5,catOn:0,Dcat:80,Lcat:80,cpsi:100,wall:3,pgm:10,
+      Dbi:90,Dbo:100,Lbody:260,shell:'titan',tShell:0.7,Dperf:56,Lperf:100,dHole:5,pitch:7,tPerf:0.8,
+      wmat:'silice',wrho:70,wfill:90,liner:1,Dout:56,Lcone:35,Ltail:45,dbkOn:0,Ddbk:44,Ldbk:90,dbkTyp:'semplice'}},
+ 'e5p':{n:'Slip-on omologato Euro 5+ · 998 I4', p:{disp:998,ncyl:4,rpmMax:14000,cr:13.0,lambda:1.0,lamW:0.88,exhDur:262,vePeak:110,
+      Lprim:400,Dprim:38,Llink:320,Dlink:50,nBend:2.5,catOn:1,Dcat:95,Lcat:140,cpsi:400,wall:4,pgm:60,
+      Dbi:104,Dbo:134,Lbody:370,shell:'titan',tShell:0.9,Dperf:54,Lperf:95,dHole:3.5,pitch:6.5,tPerf:1.0,
+      wmat:'basalto',wrho:95,wfill:100,liner:1,Dout:50,Lcone:65,Ltail:85,dbkOn:1,Ddbk:40,Ldbk:150,dbkTyp:'bistadio'}},
+ 'single':{n:'Monocilindrico enduro · 450', p:{disp:449,ncyl:1,rpmMax:11000,cr:13.0,lambda:1.0,lamW:0.9,exhDur:276,vePeak:102,
+      Lprim:520,Dprim:38,Llink:180,Dlink:44,nBend:2,catOn:1,Dcat:70,Lcat:100,cpsi:300,wall:4,pgm:45,
+      Dbi:80,Dbo:96,Lbody:300,shell:'alu',tShell:1.5,Dperf:44,Lperf:95,dHole:4,pitch:7,tPerf:1.0,
+      wmat:'roccia',wrho:85,wfill:95,liner:1,Dout:38,Lcone:45,Ltail:60,dbkOn:1,Ddbk:27,Ldbk:110,dbkTyp:'deflettore'}},
+};
+
+/* ---------- STATO ---------- */
+const P={}; SPEC.forEach(g=>g.items.forEach(i=>P[i.k]=i.v));
+let rpmSel=9000, REF=null;
+
+/* ============================================================
+   MATEMATICA COMPLESSA (Delany–Bazley)
+   ============================================================ */
+const CX={
+  mul:(a,b)=>({re:a.re*b.re-a.im*b.im, im:a.re*b.im+a.im*b.re}),
+  div:(a,b)=>{const d=b.re*b.re+b.im*b.im||1e-18; return {re:(a.re*b.re+a.im*b.im)/d, im:(a.im*b.re-a.re*b.im)/d};},
+  add:(a,b)=>({re:a.re+b.re,im:a.im+b.im}),
+  sub:(a,b)=>({re:a.re-b.re,im:a.im-b.im}),
+  abs:a=>Math.hypot(a.re,a.im),
+  cot:z=>{
+    const a=z.re, b=clamp(z.im,-18,18);
+    const ch=Math.cosh(b), sh=Math.sinh(b);
+    const sin={re:Math.sin(a)*ch, im:Math.cos(a)*sh};
+    const cos={re:Math.cos(a)*ch, im:-Math.sin(a)*sh};
+    return CX.div(cos,sin);
+  }
+};
+// resistività al flusso (Bies–Hansen)
+function sigmaOf(rhoPack, dFib){ return 3.18e-9*Math.pow(rhoPack,1.53)/(dFib*dFib); }
+// coeff. assorbimento di uno strato di spessore t su fondo rigido, gas (rho0,c0)
+function alphaLayer(f, sigma, t, rho0, c0){
+  if(t<=1e-4||f<=0) return 0;
+  const X=clamp(rho0*f/sigma, 2e-3, 1.2);
+  const Z0=rho0*c0;
+  const Zc={re:Z0*(1+0.0571*Math.pow(X,-0.754)), im:-Z0*0.0870*Math.pow(X,-0.732)};
+  const w=2*PI*f, k0=w/c0;
+  const k={re:k0*(1+0.0978*Math.pow(X,-0.700)), im:-k0*0.1890*Math.pow(X,-0.595)};
+  const kt={re:k.re*t, im:k.im*t};
+  const ct=CX.cot(kt);
+  let Zs=CX.mul(Zc,ct);
+  Zs=CX.mul({re:0,im:-1},Zs);           // Zs = -j Zc cot(kt)
+  const R=CX.div(CX.sub(Zs,{re:Z0,im:0}), CX.add(Zs,{re:Z0,im:0}));
+  return clamp(1-Math.pow(CX.abs(R),2),0,1);
+}
+// ponderazione A
+function aW(f){
+  const f2=f*f, f4=f2*f2;
+  const num=Math.pow(12194,2)*f4;
+  const den=(f2+400.36)*Math.sqrt((f2+11599.3)*(f2+544496.4))*(f2+Math.pow(12194,2));
+  return 20*lg(num/den)+2.0;
+}
+const BANDS=[50,63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150,4000,5000,6300,8000,10000];
+const AW=BANDS.map(aW);
+
+/* ============================================================
+   GEOMETRIA DERIVATA
+   ============================================================ */
+function geom(){
+  const g={};
+  g.Aprim=PI*Math.pow(P.Dprim/1000,2)/4;
+  g.Alink=PI*Math.pow(P.Dlink/1000,2)/4;
+  g.Aperf=PI*Math.pow(P.Dperf/1000,2)/4;
+  g.Aout =PI*Math.pow(P.Dout/1000,2)/4;
+  g.Adbk =PI*Math.pow(P.Ddbk/1000,2)/4;
+  // catalizzatore
+  const cellPitch=25.4/Math.sqrt(P.cpsi);            // mm
+  const wallMm=P.wall*0.0254;
+  g.chan=Math.max(0.2,cellPitch-wallMm);             // mm
+  g.OFA=Math.pow(g.chan/cellPitch,2);
+  g.dh=g.chan/1000;                                  // m
+  g.Acat=PI*Math.pow(P.Dcat/1000,2)/4;
+  g.Vcat=g.Acat*P.Lcat/1000;                         // m³
+  g.GSA=4*g.chan/(cellPitch*cellPitch)*1000;         // m²/m³ circa
+  // POA tubo perforato (maglia triangolare)
+  const holeA=PI*Math.pow(P.dHole,2)/4;
+  const cellA=Math.pow(P.pitch,2)*Math.sqrt(3)/2;
+  g.POA=clamp(holeA/cellA,0,0.75);
+  g.Lperf_mm=P.Lbody*P.Lperf/100;
+  g.nHoles=Math.round(PI*P.Dperf*g.Lperf_mm/cellA);
+  // pacco afonizzante — anulare, corpo troncoconico
+  const Dbm=(P.Dbi+P.Dbo)/2;
+  g.Dbm=Dbm;
+  const Dint=Dbm-2*P.tShell;
+  g.tWool=Math.max(0,(Dint-P.Dperf)/2)*P.wfill/100/1000;   // m
+  g.tWool_mm=g.tWool*1000;
+  const AannM=PI*(Math.pow(Dint/2000,2)-Math.pow(P.Dperf/2000,2));
+  g.Vwool=Math.max(0,AannM*(P.Lbody/1000)*(P.wfill/100));  // m³
+  g.mWool=g.Vwool*P.wrho;                                   // kg
+  // volume interno corpo
+  g.Vbody=PI/12*(Math.pow(P.Dbi/1000,2)+P.Dbi*P.Dbo/1e6+Math.pow(P.Dbo/1000,2))*(P.Lbody/1000);
+  g.expRatio=g.Vbody*1e6/P.disp;
+  // mantello
+  const sh=SHELL[P.shell];
+  g.Ashell=PI*Dbm/1000*(P.Lbody/1000);
+  g.mShell=g.Ashell*(P.tShell/1000)*sh.rho;
+  g.msArea=(P.tShell/1000)*sh.rho;                          // kg/m² legge di massa
+  g.mPerf=PI*(P.Dperf/1000)*(P.tPerf/1000)*(P.Lbody/1000)*7900*(1-g.POA);
+  g.mCone=(PI*Math.pow(Dbm/1000,2)/4)*2*(P.tShell/1000)*sh.rho*1.35;
+  g.mLink=PI*(P.Dlink/1000)*0.0012*((P.Llink+P.Ltail+P.Lcone)/1000)*(P.shell==='titan'?4510:7900);
+  g.mCat=P.catOn? g.Vcat*(1-g.OFA)*2500 + g.Acat*0.0012*P.Lcat/1000*7900*3 : 0;
+  g.mDbk=P.dbkOn? PI*(P.Ddbk/1000)*0.0012*(P.Ldbk/1000)*7900*2.2 : 0;
+  g.mTot=g.mShell+g.mWool+g.mPerf+g.mCone+g.mLink+g.mCat+g.mDbk+0.18; // +staffe
+  return g;
+}
+
+/* ============================================================
+   MOTORE + FLUSSO
+   ============================================================ */
+function veAt(rpm){
+  const rpmVE=0.80*P.rpmMax;
+  const sp=(rpm<rpmVE?0.62:0.40)*P.rpmMax;
+  return (P.vePeak/100)*Math.exp(-Math.pow((rpm-rpmVE)/sp,2));
+}
+function rpmTune(){ return P.exhDur*850/(P.Lprim/25.4+3); }
+function rpmTuneLink(){ return P.exhDur*850/((P.Lprim+P.Llink)/25.4+3); }
+function tuneGain(rpm){
+  const rt=rpmTune(), rc=rpmTuneLink();
+  let g=1;
+  g+=0.115*Math.exp(-Math.pow((rpm-rt)/(0.155*rt),2));
+  g+=0.048*Math.exp(-Math.pow((rpm-rt/2)/(0.12*rt),2));
+  g-=0.050*Math.exp(-Math.pow((rpm-0.72*rt)/(0.10*rt),2));
+  g+=0.050*Math.exp(-Math.pow((rpm-rc)/(0.16*Math.max(rc,1200)),2));
+  return g;
+}
+function tGasC(rpm,load,lam){      // temperatura alla luce di scarico
+  load=load===undefined?1:load; lam=lam===undefined?lamAt(load):lam;
+  const T=(280+400*Math.pow(clamp(load,0.05,1),0.45)+170*(rpm/P.rpmMax))*(1+0.16*(lam-0.95));
+  return clamp(T,170,1000);
+}
+// frazione di ΔT persa lungo il condotto: convezione (∝L/ṁ) + irraggiamento (∝L)
+function coolFrac(Lm,m){
+  return clamp(1-Math.exp(-(0.0012*Lm/Math.max(m,3e-4)+0.10*Lm)),0,0.55);
+}
+// temperatura di pelle del mantello: il pacco fa da isolante, + un 10% di ponte termico
+// (fondelli, tubo perforato che scalda per irraggiamento)
+function tShellC(Tgas,tWool_mm){
+  return 25+(Tgas-25)*(0.10+0.90*Math.exp(-Math.max(tWool_mm,0)/13));
+}
+// λ effettivo: closed-loop a carico parziale, arricchimento a pieno carico
+function lamAt(load){
+  const t=clamp((clamp(load,0,1)-0.60)/0.35,0,1);
+  const sm=t*t*(3-2*t);
+  return P.lambda+(P.lamW-P.lambda)*sm;
+}
+function flow(rpm,load){
+  load=load===undefined?1:load;
+  const Vd=P.disp*1e-6;
+  const ve=veAt(rpm)*clamp(load,0.05,1);
+  const mAir=Vd*(rpm/120)*RHO_AIR*ve;
+  const lam=lamAt(load);
+  const afr=14.7*lam;
+  const m=Math.max(mAir*(1+1/afr),1e-5);
+  const Tport=tGasC(rpm,load,lam);
+  const Lm=(P.Lprim+P.Llink)/1000;
+  const Tc=25+(Tport-25)*(1-coolFrac(Lm,m));      // ingresso silenziatore
+  const Tk=Tc+273.15;
+  const rho=P_ATM/(R_GAS*Tk);
+  const c=20.05*Math.sqrt(Tk*1.03);
+  return {m, mAir, ve, Tport, Tc, Tk, rho, c, afr, lam};
+}
+function dpPipe(m,rho,D,L){
+  const A=PI*D*D/4, v=m/(rho*A);
+  const Re=Math.max(rho*v*D/MU_EXH,1);
+  const f=Re<2300?64/Re:0.184*Math.pow(Re,-0.2);
+  return {dp:f*(L/D)*0.5*rho*v*v, v};
+}
+function backpressure(rpm,fl,g){
+  const m=fl.m, rho=fl.rho, o={};
+  // primari (in parallelo)
+  const p1=dpPipe(m/P.ncyl,rho,P.Dprim/1000,P.Lprim/1000); o.prim=p1.dp; o.vPrim=p1.v;
+  // link + curve
+  const p2=dpPipe(m,rho,P.Dlink/1000,P.Llink/1000); o.link=p2.dp; o.vLink=p2.v;
+  o.bend=P.nBend*0.28*0.5*rho*p2.v*p2.v;
+  // catalizzatore
+  o.cat=0; o.vCat=0;
+  if(P.catOn){
+    const vc=m/(rho*g.Acat*g.OFA); o.vCat=vc;
+    const lam=28.5*MU_EXH*vc*(P.Lcat/1000)/(g.dh*g.dh);
+    const ent=0.5*rho*vc*vc*(0.5+Math.pow(1-g.OFA,2));
+    o.cat=lam+ent;
+  }
+  // cono ingresso (diffusore) + tubo perforato
+  o.coneIn=0.16*0.5*rho*p2.v*p2.v;
+  const p3=dpPipe(m,rho,P.Dperf/1000,P.Lbody/1000); o.perf=p3.dp*(1+1.4*g.POA); o.vPerf=p3.v;
+  // cono uscita + terminale
+  const vOut=m/(rho*g.Aout); o.vOut=vOut;
+  o.coneOut=0.10*0.5*rho*vOut*vOut;
+  const p4=dpPipe(m,rho,P.Dout/1000,P.Ltail/1000); o.tail=p4.dp;
+  // dB-killer
+  o.dbk=0; o.vDbk=vOut;
+  if(P.dbkOn){
+    const vd=m/(rho*g.Adbk); o.vDbk=vd;
+    const beta2=clamp(g.Adbk/g.Aout,0,1);
+    const kTyp={semplice:1.0,deflettore:1.6,bistadio:2.3}[P.dbkTyp];
+    const K=(0.5*(1-beta2)+Math.pow(1-beta2,2))*kTyp+0.35;
+    const pd=dpPipe(m,rho,P.Ddbk/1000,P.Ldbk/1000);
+    o.dbk=0.5*rho*vd*vd*K+pd.dp;
+  }
+  o.exit=0.5*rho*(P.dbkOn?o.vDbk:vOut)*(P.dbkOn?o.vDbk:vOut)*0.35;
+  o.Mach=(P.dbkOn?o.vDbk:vOut)/fl.c;
+  if(o.Mach>0.4){ const k=1/Math.sqrt(Math.max(1-Math.pow(clamp(o.Mach,0,0.92),2),0.06)); o.dbk*=k; o.exit*=k; }
+  o.tot=o.prim+o.link+o.bend+o.cat+o.coneIn+o.perf+o.coneOut+o.tail+o.dbk+o.exit;
+  o.free=o.prim+o.link+o.bend*0.5;   // riferimento scarico libero
+  return o;
+}
+function torqueAt(rpm,fl,dpTot,dpFree){
+  const etaId=0.605*(1-Math.pow(P.cr,-0.35))*(1-1.8*Math.pow(fl.lam-0.88,2));
+  const imep=RHO_AIR*fl.ve*LHV*Math.max(etaId,0.05)/(14.7*fl.lam);
+  const r=rpm/1000;
+  const fmep=(0.55+0.052*r+0.0085*r*r)*1e5;
+  // effetto velocità nei primari sul lavaggio
+  const vp=fl.m/P.ncyl/(fl.rho*PI*Math.pow(P.Dprim/1000,2)/4);
+  const scav=1+0.05*Math.exp(-Math.pow((vp-85)/50,2))-0.14*Math.max(0,(vp-150)/120);
+  const loss=Math.min(0.42,0.0024*(dpTot/1000));
+  const bmep=(imep*tuneGain(rpm)*scav*(1-loss)-fmep);
+  const Vd=P.disp*1e-6;
+  const T=Math.max(0,bmep*Vd/(4*PI));
+  return {T, kW:T*2*PI*rpm/60/1000, bmep:bmep/1e5, loss, vp};
+}
+
+/* ============================================================
+   ACUSTICA
+   ============================================================ */
+function sourceSpectrum(rpm,fl,g){
+  const VL=P.disp/1000;
+  const Lw=99+10*lg(Math.max(VL,0.02))+30*lg(Math.max(rpm,600)/1000)+8*lg(P.ncyl);
+  const f0=rpm*P.ncyl/120;                     // freq. di scoppio [Hz]
+  const E=BANDS.map(()=>0);
+  // armoniche
+  let tot=0; const H=[];
+  for(let h=1;h<=24;h++){
+    const f=f0*h; if(f>12000) break;
+    const rel=-7.2*Math.log2(h)-(h%2===0&&P.ncyl%2===0?2:0);
+    const e=Math.pow(10,rel/10); H.push({f,e}); tot+=e;
+  }
+  H.forEach(o=>{
+    let bi=0,bd=1e9;
+    BANDS.forEach((b,i)=>{const d=Math.abs(lg(b)-lg(o.f)); if(d<bd){bd=d;bi=i;}});
+    E[bi]+=0.72*(o.e/tot);
+  });
+  // rumore di flusso a banda larga (Strouhal sull'uscita)
+  const vE=fl.m/(fl.rho*(P.dbkOn?g.Adbk:g.Aout));
+  const fp=clamp(0.2*vE/((P.dbkOn?P.Ddbk:P.Dout)/1000),80,6000);
+  let bt=0; const B=BANDS.map(f=>{const e=Math.exp(-Math.pow(Math.log2(f/fp)/1.5,2)); bt+=e; return e;});
+  B.forEach((e,i)=>E[i]+=0.28*(e/bt));
+  return {Lw, spec:E.map(e=>Lw+10*lg(Math.max(e,1e-9))), f0, vE};
+}
+function TLspectrum(fl,g){
+  const sh=SHELL[P.shell], wm=WOOL[P.wmat];
+  const sigma=sigmaOf(P.wrho,wm.df);
+  const poaF=Math.sqrt(clamp(g.POA/0.25,0,1))*(P.liner?0.94:1.0);
+  const Lp=g.Lperf_mm/1000;
+  const m1=g.Vbody/(g.Aperf*(P.Lbody/1000));           // rapporto di espansione area equivalente
+  const reactF=clamp(1-g.POA/0.42,0.1,1);
+  const alpha=[], alphaEff=[], TL=[], dis=[], react=[];
+  BANDS.forEach((f,i)=>{
+    const an=alphaLayer(f,sigma,g.tWool,fl.rho,fl.c);
+    const a=clamp(1.40*an,0,0.98);          // da incidenza normale a incidenza casuale
+    const ae=a*poaF;
+    alpha.push(a); alphaEff.push(ae);
+    // dissipativa (Bies–Hansen)
+    let tDis=1.25*Math.pow(Math.max(ae,1e-4),1.4)*(4*Lp/(P.Dperf/1000));
+    tDis=Math.min(tDis,42); dis.push(tDis);
+    // reattiva — camera di espansione
+    const k=2*PI*f/fl.c;
+    const mm=Math.max(m1,1.01);
+    let tExp=10*lg(1+0.25*Math.pow(mm-1/mm,2)*Math.pow(Math.sin(k*(P.Lbody/1000)),2))*reactF;
+    // coni
+    const mc=g.Aperf/g.Aout;
+    let tCone=10*lg(1+0.25*Math.pow(mc-1/mc,2)*Math.pow(Math.sin(k*(P.Lcone/1000)),2))*0.5;
+    // dB-killer
+    let tDbk=0;
+    if(P.dbkOn){
+      const md=g.Aperf/g.Adbk;
+      const kt={semplice:0.8,deflettore:1.15,bistadio:1.5}[P.dbkTyp];
+      tDbk=10*lg(1+0.25*Math.pow(md-1/md,2)*Math.pow(Math.sin(k*(P.Ldbk/1000)),2))*0.55*kt
+          + ({semplice:1.5,deflettore:3.5,bistadio:5.5}[P.dbkTyp]);
+    }
+    // catalizzatore (assorbe un po')
+    const tCat=P.catOn? clamp(2+3*lg(P.cpsi/100)+0.02*P.Lcat,0,9):0;
+    const path=tDis+tExp+tCone+tDbk+tCat; react.push(tExp+tCone+tDbk+tCat);
+    // limite da irraggiamento del mantello (legge di massa)
+    const brk=20*lg(Math.max(g.msArea,0.05))+20*lg(f)-38+15*ae;
+    const tot=-10*lg(Math.pow(10,-path/10)+Math.pow(10,-Math.max(brk,0)/10));
+    TL.push(clamp(tot,0,70));
+  });
+  return {TL, alpha, alphaEff, dis, react, sigma, poaF, sigT:sigma*g.tWool/(fl.rho*fl.c)};
+}
+function noiseAt(rpm){
+  const g=geom(), fl=flow(rpm,1);
+  const src=sourceSpectrum(rpm,fl,g), tl=TLspectrum(fl,g);
+  const spl=[], splU=[];
+  BANDS.forEach((f,i)=>{
+    const geo=-11-20*lg(0.5)+2;      // Lw -> Lp @0,5 m con riflessione suolo
+    splU.push(src.spec[i]+geo);
+    spl.push(src.spec[i]-tl.TL[i]+geo);
+  });
+  const sum=a=>10*lg(a.reduce((s,v,i)=>s+Math.pow(10,(v+AW[i])/10),0));
+  const exh=sum(spl), exhU=sum(splU);
+  const mech=72+13*lg(Math.max(rpm,800)/1000)+3*lg(P.ncyl);
+  const dbaStatic=10*lg(Math.pow(10,exh/10)+Math.pow(10,mech/10));
+  // passaggio @7,5 m
+  const geoD=-11-20*lg(7.5)+3;
+  const splD=BANDS.map((f,i)=>src.spec[i]-tl.TL[i]+geoD);
+  const exhD=sum(splD);
+  const mechD=54+12*lg(Math.max(rpm,800)/1000);
+  const dbaDrive=10*lg(Math.pow(10,exhD/10)+Math.pow(10,mechD/10));
+  return {spl, splU, TL:tl.TL, alpha:tl.alpha, alphaEff:tl.alphaEff, dis:tl.dis, dbaStatic, dbaDrive, exhU, mech, f0:src.f0, tl, src, fl, g};
+}
+
+/* ============================================================
+   EMISSIONI
+   ============================================================ */
+const CYCLE=[{rpm:2200,load:0.20,v:32,w:0.35},{rpm:3800,load:0.35,v:58,w:0.40},{rpm:6200,load:0.55,v:92,w:0.25}];
+const LIM={CO:1000, HC:100, NOx:60};   // mg/km — riferimento Euro 5+ L3e
+function engineOut(lam,load){
+  load=load===undefined?1:load;
+  const CO = lam<1 ? (20*(1-lam)+0.32) : 0.32*Math.exp(-18*(lam-1));            // %vol
+  const HC = 1450*(lam<1?(1+3.2*(1-lam)):1)*(1+9*Math.max(0,lam-1.08))*(1+0.6*(1-load));
+  const NOx= 2600*Math.exp(-Math.pow((lam-1.05)/0.085,2))*(1+0.05*(P.cr-12))*(0.35+0.65*load);
+  return {CO:Math.max(CO,0.02)*1e4, HC, NOx:Math.max(NOx,20)};
+}
+function catEff(Tcat,SV,g,lam){
+  lam=lam===undefined?P.lambda:lam;
+  const T50=clamp(320-52*lg(Math.max(P.pgm,3)/10),210,360);
+  const eT=1/(1+Math.exp(-(Tcat-T50)/18));
+  const eSV=Math.exp(-SV/3.0e6);
+  const cell=clamp(Math.pow(P.cpsi/300,0.25),0.72,1.15);
+  const wCO=clamp(1-28*Math.max(0,0.995-lam),0,1);
+  const wNO=clamp(1-55*Math.max(0,lam-1.005),0,1);
+  return {
+    CO: clamp(0.993*eT*eSV*cell*wCO,0,0.998),
+    HC: clamp(0.968*eT*eSV*cell*clamp(1-14*Math.max(0,0.99-lam),0,1),0,0.995),
+    NOx:clamp(0.983*eT*eSV*cell*wNO,0,0.995),
+    T50, eT, eSV
+  };
+}
+function emissions(){
+  const g=geom();
+  const MW={CO:28,HC:44,NOx:46}, MWx=28.9;
+  const out={CO:0,HC:0,NOx:0}, raw={CO:0,HC:0,NOx:0}, eff={CO:0,HC:0,NOx:0};
+  let Tc0=0,SV0=0,T50=0;
+  CYCLE.forEach(pt=>{
+    const fl=flow(pt.rpm,pt.load);
+    const Tcat=fl.Tc+(P.catOn?45:0);   // fl.Tc gia' include la perdita termica del collettore
+    const Q=fl.m/fl.rho*3600;                        // m³/h reali
+    const SV=P.catOn? Q/Math.max(g.Vcat,1e-6):1e9;
+    const e=P.catOn? catEff(Tcat,SV,g,fl.lam):{CO:0,HC:0,NOx:0,T50:0};
+    const eo=engineOut(fl.lam,pt.load);
+    ['CO','HC','NOx'].forEach(sp=>{
+      const gps=(eo[sp]*1e-6)*(MW[sp]/MWx)*fl.m*1000;  // g/s
+      const gkm=gps*3600/pt.v*1000;                    // mg/km
+      raw[sp]+=pt.w*gkm;
+      out[sp]+=pt.w*gkm*(1-e[sp]);
+      eff[sp]+=pt.w*e[sp];
+    });
+    Tc0+=pt.w*Tcat; SV0+=pt.w*SV; T50=e.T50;
+  });
+  return {out, raw, eff, Tcat:Tc0, SV:SV0, T50};
+}
+
+/* ============================================================
+   CALCOLO COMPLETO
+   ============================================================ */
+const NPT=64;
+function computeAll(){
+  const g=geom();
+  const rpms=[], pow=[], trq=[], powF=[], dp=[], vOut=[], vDbk=[], bmep=[];
+  const rMin=1500, rMax=P.rpmMax;
+  for(let i=0;i<NPT;i++){
+    const r=rMin+(rMax-rMin)*i/(NPT-1);
+    const fl=flow(r,1), b=backpressure(r,fl,g);
+    const t=torqueAt(r,fl,b.tot,b.free);
+    const tF=torqueAt(r,fl,b.free,b.free);
+    rpms.push(r); pow.push(t.kW); trq.push(t.T); powF.push(tF.kW);
+    dp.push(b.tot/1000); vOut.push(b.vOut); vDbk.push(b.vDbk); bmep.push(t.bmep);
+  }
+  const iMax=pow.indexOf(Math.max(...pow)), iT=trq.indexOf(Math.max(...trq));
+  const n=noiseAt(rpmSel);
+  const em=emissions();
+  const nStat=noiseAt(Math.max(0.5*P.rpmMax,1500));
+  const nDrive=noiseAt(Math.max(0.75*P.rpmMax,2500));
+  const flS=flow(rpmSel,1), bS=backpressure(rpmSel,flS,g), tS=torqueAt(rpmSel,flS,bS.tot,bS.free);
+  return {g,rpms,pow,trq,powF,dp,vOut,vDbk,bmep,iMax,iT,n,em,
+    powMax:pow[iMax], rpmPmax:rpms[iMax], trqMax:trq[iT], rpmTmax:rpms[iT],
+    powFmax:Math.max(...powF),
+    dbaStatic:nStat.dbaStatic, rpmStat:Math.max(0.5*P.rpmMax,1500),
+    dbaDrive:nDrive.dbaDrive,
+    flS,bS,tS};
+}
+
+/* ============================================================
+   UI — costruzione sidebar
+   ============================================================ */
+function buildSidebar(){
+  const s=$('#side'); s.innerHTML='';
+  SPEC.forEach(gp=>{
+    const d=document.createElement('div'); d.className='grp'; d.dataset.g=gp.id;
+    const h=document.createElement('h3');
+    h.innerHTML=`<span class="car">▼</span>${gp.t}<span class="tag">${gp.tag||''}</span>`;
+    h.onclick=()=>d.classList.toggle('col');
+    d.appendChild(h);
+    const b=document.createElement('div'); b.className='gbody'; d.appendChild(b);
+    gp.items.forEach(it=>b.appendChild(mkCtl(it)));
+    const der=document.createElement('div'); der.className='derived'; der.id='der_'+gp.id; b.appendChild(der);
+    s.appendChild(d);
+  });
+}
+function mkCtl(it){
+  const w=document.createElement('div'); w.className='row';
+  if(it.type==='tog'){
+    const t=document.createElement('div'); t.className='tog'+(P[it.k]?' on':'');
+    t.innerHTML=`<div class="sw"></div><span>${it.l}</span>`;
+    t.onclick=()=>{P[it.k]=P[it.k]?0:1; t.classList.toggle('on',!!P[it.k]); setCustom(); update();};
+    w.appendChild(t); w.dataset.k=it.k; w.dataset.type='tog'; return w;
+  }
+  if(it.type==='sel'){
+    const l=document.createElement('div'); l.className='lab';
+    l.innerHTML=`<span>${it.l}</span>`;
+    const sel=document.createElement('select'); sel.className='p';
+    Object.entries(it.opts).forEach(([k,o])=>{
+      const op=document.createElement('option'); op.value=k; op.textContent=o.n; sel.appendChild(op);
+    });
+    sel.value=P[it.k];
+    sel.oninput=()=>{P[it.k]=sel.value; setCustom(); update();};
+    w.appendChild(l); w.appendChild(sel); w.dataset.k=it.k; w.dataset.type='sel'; return w;
+  }
+  const l=document.createElement('div'); l.className='lab';
+  const d=it.d!==undefined?it.d:0;
+  l.innerHTML=`<span>${it.l}</span><span class="val"><b id="v_${it.k}">${(+P[it.k]).toFixed(d)}</b><i>${it.u||''}</i></span>`;
+  const r=document.createElement('input'); r.type='range'; r.min=it.min; r.max=it.max; r.step=it.s; r.value=P[it.k]; r.id='r_'+it.k;
+  r.oninput=()=>{P[it.k]=+r.value; $('#v_'+it.k).textContent=(+r.value).toFixed(d); setCustom(); update();};
+  w.appendChild(l); w.appendChild(r); w.dataset.k=it.k; w.dataset.type='rng'; return w;
+}
+function syncUI(){
+  SPEC.forEach(g=>g.items.forEach(it=>{
+    if(it.type==='tog'){
+      const el=$(`.row[data-k="${it.k}"] .tog`); if(el) el.classList.toggle('on',!!P[it.k]);
+    }else if(it.type==='sel'){
+      const el=$(`.row[data-k="${it.k}"] select`); if(el) el.value=P[it.k];
+    }else{
+      const r=$('#r_'+it.k), v=$('#v_'+it.k);
+      if(r) r.value=P[it.k];
+      if(v) v.textContent=(+P[it.k]).toFixed(it.d!==undefined?it.d:0);
+    }
+  }));
+  const rs=$('#rpmS'); rs.max=P.rpmMax; if(rpmSel>P.rpmMax){rpmSel=P.rpmMax; rs.value=rpmSel;}
+  $('#rpmV').innerHTML=Math.round(rpmSel)+'<i> rpm</i>';
+}
+let lockCustom=false;
+function setCustom(){ if(!lockCustom) $('#preset').value='custom'; }
+
+/* ---------- preset ---------- */
+function buildPresets(){
+  const s=$('#preset');
+  Object.entries(PRESETS).forEach(([k,o])=>{
+    const op=document.createElement('option'); op.value=k; op.textContent=o.n; s.appendChild(op);
+  });
+  s.value='e5p'; applyPreset('e5p');
+  s.oninput=()=>applyPreset(s.value);
+}
+function applyPreset(k){
+  const pr=PRESETS[k]; if(!pr||!pr.p) return;
+  lockCustom=true;
+  Object.assign(P,pr.p);
+  rpmSel=Math.round(clamp(P.rpmMax*0.65,1500,P.rpmMax));
+  $('#rpmS').max=P.rpmMax; $('#rpmS').value=rpmSel;
+  syncUI(); update();
+  lockCustom=false;
+}
+
+/* ============================================================
+   CANVAS UTILS
+   ============================================================ */
+// guardia: i browser sollevano un'eccezione sui gradienti con valori non finiti
+(function(){
+  const CP=window.CanvasRenderingContext2D&&window.CanvasRenderingContext2D.prototype;
+  if(!CP||CP.__guarded) return; CP.__guarded=true;
+  const lg_=CP.createLinearGradient, rg_=CP.createRadialGradient;
+  CP.createLinearGradient=function(a,b,c2,d){
+    if(![a,b,c2,d].every(isFinite)) return lg_.call(this,0,0,1,0);
+    return lg_.call(this,a,b,c2,d);
+  };
+  if(rg_) CP.createRadialGradient=function(a,b,c2,d,e,f){
+    if(![a,b,c2,d,e,f].every(isFinite)||c2<0||f<0) return rg_.call(this,0,0,0,0,0,1);
+    return rg_.call(this,a,b,c2,d,e,f);
+  };
+})();
+function fit(cv,hRatio,minH){
+  const w=cv.parentElement.clientWidth-(cv.classList.contains('ch')?16:0);
+  const h=Math.max(minH||0,Math.round(w*hRatio));
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.style.width='100%'; cv.style.height=h+'px';
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+  const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0);
+  return {c,w,h};
+}
+function chart(cv,cfg){
+  const r=fit(cv,cfg.ratio||0.60,cfg.minH||150), c=r.c, W=r.w, H=r.h;
+  c.clearRect(0,0,W,H);
+  const m={l:38,r:cfg.r2?38:12,t:10,b:22};
+  const pw=W-m.l-m.r, ph=H-m.t-m.b;
+  c.fillStyle='#0a0e13'; c.fillRect(m.l,m.t,pw,ph);
+  const X=v=>m.l+(cfg.logX? (lg(v)-lg(cfg.x0))/(lg(cfg.x1)-lg(cfg.x0)) : (v-cfg.x0)/(cfg.x1-cfg.x0))*pw;
+  const Y=(v,ax)=>{const a=ax==2?cfg.y2:cfg.y1; return m.t+ph-clamp((v-a[0])/(a[1]-a[0]),-0.2,1.2)*ph;};
+  // griglia
+  c.strokeStyle='#1a222c'; c.lineWidth=1; c.font='8px ui-monospace,monospace'; c.fillStyle='#5c6774';
+  const xt=cfg.xticks||[]; xt.forEach(t=>{
+    const x=Math.round(X(t))+0.5;
+    c.beginPath(); c.moveTo(x,m.t); c.lineTo(x,m.t+ph); c.stroke();
+    c.textAlign='center'; c.fillText(cfg.xfmt?cfg.xfmt(t):t, x, H-7);
+  });
+  const nY=5;
+  for(let i=0;i<=nY;i++){
+    const v=cfg.y1[0]+(cfg.y1[1]-cfg.y1[0])*i/nY, y=Math.round(Y(v,1))+0.5;
+    c.beginPath(); c.moveTo(m.l,y); c.lineTo(m.l+pw,y); c.stroke();
+    c.textAlign='right'; c.fillStyle='#5c6774'; c.fillText(cfg.y1fmt?cfg.y1fmt(v):Math.round(v), m.l-4, y+3);
+  }
+  if(cfg.r2){
+    for(let i=0;i<=nY;i++){
+      const v=cfg.y2[0]+(cfg.y2[1]-cfg.y2[0])*i/nY, y=Math.round(Y(v,2))+0.5;
+      c.textAlign='left'; c.fillStyle='#3f6d68'; c.fillText(cfg.y2fmt?cfg.y2fmt(v):Math.round(v), m.l+pw+4, y+3);
+    }
+  }
+  c.strokeStyle='#2a3542'; c.strokeRect(m.l+0.5,m.t+0.5,pw,ph);
+  // aree
+  (cfg.areas||[]).forEach(a=>{
+    c.fillStyle=a.col; c.beginPath();
+    c.moveTo(X(a.x[0]),Y(a.y0,a.ax||1));
+    a.x.forEach((x,i)=>c.lineTo(X(x),Y(a.y[i],a.ax||1)));
+    c.lineTo(X(a.x[a.x.length-1]),Y(a.y0,a.ax||1)); c.closePath(); c.fill();
+  });
+  // serie
+  (cfg.series||[]).forEach(s=>{
+    if(!s.x||!s.x.length) return;
+    c.strokeStyle=s.col; c.lineWidth=s.w||1.6; c.setLineDash(s.dash||[]);
+    c.beginPath();
+    s.x.forEach((x,i)=>{const px=X(x),py=Y(s.y[i],s.ax||1); i?c.lineTo(px,py):c.moveTo(px,py);});
+    c.stroke(); c.setLineDash([]);
+    if(s.dots){ c.fillStyle=s.col; s.x.forEach((x,i)=>{c.beginPath();c.arc(X(x),Y(s.y[i],s.ax||1),1.8,0,7);c.fill();}); }
+  });
+  // barre
+  (cfg.bars||[]).forEach(b=>{
+    const bw=pw/b.x.length*0.62;
+    b.x.forEach((x,i)=>{
+      const px=X(x), y0=Y(cfg.y1[0],1), y1=Y(b.y[i],1);
+      c.fillStyle=b.cols?b.cols[i]:b.col; c.fillRect(px-bw/2,y1,bw,y0-y1);
+      c.fillStyle='#0a0e13'; c.fillRect(px-bw/2,y1,bw,1);
+    });
+  });
+  // cursore
+  if(cfg.cursor!==undefined&&cfg.cursor>=cfg.x0&&cfg.cursor<=cfg.x1){
+    const x=Math.round(X(cfg.cursor))+0.5;
+    c.strokeStyle='rgba(255,176,0,.5)'; c.setLineDash([3,3]); c.lineWidth=1;
+    c.beginPath(); c.moveTo(x,m.t); c.lineTo(x,m.t+ph); c.stroke(); c.setLineDash([]);
+  }
+  // marker
+  (cfg.marks||[]).forEach(mk=>{
+    const x=X(mk.x), y=Y(mk.y,mk.ax||1);
+    c.fillStyle=mk.col; c.beginPath(); c.arc(x,y,3,0,7); c.fill();
+    c.strokeStyle='#0a0e13'; c.lineWidth=1; c.stroke();
+    if(mk.t){ c.fillStyle=mk.col; c.font='8px ui-monospace,monospace'; c.textAlign=x>m.l+pw*0.7?'right':'left';
+      c.fillText(mk.t, x+(x>m.l+pw*0.7?-6:6), y-6); }
+  });
+  // linee orizzontali
+  (cfg.hlines||[]).forEach(h=>{
+    const y=Math.round(Y(h.v,h.ax||1))+0.5;
+    c.strokeStyle=h.col; c.setLineDash([5,4]); c.lineWidth=1;
+    c.beginPath(); c.moveTo(m.l,y); c.lineTo(m.l+pw,y); c.stroke(); c.setLineDash([]);
+    if(h.t){ c.fillStyle=h.col; c.font='8px ui-monospace,monospace'; c.textAlign='left'; c.fillText(h.t,m.l+4,y-3); }
+  });
+  return {X,Y,m,pw,ph,c};
+}
+
+/* ============================================================
+   SEZIONE — disegno + animazione
+   ============================================================ */
+let woolPat=null, weavePat=null;
+
+/* --- stato della simulazione --- */
+const SIM={
+  t:0, emit:0, K:450, run:true,
+  L:{gas:1, wave:1, px:1, abs:1, therm:1},
+  zoom:null, flip:false,
+  pulses:[], parts:[], abs:[], rings:[], eddies:[],
+  stations:[], grid:null, NG:220, sig:'',
+};
+
+function mkPatterns(){
+  const p=document.createElement('canvas'); p.width=p.height=24; const q=p.getContext('2d');
+  q.fillStyle='#0f1318'; q.fillRect(0,0,24,24);
+  for(let i=0;i<64;i++){
+    const x=Math.random()*24,y=Math.random()*24,r=Math.random()*1.05+0.25;
+    q.fillStyle=Math.random()>0.72?'rgba(255,240,190,.5)':'rgba(190,196,180,.28)';
+    q.beginPath(); q.arc(x,y,r,0,7); q.fill();
+  }
+  for(let i=0;i<7;i++){   // filamenti
+    q.strokeStyle='rgba(220,215,190,.13)'; q.lineWidth=0.6; q.beginPath();
+    const x=Math.random()*24,y=Math.random()*24;
+    q.moveTo(x,y); q.quadraticCurveTo(x+6,y+4,x+11,y-3); q.stroke();
+  }
+  woolPat=p;
+  const w=document.createElement('canvas'); w.width=w.height=12; const z=w.getContext('2d');
+  z.fillStyle='#171b21'; z.fillRect(0,0,12,12);
+  z.fillStyle='#22272f'; z.fillRect(0,0,6,6); z.fillRect(6,6,6,6);
+  z.strokeStyle='rgba(255,255,255,.05)'; z.lineWidth=1;
+  z.beginPath(); z.moveTo(0,0); z.lineTo(12,12); z.moveTo(12,0); z.lineTo(0,12); z.stroke();
+  weavePat=w;
+}
+
+/* ============================================================
+   GEOMETRIA 1D
+   ============================================================ */
+function layout(){
+  const L={};
+  L.x0=0;
+  L.link=[0, P.Llink];
+  let x=L.link[1];
+  if(P.catOn){ L.cat=[x, x+P.Lcat]; x=L.cat[1]; } else L.cat=null;
+  L.coneIn=[x, x+55]; x=L.coneIn[1];
+  L.body=[x, x+P.Lbody]; x=L.body[1];
+  L.coneOut=[x, x+P.Lcone]; x=L.coneOut[1];
+  L.tail=[x, x+P.Ltail]; x=L.tail[1];
+  L.total=x;
+  return L;
+}
+function rShell(x,L){
+  if(x<L.link[1]) return P.Dlink/2;
+  if(L.cat && x<L.cat[1]) return P.Dcat/2;
+  if(x<L.coneIn[1]){ const t=(x-L.coneIn[0])/(L.coneIn[1]-L.coneIn[0]); return P.Dlink/2+(P.Dbi/2-P.Dlink/2)*t; }
+  if(x<L.body[1]){ const t=(x-L.body[0])/(L.body[1]-L.body[0]); return P.Dbi/2+(P.Dbo/2-P.Dbi/2)*t; }
+  if(x<L.coneOut[1]){ const t=(x-L.coneOut[0])/(L.coneOut[1]-L.coneOut[0]); return P.Dbo/2+(P.Dout/2-P.Dbo/2)*t; }
+  return P.Dout/2;
+}
+const JET=95;   // mm di getto libero disegnati a valle dello sbocco
+function rFlow(x,L){
+  if(x>=L.total) return (P.dbkOn?P.Ddbk:P.Dout)/2+(x-L.total)*0.21;
+  if(x<L.link[1]) return P.Dlink/2;
+  if(L.cat && x<L.cat[1]) return P.Dcat/2;
+  if(x<L.coneIn[1]){ const t=(x-L.coneIn[0])/(L.coneIn[1]-L.coneIn[0]); return P.Dlink/2+(P.Dperf/2-P.Dlink/2)*t; }
+  if(x<L.body[1]) return P.Dperf/2;
+  if(x<L.coneOut[1]){ const t=(x-L.coneOut[0])/(L.coneOut[1]-L.coneOut[0]); return P.Dperf/2+(P.Dout/2-P.Dperf/2)*t; }
+  if(P.dbkOn && x>L.tail[1]-P.Ldbk) return P.Ddbk/2;
+  return P.Dout/2;
+}
+// punti di rottura del profilo: bastano questi, il profilo è lineare a tratti
+function profX(L,x0,x1){
+  const bp=[L.link[1], L.cat&&L.cat[0], L.cat&&L.cat[1], L.coneIn[0], L.coneIn[1],
+            L.body[0], L.body[1], L.coneOut[0], L.coneOut[1],
+            P.dbkOn? L.tail[1]-P.Ldbk : null, L.tail[1]];
+  const pts=[x0,x1];
+  bp.forEach(v=>{ if(v==null||v===false) return;
+    for(const d of [-0.02,0.02]){ const q=v+d; if(q>x0&&q<x1) pts.push(q); } });
+  { const n=7; for(let i=1;i<=n;i++){ const q=L.total+JET*i/n; if(q>x0&&q<x1) pts.push(q); } }
+  pts.sort((a,b)=>a-b);
+  return pts;
+}
+// area di passaggio effettiva [m²] — il catalizzatore vale solo per la sua frazione aperta
+function areaAt(x,L,g){
+  if(L.cat && x>=L.cat[0] && x<L.cat[1]) return g.Acat*g.OFA;
+  const r=rFlow(x,L)/1000; return PI*r*r;
+}
+
+/* ============================================================
+   MODELLO D'ONDA 1D — riflessioni alle discontinuità di sezione
+   R = (A1-A2)/(A1+A2) :  espansione -> rarefazione riflessa
+                          contrazione -> compressione riflessa
+   ============================================================ */
+function buildStations(L,g){
+  const st=[];
+  const Alink=g.Alink, Acat=P.catOn? g.Acat*g.OFA : Alink;
+  const Aperf=g.Aperf, Aout=g.Aout, Adbk=P.dbkOn? g.Adbk : Aout;
+  const add=(x,A1,A2,lab)=>{
+    if(Math.abs(A1-A2)/Math.max(A1,A2)<0.03) return;
+    st.push({x, R:(A1-A2)/(A1+A2), lab});
+  };
+  if(L.cat){ add(L.cat[0],Alink,Acat,'ingresso cat'); add(L.cat[1],Acat,Alink,'uscita cat'); }
+  add(L.coneIn[1],Alink,Aperf,'cono ingresso');
+  add(L.coneOut[1],Aperf,Aout,'cono uscita');
+  if(P.dbkOn) add(L.tail[1]-P.Ldbk,Aout,Adbk,'dB-killer');
+  st.push({x:L.total, R:-0.92, lab:'sbocco'});      // estremità aperta
+  st.sort((a,b)=>a.x-b.x);
+  return st;
+}
+function simSig(){
+  return [P.Llink,P.catOn,P.Lcat,P.Dcat,P.cpsi,P.wall,P.Lbody,P.Dperf,P.Lcone,P.Ltail,
+          P.dbkOn,P.Ddbk,P.Ldbk,P.Dout,P.Dlink,P.Dbi,P.Dbo].join(',');
+}
+
+/* ============================================================
+   PASSO DI SIMULAZIONE
+   ============================================================ */
+function simStep(dtReal,R){
+  if(!R) return;
+  const L=layout(), g=R.g, fl=R.flS;
+  const sg=simSig();
+  if(sg!==SIM.sig){ SIM.sig=sg; SIM.stations=buildStations(L,g); SIM.pulses.length=0; SIM.abs.length=0; }
+  const dt=(SIM.run? dtReal:0)/SIM.K;      // tempo "vero" simulato
+  SIM.t+=dt;
+  const c=fl.c, f0=Math.max(R.n.f0,20), rhoc=fl.rho*fl.c;
+  const total=L.total;
+
+  /* ---- 1. sorgente: un impulso di blowdown ogni scoppio ---- */
+  const per=1/f0;
+  SIM.emit+=dt;
+  let guard=0;
+  while(SIM.emit>=per && guard++<4){
+    SIM.emit-=per;
+    SIM.pulses.push({x:0, dir:1, a:1, w:clamp(c/f0*1000/6,55,340)});
+  }
+
+  /* ---- 2. propagazione: v_assoluta = ±c + u  (le onde risalgono solo se u<c) ---- */
+  const perf0=L.body[0], perf1=L.body[0]+g.Lperf_mm;
+  let bi=0,bd=1e9; BANDS.forEach((b,i)=>{const d=Math.abs(lg(b)-lg(f0)); if(d<bd){bd=d;bi=i;}});
+  const attPerMm=Math.pow(10,-Math.max(R.n.dis[bi],0)/(20*Math.max(g.Lperf_mm,1)));
+  const st=SIM.stations;
+  for(let i=SIM.pulses.length-1;i>=0;i--){
+    const p=SIM.pulses[i];
+    const u=fl.m/(fl.rho*areaAt(clamp(p.x,0,total),L,g));
+    const vAbs=p.dir*c+u;                                   // m/s
+    const x0=p.x, x1=p.x+vAbs*dt*1000;
+    const lo=Math.min(x0,x1), hi=Math.max(x0,x1);
+    const ov=Math.max(0,Math.min(hi,perf1)-Math.max(lo,perf0));
+    if(ov>0) p.a*=Math.pow(attPerMm,ov);
+    p.a*=Math.exp(-2.6e-4*(hi-lo));                          // attrito di parete
+    // attraversamento delle discontinuità
+    for(let k=0;k<st.length;k++){
+      const s=st[k];
+      if((x0-s.x)*(x1-s.x)<0){
+        const Rr=p.dir>0? s.R : -s.R;
+        if(Math.abs(p.a*Rr)>0.045 && SIM.pulses.length<28)
+          SIM.pulses.push({x:s.x, dir:-p.dir, a:p.a*Rr, w:p.w, ref:s.lab});
+        if(s.lab==='sbocco' && p.dir>0 && Math.abs(p.a)>0.14 && SIM.rings.length<14)
+          SIM.rings.push({x:total+4, r:(P.dbkOn?P.Ddbk:P.Dout)/2*0.9, a:Math.abs(p.a), v:Math.abs(p.a)*60});
+        p.a*=(1+Rr);
+      }
+    }
+    p.x=x1;
+    if(p.x<0){ p.x=0; p.dir=1; p.a*=0.45; }                 // ritorno alla luce (valvola quasi chiusa)
+    if(p.x>total+30 || Math.abs(p.a)<0.02) SIM.pulses.splice(i,1);
+  }
+  while(SIM.pulses.length>28) SIM.pulses.shift();
+
+  /* ---- 3. campo p(x) e u(x) campionati (p = Σa, u = Σ dir·a) ---- */
+  const NG=SIM.NG;
+  if(!SIM.grid||SIM.grid.p.length!==NG) SIM.grid={p:new Float32Array(NG),u:new Float32Array(NG)};
+  const G=SIM.grid; G.p.fill(0); G.u.fill(0);
+  const dxG=total/(NG-1);
+  SIM.pulses.forEach(q=>{
+    const hw=q.w*0.5;
+    const i0=Math.max(0,Math.floor((q.x-2.2*hw)/dxG)), i1=Math.min(NG-1,Math.ceil((q.x+2.2*hw)/dxG));
+    for(let i=i0;i<=i1;i++){
+      const e=q.a*Math.exp(-Math.pow((i*dxG-q.x)/hw,2));
+      G.p[i]+=e; G.u[i]+=q.dir*e;
+    }
+  });
+  const P0=2.2e4;                                            // Pa per unità di ampiezza
+  const sampleP=x=>{const t=clamp(x/dxG,0,NG-1),i=Math.floor(t),f=t-i;return G.p[i]+(G.p[Math.min(i+1,NG-1)]-G.p[i])*f;};
+  const sampleU=x=>{const t=clamp(x/dxG,0,NG-1),i=Math.floor(t),f=t-i;return G.u[i]+(G.u[Math.min(i+1,NG-1)]-G.u[i])*f;};
+  SIM.sampleP=sampleP; SIM.sampleU=sampleU; SIM.P0=P0;
+
+  /* ---- 4. particelle di gas: u_tot = ū(x) + u'(x)  (u' = p'/ρc) ---- */
+  const target=SIM.L.gas? clamp(Math.round(80+fl.m*1250),55,240):0;
+  while(SIM.parts.length<target){
+    const x=Math.random()*total;
+    SIM.parts.push({x, y:(Math.random()*2-1)*rFlow(x,L)*0.82, a:0.5+Math.random()*0.5, len:5, v:0, t:0.3});
+  }
+  while(SIM.parts.length>target) SIM.parts.pop();
+  const inCat=x=>L.cat&&x>=L.cat[0]&&x<L.cat[1];
+  for(let i=0;i<SIM.parts.length;i++){
+    const p=SIM.parts[i];
+    const xc=clamp(p.x,0,total);
+    const ub=fl.m/(fl.rho*areaAt(xc,L,g));
+    const up=SIM.L.wave? sampleU(xc)*P0/rhoc : 0;
+    const v=ub+up;
+    p.v=v;
+    p.x+=v*dt*1000;
+    const rf=rFlow(clamp(p.x,0,total+JET),L);
+    if(inCat(p.x)){                                          // canali: flusso laminare ordinato
+      const pitch=Math.max(P.Dcat/14,2.2);
+      p.y=Math.round(p.y/pitch)*pitch;
+      if(Math.abs(p.y)>rf*0.9) p.y=Math.sign(p.y)*rf*0.9;
+    }else{
+      const turb=clamp(Math.abs(v)/260,0.02,0.9);
+      p.y+=(Math.random()-0.5)*rf*0.10*turb;
+      if(Math.abs(p.y)>rf*0.88) p.y=Math.sign(p.y)*rf*0.88*(0.94+Math.random()*0.04);
+    }
+    p.len=clamp(Math.abs(v)/16,1.6,20);
+    p.t=clamp(0.30+(xc/total)*0.45+(inCat(xc)?-0.08:0),0,1);
+    if(p.x>total+JET){ p.x-=total+JET; p.y=(Math.random()*2-1)*P.Dlink/2*0.82; }
+    else if(p.x<-22){ p.x+=total+JET; }
+  }
+
+  /* ---- 5. energia acustica che entra nei fori e si dissipa nel pacco ---- */
+  if(SIM.L.abs && g.Lperf_mm>2){
+    const aEff=R.n.alphaEff[bi]||0.3;
+    const rate=clamp(aEff*g.POA*22,0,9)*(SIM.run?1:0);
+    const n=Math.min(6,Math.floor(rate*dtReal*60*0.9+Math.random()));
+    for(let k=0;k<n;k++){
+      const x=perf0+Math.random()*(perf1-perf0);
+      const amp=Math.abs(sampleP(x));
+      if(amp<0.06) continue;
+      const sgn=Math.random()<0.5?1:-1;
+      SIM.abs.push({x, y:sgn*(P.Dperf/2+0.5), vy:sgn*(9+Math.random()*16)*(0.4+amp),
+                    a:clamp(amp,0,1), life:1, dep:g.tWool_mm*(0.35+0.65*(1-aEff))});
+    }
+  }
+  for(let i=SIM.abs.length-1;i>=0;i--){
+    const q=SIM.abs[i];
+    q.y+=q.vy*dtReal*(SIM.run?1:0)*2.0;
+    const pen=Math.abs(q.y)-P.Dperf/2;
+    q.life=clamp(1-pen/Math.max(q.dep,1),0,1);
+    if(q.life<=0.02||pen>g.tWool_mm) SIM.abs.splice(i,1);
+  }
+  if(SIM.abs.length>420) SIM.abs.splice(0,SIM.abs.length-420);
+
+  /* ---- 6. anelli di vortice allo sbocco ---- */
+  for(let i=SIM.rings.length-1;i>=0;i--){
+    const r=SIM.rings[i];
+    r.x+=(60+r.v)*dtReal*(SIM.run?1:0)*3.2;
+    r.r+=r.v*dtReal*(SIM.run?1:0)*1.6;
+    r.a*=Math.pow(0.35,dtReal);
+    if(r.a<0.03||r.x>total+140) SIM.rings.splice(i,1);
+  }
+
+  /* ---- 7. ricircoli: cono di ingresso (separazione) e dietro il deflettore ---- */
+  SIM.eddies=[];
+  const vRef=fl.m/(fl.rho*g.Aperf);
+  if(P.Dperf>P.Dlink*1.15){
+    const xe=L.coneIn[0]+(L.coneIn[1]-L.coneIn[0])*0.72;
+    for(const s of [1,-1]) SIM.eddies.push({x:xe, y:s*(P.Dperf/2*0.78), r:(P.Dperf-P.Dlink)/5, w:s*vRef*0.02});
+  }
+  if(P.dbkOn && P.dbkTyp!=='semplice'){
+    const xb=L.tail[1]-P.Ldbk*0.28+6;
+    for(const s of [1,-1]) SIM.eddies.push({x:xb, y:s*P.Ddbk/4, r:P.Ddbk/6, w:-s*vRef*0.03});
+  }
+}
+
+function tempColor(t){
+  const c=[[255,246,208],[255,196,72],[255,120,34],[224,58,22],[150,34,16]];
+  const u=clamp(t,0,1)*(c.length-1), i=Math.floor(u), f=u-i;
+  const a=c[i], b=c[Math.min(i+1,c.length-1)];
+  return `rgb(${Math.round(a[0]+(b[0]-a[0])*f)},${Math.round(a[1]+(b[1]-a[1])*f)},${Math.round(a[2]+(b[2]-a[2])*f)})`;
+}
+// colore di un metallo incandescente in funzione della temperatura
+function glow(Tc){
+  const u=clamp((Tc-380)/520,0,1);
+  return `rgba(${Math.round(120+135*u)},${Math.round(30+60*u*u)},${Math.round(18+22*u*u)},${(0.06+0.5*u).toFixed(3)})`;
+}
+let SEC={};
+
+function drawSectionRaw(R){
+  if(!R) return;
+  if(!$('#sec').parentElement.clientWidth) return;   // non ancora in layout
+  const L=layout(), g=R.g, fl=R.flS;
+  const cv=$('#sec');
+  const pad=16, topPad=34, botPad=34;
+  const W0=cv.parentElement.clientWidth;
+  if(!(W0>pad*2+60)) return;                       // troppo stretto per disegnare: esci invece di produrre scale negative
+  if(SIM.zoom===null) SIM.zoom=W0<620;             // su schermo stretto parte inquadrato sul corpo
+  const xA=SIM.zoom? Math.max(0,L.coneIn[0]-28) : 0;    // finestra di disegno
+  const xB=L.total+JET;
+  const Ld=xB-xA;
+  const maxR=Math.max(P.Dbo/2,P.Dbi/2,SIM.zoom?0:P.Dcat/2)+P.tShell+16;
+  const sW=(W0-pad*2)/Ld;                          // scala imposta dalla larghezza disponibile
+  const H0=clamp(Math.round(maxR*2*sW+topPad+botPad),136,460);   // altezza = quella che serve, niente bande vuote
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.style.width='100%'; cv.style.height=H0+'px';
+  const bkW=Math.round(W0*dpr), bkH=Math.round(H0*dpr);
+  if(cv.width!==bkW) cv.width=bkW;
+  if(cv.height!==bkH) cv.height=bkH;
+  const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0);
+  const W=W0, H=H0;
+  const s=Math.max(0.02,Math.min(sW,(H-topPad-botPad)/(maxR*2)));   // mai negativa: era questo a specchiare il disegno
+  const flip=!!SIM.flip;
+  const ox=(W-Ld*s)/2, oy=topPad+(H-topPad-botPad)/2;
+  SEC={L,s,ox,oy,W,H};
+  const fx_=flip?-1:1;
+  const X=flip? (x=>ox+(xB-x)*s) : (x=>ox+(x-xA)*s);
+  const Yr=v=>oy-v*s;
+  const RX=(x0,x1)=>{const a=X(x0),b=X(x1);return {x:Math.min(a,b),w:Math.abs(b-a)};};   // rettangoli validi anche ribaltati
+  const shellCol=SHELL[P.shell], wm=WOOL[P.wmat];
+  const perf0=L.body[0], perf1=L.body[0]+g.Lperf_mm;
+
+  c.clearRect(0,0,W,H);
+  const bg=c.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#0a0f15'); bg.addColorStop(1,'#04060a');
+  c.fillStyle=bg; c.fillRect(0,0,W,H);
+
+  /* ---------- 1. pacco afonizzante ---------- */
+  c.save();
+  const pb=profX(L,L.body[0],L.body[1]);
+  c.beginPath();
+  pb.forEach((x,i)=>{const px=X(x),py=Yr(rShell(x,L)-P.tShell); i?c.lineTo(px,py):c.moveTo(px,py);});
+  for(let i=pb.length-1;i>=0;i--) c.lineTo(X(pb[i]),Yr(-(rShell(pb[i],L)-P.tShell)));
+  c.closePath(); c.fillStyle='#0d1116'; c.fill(); c.clip();
+  const RB=RX(L.body[0],L.body[1]);
+  c.globalAlpha=clamp(0.32+P.wrho/320*0.68,0.32,1);
+  c.fillStyle=c.createPattern(woolPat,'repeat'); c.fillRect(RB.x,0,RB.w,H);
+  c.globalAlpha=1;
+  c.fillStyle=wm.col+'20'; c.fillRect(RB.x,0,RB.w,H);
+  if(P.wfill<100){
+    for(const sg of [1,-1]){
+      c.beginPath();
+      pb.forEach((x,i)=>{const px=X(x),py=Yr(sg*(rShell(x,L)-P.tShell)); i?c.lineTo(px,py):c.moveTo(px,py);});
+      for(let i=pb.length-1;i>=0;i--){
+        const x=pb[i], inn=rShell(x,L)-P.tShell, gap=(inn-P.Dperf/2)*(P.wfill/100);
+        c.lineTo(X(x),Yr(sg*(inn-gap)));
+      }
+      c.closePath(); c.fillStyle='#0b0f14'; c.fill();
+    }
+  }
+  // gradiente termico nel pacco (caldo al tubo, freddo al mantello)
+  if(SIM.L.therm){
+    for(const sg of [1,-1]){
+      const y0=Yr(sg*P.Dperf/2), y1=Yr(sg*(g.Dbm/2-P.tShell));
+      const gr=c.createLinearGradient(0,y0,0,y1);
+      gr.addColorStop(0,glow(fl.Tc)); gr.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=gr; c.fillRect(RB.x,Math.min(y0,y1),RB.w,Math.abs(y1-y0));
+    }
+  }
+  // quanti di energia assorbita: teal -> ambra -> rosso (acustica -> calore)
+  SIM.abs.forEach(q=>{
+    const u=1-q.life;
+    const col=u<0.5? `rgba(${Math.round(25+230*u*2)},${Math.round(230-80*u*2)},${Math.round(210-160*u*2)},`
+                   : `rgba(255,${Math.round(150-140*(u-0.5)*2)},${Math.round(50-40*(u-0.5)*2)},`;
+    c.fillStyle=col+(q.life*q.a*0.85).toFixed(3)+')';
+    c.beginPath(); c.arc(X(q.x),oy-q.y*s,(0.6+1.7*q.life*q.a),0,7); c.fill();
+  });
+  c.fillStyle='#0a0e13'; c.fillRect(RB.x,Yr(P.Dperf/2),RB.w,P.Dperf*s);
+  c.restore();
+
+  /* ---------- 2. canale di flusso: gas, onde, p(x) ---------- */
+  c.save();
+  const pf=profX(L,xA,xB);
+  c.beginPath();
+  pf.forEach((x,i)=>{const px=X(x),py=Yr(rFlow(x,L)); i?c.lineTo(px,py):c.moveTo(px,py);});
+  for(let i=pf.length-1;i>=0;i--) c.lineTo(X(pf[i]),Yr(-rFlow(pf[i],L)));
+  c.closePath();
+  const RG=RX(xA,xB);
+  const gg=flip? c.createLinearGradient(RG.x+RG.w,0,RG.x,0) : c.createLinearGradient(RG.x,0,RG.x+RG.w,0);
+  gg.addColorStop(0,'rgba(78,26,9,.94)'); gg.addColorStop(0.86,'rgba(24,14,8,.94)');
+  gg.addColorStop(0.87,'rgba(60,24,10,.30)'); gg.addColorStop(1,'rgba(40,16,8,0)');
+  c.fillStyle=gg; c.fill();
+  c.clip();
+
+  // --- onde: bande di compressione (calde) / rarefazione (fredde) ---
+  if(SIM.L.wave){
+    c.globalCompositeOperation='lighter';
+    SIM.pulses.forEach(q=>{
+      if(!isFinite(q.x)||!isFinite(q.a)||!isFinite(q.w)) return;
+      const hw=Math.max(q.w*0.5*s,3), px=X(q.x), A=clamp(Math.abs(q.a),0,1);
+      const col=q.a>0? [255,122,47] : [96,150,255];
+      const gr=c.createLinearGradient(px-hw,0,px+hw,0);
+      gr.addColorStop(0,`rgba(${col[0]},${col[1]},${col[2]},0)`);
+      gr.addColorStop(0.5,`rgba(${col[0]},${col[1]},${col[2]},${(0.42*A).toFixed(3)})`);
+      gr.addColorStop(1,`rgba(${col[0]},${col[1]},${col[2]},0)`);
+      c.fillStyle=gr; c.fillRect(px-hw,0,hw*2,H);
+      // fronte d'onda ripido nel verso di marcia
+      const xf=clamp(q.x+q.dir*q.w*0.30,0,L.total+JET), fx=X(xf), rr=rFlow(xf,L);
+      c.strokeStyle=`rgba(${col[0]+0},${col[1]+60},${col[2]+40},${(0.75*A).toFixed(3)})`;
+      c.lineWidth=1.3; c.beginPath(); c.moveTo(fx,Yr(rr)); c.lineTo(fx,Yr(-rr)); c.stroke();
+      // freccia di direzione sull'asse
+      const ah=Math.max(3,rr*s*0.16);
+      c.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},${(0.9*A).toFixed(3)})`;
+      c.beginPath(); c.moveTo(fx+q.dir*fx_*ah*1.7,oy); c.lineTo(fx,oy-ah); c.lineTo(fx,oy+ah); c.closePath(); c.fill();
+    });
+    c.globalCompositeOperation='source-over';
+  }
+
+  // --- particelle di gas ---
+  if(SIM.L.gas){
+    c.globalCompositeOperation='lighter'; c.lineCap='round';
+    SIM.parts.forEach(p=>{
+      const px=X(p.x), py=oy-p.y*s;
+      const ln=Math.max(1.2,p.len*s*0.55), back=(Math.sign(p.v)||1)*fx_;
+      const fade=p.x>L.total? clamp(1-(p.x-L.total)/JET,0,1) : 1;
+      c.strokeStyle=SIM.L.therm? tempColor(p.t) : 'rgb(255,190,120)';
+      c.globalAlpha=p.a*0.42*fade;
+      c.lineWidth=1.2;
+      c.beginPath(); c.moveTo(px-back*ln,py); c.lineTo(px,py); c.stroke();
+      if(p.v<0){ c.strokeStyle='rgb(90,140,255)'; c.globalAlpha=0.75*fade; c.lineWidth=1.6;
+        c.beginPath(); c.moveTo(px-back*ln,py); c.lineTo(px,py); c.stroke(); }
+    });
+    c.globalAlpha=1; c.globalCompositeOperation='source-over';
+  }
+
+  // --- ricircoli ---
+  SIM.eddies.forEach(e=>{
+    const ph=SIM.t*e.w*400;
+    c.strokeStyle='rgba(255,200,140,.28)'; c.lineWidth=0.9;
+    c.beginPath(); c.arc(X(e.x),oy-e.y*s,Math.max(2,e.r*s),ph,ph+4.4); c.stroke();
+  });
+
+  // --- traccia p(x) sull'asse ---
+  if(SIM.L.px && SIM.sampleP){
+    const amp=Math.min(P.Dperf/2*0.92,30);
+    c.lineWidth=1.6;
+    for(const sg of [1,-1]){
+      c.beginPath(); c.moveTo(X(0),oy);
+      for(let x=0;x<=L.total;x+=L.total/110){
+        const v=SIM.sampleP(x);
+        c.lineTo(X(x), oy-(sg>0?Math.max(v,0):Math.min(v,0))*amp*s);
+      }
+      c.lineTo(X(L.total),oy); c.closePath();
+      c.fillStyle=sg>0?'rgba(255,176,0,.18)':'rgba(107,156,255,.18)'; c.fill();
+    }
+    c.strokeStyle='rgba(255,235,180,.9)'; c.lineWidth=1.5; c.beginPath();
+    for(let x=0;x<=L.total;x+=L.total/130){ const px=X(x), py=oy-SIM.sampleP(x)*amp*s; x?c.lineTo(px,py):c.moveTo(px,py); }
+    c.stroke();
+    c.strokeStyle='rgba(255,255,255,.10)'; c.setLineDash([3,4]); c.lineWidth=1;
+    c.beginPath(); c.moveTo(X(0),oy); c.lineTo(X(L.total),oy); c.stroke(); c.setLineDash([]);
+  }
+  c.restore();
+
+  /* ---------- 3. getto e anelli di vortice allo sbocco ---------- */
+  c.strokeStyle='rgba(255,140,60,.16)'; c.setLineDash([3,4]); c.lineWidth=1;
+  c.beginPath();
+  c.moveTo(X(L.total),Yr(rFlow(L.total+0.5,L))); c.lineTo(X(L.total+JET),Yr(rFlow(L.total+JET,L)));
+  c.moveTo(X(L.total),Yr(-rFlow(L.total+0.5,L))); c.lineTo(X(L.total+JET),Yr(-rFlow(L.total+JET,L)));
+  c.stroke(); c.setLineDash([]);
+  SIM.rings.forEach(r=>{
+    const px=X(r.x);
+    c.strokeStyle=`rgba(255,${Math.round(150+80*r.a)},90,${(r.a*0.55).toFixed(3)})`;
+    c.lineWidth=Math.max(0.8,1.6*r.a);
+    c.beginPath(); c.ellipse(px,oy,Math.max(1,r.r*s*0.45),Math.max(1,r.r*s),0,0,7); c.stroke();
+  });
+
+  /* ---------- 4. catalizzatore ---------- */
+  if(L.cat){
+    c.save();
+    const RC=RX(L.cat[0],L.cat[1]);
+    c.beginPath(); c.rect(RC.x,Yr(P.Dcat/2),RC.w,P.Dcat*s); c.clip();
+    c.fillStyle='rgba(126,116,84,.32)'; c.fillRect(RC.x,Yr(P.Dcat/2),RC.w,P.Dcat*s);
+    if(SIM.L.therm){
+      const gr=flip? c.createLinearGradient(RC.x+RC.w,0,RC.x,0) : c.createLinearGradient(RC.x,0,RC.x+RC.w,0);
+      gr.addColorStop(0,'rgba(255,90,20,0)'); gr.addColorStop(1,'rgba(255,110,30,.20)');  // esotermia
+      c.fillStyle=gr; c.fillRect(RC.x,Yr(P.Dcat/2),RC.w,P.Dcat*s);
+    }
+    c.strokeStyle='rgba(255,205,130,.30)'; c.lineWidth=0.55;
+    const nl=clamp(Math.round(P.Dcat/Math.max(25.4/Math.sqrt(P.cpsi),0.9)/6),4,30);
+    for(let i=0;i<=nl;i++){
+      const y=Yr(P.Dcat/2)+i*(P.Dcat*s)/nl;
+      c.beginPath(); c.moveTo(X(L.cat[0]),y); c.lineTo(X(L.cat[1]),y); c.stroke();
+    }
+    c.restore();
+    c.strokeStyle='#7d858e'; c.lineWidth=1.3; c.strokeRect(RC.x,Yr(P.Dcat/2),RC.w,P.Dcat*s);
+    c.fillStyle='#7c8794'; c.font='7px ui-monospace,monospace'; c.textAlign='center';
+    c.fillText('CAT '+P.cpsi+' cpsi · OFA '+fmt(g.OFA*100,0)+'%',RC.x+RC.w/2,Yr(P.Dcat/2)-4);
+  }
+
+  /* ---------- 5. tubo perforato ---------- */
+  const yT=Yr(P.Dperf/2), yB=Yr(-P.Dperf/2), tp=Math.max(1.1,P.tPerf*s);
+  if(SIM.L.therm){
+    c.fillStyle=glow(fl.Tc); c.fillRect(RB.x,yT-tp*3,RB.w,tp*3); c.fillRect(RB.x,yB,RB.w,tp*3);
+  }
+  c.fillStyle='#828b97';
+  c.fillRect(RB.x,yT-tp,RB.w,tp);
+  c.fillRect(RB.x,yB,RB.w,tp);
+  c.fillStyle='#0a0e13';
+  const step=Math.max(P.pitch,2.4/s);
+  for(let x=L.body[0]+P.pitch/2;x<perf1;x+=step){
+    const w2=Math.max(1,P.dHole*s);
+    c.fillRect(X(x)-w2/2,yT-tp,w2,tp);
+    c.fillRect(X(x)-w2/2,yB,w2,tp);
+  }
+  if(P.liner){
+    c.strokeStyle='rgba(185,195,205,.30)'; c.lineWidth=0.75; c.setLineDash([2,2]);
+    c.beginPath(); c.moveTo(X(L.body[0]),yT-tp-1.6); c.lineTo(X(L.body[1]),yT-tp-1.6);
+    c.moveTo(X(L.body[0]),yB+tp+1.6); c.lineTo(X(L.body[1]),yB+tp+1.6); c.stroke(); c.setLineDash([]);
+  }
+
+  /* ---------- 6. dB-killer ---------- */
+  if(P.dbkOn){
+    const dx0=Math.max(L.tail[1]-P.Ldbk,L.coneOut[0]), dx1=L.tail[1];
+    const RD=RX(dx0,dx1);
+    const dy=Yr(P.Ddbk/2), dh=P.Ddbk*s, th=Math.max(1,1.2*s);
+    c.fillStyle='#9aa3ad';
+    c.fillRect(RD.x,dy-th,RD.w,th);
+    c.fillRect(RD.x,dy+dh,RD.w,th);
+    c.fillStyle='#c0c8d1'; c.fillRect(X(dx0)-1.5,Yr(P.Dout/2),3,P.Dout*s);
+    if(P.dbkTyp!=='semplice'){
+      c.fillStyle='#ccd3db';
+      c.fillRect(X(dx1-P.Ldbk*0.28)-1,dy+dh*0.18,Math.max(2,3*s),dh*0.64);
+      if(P.dbkTyp==='bistadio'){
+        const b2=X(dx1-P.Ldbk*0.62)-1;
+        c.fillRect(b2,dy+dh*0.10,Math.max(2,3*s),dh*0.36);
+        c.fillRect(b2,dy+dh*0.62,Math.max(2,3*s),dh*0.30);
+      }
+    }
+  }
+
+  /* ---------- 7. mantello e tubazioni ---------- */
+  const patC=c.createPattern(weavePat,'repeat');
+  function shellBand(x0,x1){
+    const ps=profX(L,x0,x1);
+    for(const sg of [1,-1]){
+      c.beginPath();
+      ps.forEach((x,i)=>{const px=X(x),py=Yr(sg*rShell(x,L)); i?c.lineTo(px,py):c.moveTo(px,py);});
+      for(let i=ps.length-1;i>=0;i--) c.lineTo(X(ps[i]),Yr(sg*(rShell(ps[i],L)-P.tShell)));
+      c.closePath();
+      if(shellCol.k==='weave') c.fillStyle=patC;
+      else{
+        const ym=Yr(sg*rShell((x0+x1)/2,L));
+        const gr=c.createLinearGradient(0,ym,0,ym+sg*P.tShell*s);
+        gr.addColorStop(0,shellCol.col); gr.addColorStop(1,'#464d55'); c.fillStyle=gr;
+      }
+      c.fill(); c.strokeStyle='#cbd4dd'; c.lineWidth=0.85; c.stroke();
+    }
+  }
+  shellBand(L.coneIn[0],L.coneOut[1]);
+  function pipe(x0,x1,rad){
+    const R2=RX(x0,x1);
+    for(const sg of [1,-1]){
+      const y=Yr(sg*rad), t=Math.max(1.2,1.2*s);
+      const gr=c.createLinearGradient(0,y-t,0,y+t);
+      gr.addColorStop(0,'#e2e9f0'); gr.addColorStop(1,'#787f88');
+      c.fillStyle=gr; c.fillRect(R2.x,sg>0?y-t:y,R2.w,t);
+    }
+  }
+  pipe(L.link[0],L.link[1],P.Dlink/2);
+  if(L.cat) pipe(L.cat[0],L.cat[1],P.Dcat/2);
+  pipe(L.coneOut[1],L.tail[1],P.Dout/2);
+  c.strokeStyle='#cbd4dd'; c.lineWidth=1.1;
+  c.beginPath(); c.moveTo(X(L.body[1]),Yr(P.Dbo/2)); c.lineTo(X(L.body[1]),Yr(-P.Dbo/2));
+  c.moveTo(X(L.body[0]),Yr(P.Dbi/2)); c.lineTo(X(L.body[0]),Yr(-P.Dbi/2)); c.stroke();
+
+  /* ---------- 8. stazioni di riflessione ---------- */
+  SIM.stations.forEach((st,i)=>{
+    const comp=st.R>0;
+    const col=comp?'rgba(255,122,47,':'rgba(107,156,255,';
+    c.strokeStyle=col+'0.45)'; c.setLineDash([2,3]); c.lineWidth=1;
+    c.beginPath(); c.moveTo(X(st.x),topPad-8); c.lineTo(X(st.x),H-botPad+4); c.stroke(); c.setLineDash([]);
+    const prev=i>0? (st.x-SIM.stations[i-1].x)*s : 99;
+    const next=i<SIM.stations.length-1? (SIM.stations[i+1].x-st.x)*s : 99;
+    if(Math.max(prev,next)<21) return;                    // niente spazio: solo la linea
+    c.fillStyle=col+'0.95)'; c.textAlign='center'; c.font='7px ui-monospace,monospace';
+    c.fillText((flip?'↦':'↤')+(comp?'+':'')+fmt(st.R,2), X(st.x), (i%2?topPad-20:topPad-10));
+  });
+
+  /* ---------- 9. quote e lunghezza d'onda ---------- */
+  const yq=H-19;
+  c.strokeStyle='rgba(255,176,0,.45)'; c.fillStyle='rgba(255,176,0,.8)'; c.lineWidth=0.8; c.font='7.5px ui-monospace,monospace';
+  function quote(x0,x1,y,txt){
+    if(Math.abs(x1-x0)*s<26) return;
+    c.beginPath(); c.moveTo(X(x0),y); c.lineTo(X(x1),y);
+    c.moveTo(X(x0),y-3); c.lineTo(X(x0),y+3); c.moveTo(X(x1),y-3); c.lineTo(X(x1),y+3); c.stroke();
+    c.textAlign='center'; c.fillText(txt,(X(x0)+X(x1))/2,y-4);
+  }
+  quote(Math.max(L.link[0],xA),L.link[1],yq,P.Llink);
+  if(L.cat) quote(L.cat[0],L.cat[1],yq,P.Lcat);
+  quote(L.body[0],L.body[1],yq,P.Lbody+' mm');
+  // mezza lunghezza d'onda della fondamentale
+  const lam=fl.c/Math.max(R.n.f0,20)*1000;
+  const res=Math.abs(lam/2-P.Lbody)/P.Lbody<0.14;
+  c.strokeStyle=res?'rgba(160,107,255,.9)':'rgba(160,107,255,.4)';
+  c.fillStyle=res?'rgba(190,150,255,1)':'rgba(160,107,255,.7)';
+  const yl=H-5;
+  if(lam/2*s<W-2*pad){
+    const lx=Math.min(RB.x, W-pad-lam/2*s);
+    c.beginPath(); c.moveTo(lx,yl); c.lineTo(lx+lam/2*s,yl);
+    c.moveTo(lx,yl-3); c.lineTo(lx,yl+3);
+    c.moveTo(lx+lam/2*s,yl-3); c.lineTo(lx+lam/2*s,yl+3); c.stroke();
+    c.textAlign='left'; c.font='7.5px ui-monospace,monospace';
+    c.fillText('λ/2 = '+fmt(lam/2,0)+' mm'+(res?'  ⚡ risonanza di corpo':''), lx+4, yl-5);
+  }
+  c.fillStyle='rgba(200,210,220,.55)'; c.textAlign='left'; c.font='7.5px ui-monospace,monospace';
+  c.fillText('Ø'+P.Dperf+' · POA '+fmt(g.POA*100,0)+'%', RB.x+4, Yr(P.Dperf/2)-3);
+  c.fillText('lana '+fmt(g.tWool_mm,1)+' mm · '+P.wrho+' kg/m³', RB.x+4, Yr(-Math.max(P.Dbi,P.Dbo)/2)+9);
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+let R=null;
+function tile(k,v,u,cls,bw){
+  return `<div class="tile ${cls||''}" ${bw!==undefined?`style="--bw:${clamp(bw,0,100)}%"`:''}>
+    <div class="k">${k}</div><div class="v">${v}<i>${u||''}</i></div></div>`;
+}
+function update(){
+  R=computeAll();
+  const g=R.g, n=R.n;
+  $('#rpmV').innerHTML=Math.round(rpmSel)+'<i> rpm</i>';
+
+  /* --- derived boxes --- */
+  const rt=rpmTune(), rc=rpmTuneLink();
+  $('#der_eng').innerHTML=
+    D('Freq. scoppio',fmt(n.f0,0)+' Hz')+D('AFR pieno carico',fmt(14.7*P.lamW,1))+
+    D('T luce scarico',fmt(R.flS.Tport,0)+' °C')+D('T ingresso sil.',fmt(R.flS.Tc,0)+' °C')+
+    D('c gas',fmt(R.flS.c,0)+' m/s')+D('ρ gas',fmt(R.flS.rho,3)+' kg/m³')+
+    D('Portata',fmt(R.flS.m*1000,1)+' g/s')+D('Riempim.',fmt(R.flS.ve*100,0)+' %');
+  $('#der_hdr').innerHTML=
+    D('rpm sintonia 1ª',fmt(rt,0))+D('rpm sintonia link',fmt(rc,0))+
+    D('v primario',fmt(R.bS.vPrim,0)+' m/s')+D('v link',fmt(R.bS.vLink,0)+' m/s')+
+    D('ΔT collettore',fmt(R.flS.Tport-R.flS.Tc,0)+' °C')+D('Impedenza ρc',fmt(R.flS.rho*R.flS.c,0)+' rayl')+
+    D('Δp primari',fmt(R.bS.prim/1000,1)+' kPa')+D('Δp link+curve',fmt((R.bS.link+R.bS.bend)/1000,1)+' kPa');
+  $('#der_cat').innerHTML= P.catOn?
+    (D('Ø canale',fmt(g.chan,2)+' mm')+D('OFA',fmt(g.OFA*100,1)+' %')+
+     D('Volume',fmt(g.Vcat*1e3,2)+' L')+D('Space vel.',fmt(R.em.SV/1000,0)+'k 1/h')+
+     D('T50 light-off',fmt(R.em.T50,0)+' °C')+D('T cat ciclo',fmt(R.em.Tcat,0)+' °C')+
+     D('Δp cat',fmt(R.bS.cat/1000,1)+' kPa')+D('v canale',fmt(R.bS.vCat,0)+' m/s'))
+    : D('Catalizzatore','ESCLUSO');
+  $('#der_body').innerHTML=
+    D('Volume corpo',fmt(g.Vbody*1e3,2)+' L')+D('V/cilindrata',fmt(g.expRatio,1)+'×')+
+    D('Rapp. espans.',fmt(g.Vbody/(g.Aperf*P.Lbody/1000),1)+'×')+D('Massa sup.',fmt(g.msArea,2)+' kg/m²')+
+    D('T pelle mantello',fmt(tShellC(R.flS.Tc,g.tWool_mm),0)+' °C')+D('T max mant.',SHELL[P.shell].tmax+' °C')+
+    D('Massa mant.',fmt(g.mShell*1000,0)+' g')+D('Area irraggiante',fmt(g.Ashell*1e4,0)+' cm²');
+  $('#der_perf').innerHTML=
+    D('POA',fmt(g.POA*100,1)+' %')+D('N° fori',g.nHoles.toLocaleString('it'))+
+    D('Lungh. forata',fmt(g.Lperf_mm,0)+' mm')+D('Area fori',fmt(g.POA*PI*P.Dperf*g.Lperf_mm/100,1)+' cm²')+
+    D('v tubo perf.',fmt(R.bS.vPerf,0)+' m/s')+D('Fatt. accopp.',fmt(n.tl.poaF,2));
+  const wm=WOOL[P.wmat];
+  $('#der_wool').innerHTML=
+    D('σ resistività',fmt(n.tl.sigma/1000,1)+'k Pa·s/m²')+D('σ·t/ρc',fmt(n.tl.sigT,2))+
+    D('Spessore',fmt(g.tWool_mm,1)+' mm')+D('Volume',fmt(g.Vwool*1e3,3)+' L')+
+    D('Massa',fmt(g.mWool*1000,0)+' g')+D('T max fibra',wm.tmax+' °C')+
+    D('α @1 kHz',fmt(n.alpha[13],2))+D('α eff @1 kHz',fmt(n.alphaEff[13],2));
+  $('#der_out').innerHTML=
+    D('v uscita',fmt(R.bS.vOut,0)+' m/s')+D('v dB-killer',fmt(R.bS.vDbk,0)+' m/s')+
+    D('Δp dB-killer',fmt(R.bS.dbk/1000,1)+' kPa')+D('β = Ddbk/Dout',fmt(P.dbkOn?P.Ddbk/P.Dout:1,2))+
+    D('Area uscita',fmt(g.Aout*1e4,1)+' cm²')+D('Strozzatura',fmt(P.dbkOn?(1-g.Adbk/g.Aout)*100:0,0)+' %');
+
+  /* --- overlay sezione --- */
+  $('#secTitle').textContent=(P.catOn?'CAT + ':'')+'ASSORBIMENTO '+(P.dbkOn?'+ dB-KILLER':'');
+  const L=layout();
+  $('#secDim').textContent=`L tot ${Math.round(L.total)} mm · Ø max ${Math.round(Math.max(P.Dbo,P.Dbi))} mm · ${fmt(g.mTot,2)} kg`;
+  updateSecOverlay(R);
+
+  /* --- tiles --- */
+  const dbLim=77, statTyp=96;
+  $('#tiles').innerHTML=
+    tile('POTENZA MAX',fmt(R.powMax*1.341,0),' CV','a',R.powMax/(R.powFmax||1)*100)+
+    tile('kW @ rpm',fmt(R.powMax,1)+' <i style="color:#6b7887">@'+Math.round(R.rpmPmax)+'</i>','','a')+
+    tile('COPPIA MAX',fmt(R.trqMax,1)+' <i style="color:#6b7887">@'+Math.round(R.rpmTmax)+'</i>',' Nm','t')+
+    tile('PERDITA vs LIBERO',fmt((1-R.powMax/R.powFmax)*100,1),' %',(1-R.powMax/R.powFmax)>0.09?'warn':'ok')+
+    tile('dB(A) STATICO',fmt(R.dbaStatic,1),' <i>@'+Math.round(R.rpmStat)+'</i>',R.dbaStatic>statTyp?'warn':'ok')+
+    tile('dB(A) PASSAGGIO',fmt(R.dbaDrive,1),' <i>7,5 m</i>',R.dbaDrive>dbLim?'warn':'ok')+
+    tile('TL MEDIA 500–4k',fmt(avg(n.TL.slice(10,20)),1),' dB','t')+
+    tile('Δp @ REGIME',fmt(R.bS.tot/1000,1),' kPa',R.bS.tot/1000>55?'warn':'')+
+    tile('BMEP @ REGIME',fmt(R.tS.bmep,1),' bar','')+
+    tile('T GAS',fmt(R.flS.Tc,0),' °C',R.flS.Tc>WOOL[P.wmat].tmax?'warn':'')+
+    tile('MASSA LANA',fmt(g.mWool*1000,0),' g','t')+
+    tile('T PELLE MANTELLO',fmt(tShellC(R.flS.Tc,g.tWool_mm),0),' °C',
+         tShellC(R.flS.Tc,g.tWool_mm)>SHELL[P.shell].tmax?'warn':'')+
+    tile('MASSA TOTALE',fmt(g.mTot,2),' kg','');
+
+  /* --- grafici --- */
+  drawCharts();
+  drawEmissions();
+  drawWarnings();
+  drawMass();
+  drawSection(R);
+}
+function D(k,v){ return `<div><span>${k}</span><b>${v}</b></div>`; }
+let _ovT=0;
+const chip=(k,v,cls)=>`<span>${k}<b class="${cls||''}">${v}</b></span>`;
+function updateSecOverlay(R){
+  if(_ovT && SIM.t-_ovT<0.00006) return; _ovT=SIM.t;
+  const L=layout(), fl=R.flS, b=R.bS, n=R.n;
+  let pIn=0,pOut=0,back=0;
+  if(SIM.sampleP){ pIn=SIM.sampleP(L.body[0]); pOut=SIM.sampleP(L.total-2); }
+  SIM.pulses.forEach(q=>{ if(q.dir<0) back=Math.max(back,Math.abs(q.a)); });
+  $('#secData').innerHTML=
+    chip('ṁ',fmt(fl.m*1000,1)+' g/s')+
+    chip('T',fmt(fl.Tc,0)+' °C')+
+    chip('c',fmt(fl.c,0)+' m/s','t')+
+    chip('ρc',fmt(fl.rho*fl.c,0)+' rayl','t')+
+    chip('v̄ perf',fmt(b.vPerf,0)+' m/s')+
+    chip('v̄ sbocco',fmt(P.dbkOn?b.vDbk:b.vOut,0)+' m/s')+
+    chip('M',fmt(b.Mach,2),b.Mach>0.65?'r':'')+
+    chip('Δp',fmt(b.tot/1000,1)+' kPa',b.tot/1000>55?'r':'')+
+    chip('f₀',fmt(n.f0,0)+' Hz','v')+
+    chip('λ',fmt(fl.c/Math.max(n.f0,1)*1000,0)+' mm','v')+
+    chip('impulsi',SIM.pulses.length,'v')+
+    chip('ritorno',fmt(back*100,0)+' %','v')+
+    chip("p′ corpo→sbocco",fmt(pIn*SIM.P0/1000,1)+'→'+fmt(pOut*SIM.P0/1000,1)+' kPa')+
+    `<span class="br">1 s schermo =<b class="t">${fmt(1/SIM.K*1000,1)} ms</b> reali</span>`;
+}
+function avg(a){ return a.reduce((s,v)=>s+v,0)/a.length; }
+
+function drawCharts(){
+  const n=R.n;
+  const pmax=Math.ceil(Math.max(...R.powF,...R.pow)/20)*20+10;
+  const tmax=Math.ceil(Math.max(...R.trq)/20)*20+10;
+  const xt=[]; for(let r=2000;r<=P.rpmMax;r+=2000) xt.push(r);
+  const series=[
+    {x:R.rpms,y:R.powF,col:'#4a5566',w:1.2,dash:[4,3]},
+    {x:R.rpms,y:R.pow,col:'#ffb000',w:2},
+    {x:R.rpms,y:R.trq,col:'#19e6d2',w:1.8,ax:2},
+  ];
+  if(REF){ series.push({x:REF.rpms,y:REF.pow,col:'#a06bff',w:1.3,dash:[2,3]}); }
+  chart($('#chP'),{ratio:0.58,minH:170,x0:1500,x1:P.rpmMax,y1:[0,pmax],y2:[0,tmax],r2:true,
+    xticks:xt,xfmt:t=>t/1000+'k',cursor:rpmSel,series,
+    marks:[{x:R.rpmPmax,y:R.powMax,col:'#ffb000',t:fmt(R.powMax,1)+' kW'},
+           {x:R.rpmTmax,y:R.trqMax,col:'#19e6d2',ax:2,t:fmt(R.trqMax,1)+' Nm'}]});
+
+  const vmax=Math.ceil(Math.max(...R.vDbk,...R.vOut)/50)*50;
+  chart($('#chB'),{ratio:0.58,minH:170,x0:1500,x1:P.rpmMax,y1:[0,Math.max(20,Math.ceil(Math.max(...R.dp)/10)*10+5)],
+    y2:[0,vmax],r2:true,xticks:xt,xfmt:t=>t/1000+'k',cursor:rpmSel,
+    series:[{x:R.rpms,y:R.dp,col:'#ffb000',w:2},
+            {x:R.rpms,y:R.vOut,col:'#19e6d2',w:1.4,ax:2},
+            {x:R.rpms,y:R.vDbk,col:'#ff4d4d',w:1.4,ax:2,dash:[3,2]}],
+    hlines:[{v:40,col:'rgba(255,77,77,.4)',t:'40 kPa'}]});
+
+  const yA=[0,Math.max(60,Math.ceil(Math.max(...n.splU)/10)*10)];
+  const ser=[
+    {x:BANDS,y:n.splU,col:'#4a5566',w:1.2,dash:[4,3]},
+    {x:BANDS,y:n.spl,col:'#ffb000',w:2,dots:true},
+    {x:BANDS,y:n.TL,col:'#19e6d2',w:1.8,ax:2},
+  ];
+  if(REF) ser.push({x:BANDS,y:REF.TL,col:'#a06bff',w:1.2,dash:[2,3],ax:2});
+  $('#acRt').textContent=`f₀=${fmt(n.f0,0)} Hz · sorgente ${fmt(n.exhU,0)} dB(A) · meccanico ${fmt(n.mech,0)} dB(A)`;
+  chart($('#chA'),{ratio:0.58,minH:170,x0:50,x1:10000,logX:true,y1:yA,y2:[0,60],r2:true,
+    xticks:[63,125,250,500,1000,2000,4000,8000],xfmt:t=>t>=1000?(t/1000)+'k':t,
+    series:ser});
+
+  // ripartizione Δp
+  const b=R.bS;
+  const items=[['Prim',b.prim],['Link',b.link+b.bend],['Cat',b.cat],['Cono in',b.coneIn],
+               ['Perf',b.perf],['Cono out',b.coneOut],['Tail',b.tail],['dB-K',b.dbk],['Uscita',b.exit]];
+  const ys=items.map(i=>i[1]/1000);
+  const cols=items.map(i=>i[0]==='dB-K'?'#ff4d4d':(i[0]==='Cat'?'#a06bff':'#ffb000'));
+  $('#dpRt').textContent=`tot ${fmt(b.tot/1000,1)} kPa @ ${Math.round(rpmSel)} rpm — perdita ${fmt(R.tS.loss*100,1)} %`;
+  chart($('#chD'),{ratio:0.58,minH:170,x0:-0.6,x1:items.length-0.4,y1:[0,Math.max(2,Math.ceil(Math.max(...ys)*1.25))],
+    xticks:items.map((_,i)=>i),xfmt:i=>items[i][0],
+    bars:[{x:items.map((_,i)=>i),y:ys,cols}]});
+
+  // assorbimento
+  chart($('#chW'),{ratio:0.58,minH:160,x0:50,x1:10000,logX:true,y1:[0,1],
+    xticks:[63,125,250,500,1000,2000,4000,8000],xfmt:t=>t>=1000?(t/1000)+'k':t,
+    y1fmt:v=>v.toFixed(1),
+    series:[{x:BANDS,y:n.alpha,col:'#19e6d2',w:1.8},{x:BANDS,y:n.alphaEff,col:'#ffb000',w:2,dots:true}]});
+}
+function drawEmissions(){
+  const e=R.em;
+  const rows=[['CO','monossido',e.out.CO,e.raw.CO,e.eff.CO,LIM.CO],
+              ['THC','idrocarburi',e.out.HC,e.raw.HC,e.eff.HC,LIM.HC],
+              ['NOx','ossidi di azoto',e.out.NOx,e.raw.NOx,e.eff.NOx,LIM.NOx]];
+  $('#em').innerHTML=rows.map(r=>{
+    const [n,d,out,raw,eff,lim]=r;
+    const scale=lim*2.2;
+    const pct=clamp(out/scale*100,0,100), lp=clamp(lim/scale*100,0,100);
+    const ok=out<=lim;
+    return `<div class="emr">
+      <div class="n">${n}<small>${d}</small></div>
+      <div class="bar"><div class="f" style="width:${pct}%;background:${ok?'linear-gradient(90deg,#0e7d6f,#19e6d2)':'linear-gradient(90deg,#7d2b0e,#ff4d4d)'}"></div>
+        <div class="lim" style="left:${lp}%"></div></div>
+      <div class="q" style="color:${ok?'#19e6d2':'#ff4d4d'}">${fmt(out,1)}<small>mg/km · lim ${lim} · η ${fmt(eff*100,0)}% · out mot. ${fmt(raw,0)}</small></div>
+    </div>`;
+  }).join('');
+}
+function drawWarnings(){
+  const g=R.g, n=R.n, w=[];
+  const wm=WOOL[P.wmat], sh=SHELL[P.shell];
+  const Tmax=flow(P.rpmMax,1).Tc, Tport=flow(P.rpmMax,1).Tport;
+  if(Tmax>wm.tmax) w.push(['e','⚠',`<b>Afonizzante fuori temperatura</b> — ${fmt(Tmax,0)} °C all'ingresso silenziatore a pieno carico (${fmt(Tport,0)} °C alla luce) contro ${wm.tmax} °C ammessi da ${wm.n}: degrado e burnout del pacco. Passa a silice, oppure allunga il link-pipe per raffreddare.`]);
+  else if(Tmax>wm.tmax*0.88) w.push(['w','◐',`Margine termico del pacco ridotto: ${fmt(Tmax,0)} °C su ${wm.tmax} °C.`]);
+  const Tsk=tShellC(Tmax,g.tWool_mm);
+  if(Tsk>sh.tmax) w.push(['e','⚠',`<b>Mantello fuori temperatura</b> — pelle a ${fmt(Tsk,0)} °C (gas ${fmt(Tmax,0)} °C attraverso ${fmt(g.tWool_mm,1)} mm di pacco) contro ${sh.tmax} °C di ${sh.n}. Aumenta lo spessore del pacco o cambia materiale del mantello.`]);
+  else if(Tsk>sh.tmax*0.85) w.push(['w','◐',`Pelle mantello a ${fmt(Tsk,0)} °C, vicino al limite di ${sh.n} (${sh.tmax} °C). Ogni mm di lana in meno vale ~${fmt((tShellC(Tmax,g.tWool_mm-1)-Tsk),0)} °C in più.`]);
+  if(g.POA<0.22) w.push(['w','◐',`POA ${fmt(g.POA*100,1)} % — sotto ~25 % il tubo perforato non accoppia il campo acustico con la lana: la parte dissipativa lavora al ${fmt(n.tl.poaF*100,0)} %. Aumenta Ø foro o riduci il passo.`]);
+  if(g.POA>0.42) w.push(['w','◐',`POA ${fmt(g.POA*100,1)} % — molto alto: il tubo perde rigidità e la componente reattiva della camera si annulla. Verifica a fatica.`]);
+  if(g.tWool_mm<12) w.push(['w','◐',`Spessore lana ${fmt(g.tWool_mm,1)} mm — troppo sottile per le basse frequenze. Sotto ~15 mm l'assorbimento sotto 800 Hz crolla.`]);
+  if(n.tl.sigT>6) w.push(['w','◐',`σ·t/ρc = ${fmt(n.tl.sigT,1)} — pacco troppo resistivo per il gas caldo (ρc = ${fmt(R.flS.rho*R.flS.c,0)} rayl). L'ottimo è 2–4: <b>riduci la densità di stipamento</b> o lo spessore.`]);
+  if(n.tl.sigT<1.2) w.push(['w','◐',`σ·t/ρc = ${fmt(n.tl.sigT,1)} — pacco troppo trasparente: l'onda attraversa senza dissipare. Aumenta densità o usa fibra più fine.`]);
+  const dpk=R.bS.tot/1000;
+  if(dpk>60) w.push(['e','⚠',`<b>Contropressione critica</b> — ${fmt(dpk,1)} kPa a ${Math.round(rpmSel)} rpm, perdita stimata ${fmt(R.tS.loss*100,1)} %.`]);
+  else if(dpk>35) w.push(['w','◐',`Contropressione ${fmt(dpk,1)} kPa — perdita ${fmt(R.tS.loss*100,1)} %. Contributo maggiore: ${maxDp()}.`]);
+  if(R.bS.Mach>0.65) w.push(['e','⚠',`<b>Sezione di uscita quasi soffocata</b> — Mach ${fmt(R.bS.Mach,2)} (${fmt(P.dbkOn?R.bS.vDbk:R.bS.vOut,0)} m/s). Oltre M≈0,7 il flusso blocca: la contropressione esplode e il modello incomprimibile non è più affidabile. Apri la sezione di uscita.`]);
+  else if(P.dbkOn && R.bS.vDbk>190) w.push(['w','◐',`Velocità nel dB-killer ${fmt(R.bS.vDbk,0)} m/s (Mach ${fmt(R.bS.Mach,2)}) — forte strozzatura: rumore di flusso in crescita (∝v⁶) e Δp ∝v².`]);
+  if(g.expRatio<3.5) w.push(['w','◐',`Volume corpo ${fmt(g.Vbody*1e3,2)} L = ${fmt(g.expRatio,1)}× la cilindrata. Sotto ~4× l'attenuazione alle basse frequenze è strutturalmente limitata.`]);
+  if(P.catOn && R.em.Tcat<R.em.T50) w.push(['e','⚠',`<b>Light-off non raggiunto sul ciclo</b> — T cat ${fmt(R.em.Tcat,0)} °C contro T50 ${fmt(R.em.T50,0)} °C. Accorcia i collettori, aumenta il PGM o coibenta.`]);
+  else if(P.catOn && R.em.Tcat<R.em.T50+45) w.push(['w','◐',`T cat ${fmt(R.em.Tcat,0)} °C, appena sopra il light-off (${fmt(R.em.T50,0)} °C): margine sottile a freddo — è qui che si gioca l'NMHC.`]);
+  if(P.catOn && R.em.SV>450000) w.push(['w','◐',`Space velocity ${fmt(R.em.SV/1000,0)}k 1/h — substrato sottodimensionato, efficienza limitata dal tempo di contatto.`]);
+  if(!P.catOn) w.push(['i','ⓘ','Nessun catalizzatore: configurazione racing, non omologabile su strada.']);
+  if(Math.abs(P.lambda-1)>0.02 && P.catOn) w.push(['w','◐',`λ closed-loop = ${fmt(P.lambda,2)} — fuori dalla finestra TWC (0,995–1,005). ${P.lambda<1?'Il CO non trova ossigeno per ossidarsi: conversione al '+fmt(R.em.eff.CO*100,0)+' %.':'L\'NOx non trova riducente: conversione al '+fmt(R.em.eff.NOx*100,0)+' %.'}`]);
+  if(P.lamW>0.95) w.push(['i','ⓘ',`λ a pieno carico ${fmt(P.lamW,2)} — miscela magra in potenza: ${fmt((1/P.lamW-1/0.88)/(1/0.88)*100,1)} % di combustibile in meno rispetto a 0,88 e temperature di scarico più alte (${fmt(R.flS.Tport,0)} °C alla luce).`]);
+  if(R.dbaDrive>77) w.push(['e','⚠',`<b>Passaggio ${fmt(R.dbaDrive,1)} dB(A)</b> oltre il riferimento 77 dB(A). Servono ${fmt(R.dbaDrive-77,1)} dB in più di TL.`]);
+  const rt=rpmTune();
+  w.push(['i','ⓘ',`Sintonia primario a <b>${fmt(rt,0)} rpm</b> (L=${P.Lprim} mm, ED=${P.exhDur}°) — la gobba di coppia è qui. Per spostarla a ${Math.round(R.rpmPmax)} rpm servirebbero ${fmt((P.exhDur*850/(R.rpmPmax)-3)*25.4,0)} mm.`]);
+  const shTL=20*lg(Math.max(R.g.msArea,0.05))+20*lg(1000)-38+15*(n.alphaEff[13]||0.5);
+  if(shTL<avg(n.TL.slice(10,20))+2) w.push(['w','◐',`Il mantello (${sh.n}, ${P.tShell} mm → ${fmt(R.g.msArea,2)} kg/m²) irraggia: sta limitando la TL a ~${fmt(shTL,0)} dB @1 kHz. Aumenta lo spessore o passa a un materiale più denso.`]);
+  if(!w.length) w.push(['i','✓','Configurazione coerente: nessuna criticità rilevata.']);
+  $('#warn').innerHTML=w.map(x=>`<div class="wi ${x[0]}"><div class="ic">${x[1]}</div><div>${x[2]}</div></div>`).join('');
+}
+function maxDp(){
+  const b=R.bS;
+  const it=[['primari',b.prim],['link+curve',b.link+b.bend],['catalizzatore',b.cat],
+            ['tubo perforato',b.perf],['dB-killer',b.dbk],['coni',b.coneIn+b.coneOut],['terminale',b.tail+b.exit]];
+  it.sort((a,c)=>c[1]-a[1]);
+  return `${it[0][0]} (${fmt(it[0][1]/1000,1)} kPa)`;
+}
+function drawMass(){
+  const g=R.g;
+  const rows=[['Mantello',g.mShell,SHELL[P.shell].n],['Fondelli/coni',g.mCone,''],
+              ['Tubo perforato',g.mPerf,fmt(g.POA*100,0)+' % POA'],['Afonizzante',g.mWool,WOOL[P.wmat].n],
+              ['Catalizzatore',g.mCat,P.catOn?P.cpsi+' cpsi':'—'],['dB-killer',g.mDbk,P.dbkOn?P.dbkTyp:'—'],
+              ['Link-pipe/terminale',g.mLink,''],['Staffe/minuteria',0.18,'']];
+  $('#mass').innerHTML=`<tr><th>ELEMENTO</th><th>MASSA</th><th>%</th><th>NOTE</th></tr>`+
+    rows.map(r=>`<tr><td>${r[0]}</td><td>${fmt(r[1]*1000,0)} g</td><td>${fmt(r[1]/g.mTot*100,0)}%</td><td style="color:#6b7887">${r[2]}</td></tr>`).join('')+
+    `<tr class="hl"><td><b>TOTALE</b></td><td><b>${fmt(g.mTot,2)} kg</b></td><td>100%</td><td style="color:#6b7887">${fmt(g.mTot/(R.powMax||1),3)} kg/kW</td></tr>`;
+}
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+let errCount=0, lastErr='';
+// unico punto d'ingresso al disegno: qualunque guasto resta confinato al canvas della sezione
+function drawSection(R){
+  try{ drawSectionRaw(R); }
+  catch(e){
+    const k=String(e.message||e);
+    if(k!==lastErr){ lastErr=k; errCount=0; console.error('SIL·LAB drawSection:',e); }
+    if(errCount++<3) paintErr(e);
+  }
+}
+let last=performance.now();
+function paintErr(e){
+ try{
+  const cv=$('#sec'); if(!cv||!cv.width) return;
+  const c=cv.getContext('2d'); const dpr=cv.width/Math.max(cv.clientWidth||cv.width,1);
+  c.setTransform(dpr,0,0,dpr,0,0);
+  const W=cv.width/dpr, H=cv.height/dpr;
+  c.fillStyle='#12080a'; c.fillRect(0,0,W,H);
+  c.fillStyle='#ff4d4d'; c.font='11px ui-monospace,monospace'; c.textAlign='left';
+  c.fillText('⚠ errore nel disegno della sezione — il resto dell\'app è valido', 12, 22);
+  c.fillStyle='#ffb3b3'; c.font='9px ui-monospace,monospace';
+  String(e.message||e).match(/.{1,110}/g).slice(0,3).forEach((ln,i)=>c.fillText(ln,12,40+i*13));
+  const st=(e.stack||'').split('\n')[1]||'';
+  c.fillStyle='#6b7887'; c.fillText(st.trim().slice(0,110),12,H-10);
+ }catch(_){}
+}
+function loop(t){
+  const dt=Math.min((t-last)/1000,0.05); last=t;
+  try{ if(R){ simStep(dt,R); drawSection(R); updateSecOverlay(R); } }
+  catch(e){ const k=String(e.message||e); if(k!==lastErr){ lastErr=k; console.error('SIL·LAB loop:',e); } }
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+function dl(name,txt,type){
+  const b=new Blob([txt],{type:type||'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},400);
+}
+function expJson(){
+  const g=R.g;
+  const o={app:'SIL·LAB',data:new Date().toISOString(),parametri:{...P},
+    derivati:{POA_pct:+(g.POA*100).toFixed(2),volume_lana_L:+(g.Vwool*1e3).toFixed(3),massa_lana_g:+(g.mWool*1000).toFixed(0),
+      spessore_lana_mm:+g.tWool_mm.toFixed(1),sigma_Pa_s_m2:+R.n.tl.sigma.toFixed(0),sigma_t_su_rhoc:+R.n.tl.sigT.toFixed(2),
+      volume_corpo_L:+(g.Vbody*1e3).toFixed(3),rapporto_V_cilindrata:+g.expRatio.toFixed(2),
+      OFA_cat_pct:P.catOn?+(g.OFA*100).toFixed(1):null,space_velocity_1_h:P.catOn?+R.em.SV.toFixed(0):null,
+      massa_totale_kg:+g.mTot.toFixed(3),lunghezza_totale_mm:Math.round(layout().total)},
+    risultati:{potenza_max_kW:+R.powMax.toFixed(2),potenza_max_CV:+(R.powMax*1.341).toFixed(1),rpm_potenza_max:Math.round(R.rpmPmax),
+      coppia_max_Nm:+R.trqMax.toFixed(2),rpm_coppia_max:Math.round(R.rpmTmax),
+      perdita_vs_libero_pct:+((1-R.powMax/R.powFmax)*100).toFixed(2),
+      dbA_statico:+R.dbaStatic.toFixed(1),rpm_statico:Math.round(R.rpmStat),dbA_passaggio_7m5:+R.dbaDrive.toFixed(1),
+      dp_kPa_at_rpm:{rpm:Math.round(rpmSel),valore:+(R.bS.tot/1000).toFixed(2)},
+      emissioni_mg_km:{CO:+R.em.out.CO.toFixed(1),THC:+R.em.out.HC.toFixed(1),NOx:+R.em.out.NOx.toFixed(1)},
+      efficienza_cat_pct:{CO:+(R.em.eff.CO*100).toFixed(1),HC:+(R.em.eff.HC*100).toFixed(1),NOx:+(R.em.eff.NOx*100).toFixed(1)}},
+    spettro:{bande_Hz:BANDS,TL_dB:R.n.TL.map(v=>+v.toFixed(2)),SPL_dB:R.n.spl.map(v=>+v.toFixed(2)),
+      alpha:R.n.alpha.map(v=>+v.toFixed(3)),alpha_eff:R.n.alphaEff.map(v=>+v.toFixed(3))}};
+  dl('sillab_config.json',JSON.stringify(o,null,2),'application/json');
+}
+function expCsv(){
+  let s='rpm;potenza_kW;coppia_Nm;potenza_scarico_libero_kW;dp_kPa;v_uscita_ms;v_dbkiller_ms;bmep_bar\n';
+  R.rpms.forEach((r,i)=>{
+    s+=[Math.round(r),R.pow[i].toFixed(3),R.trq[i].toFixed(3),R.powF[i].toFixed(3),
+        R.dp[i].toFixed(3),R.vOut[i].toFixed(1),R.vDbk[i].toFixed(1),R.bmep[i].toFixed(3)].join(';')+'\n';
+  });
+  s+='\nbanda_Hz;TL_dB;SPL_dBA_0m5;alpha;alpha_eff\n';
+  BANDS.forEach((b,i)=>{ s+=[b,R.n.TL[i].toFixed(2),(R.n.spl[i]+AW[i]).toFixed(2),R.n.alpha[i].toFixed(3),R.n.alphaEff[i].toFixed(3)].join(';')+'\n'; });
+  dl('sillab_curve.csv',s,'text/csv');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+mkPatterns();
+buildSidebar();
+requestAnimationFrame(loop);          // il loop è vivo prima di ogni possibile guasto (R è null finché update() non gira)
+buildPresets();
+$('#rpmS').oninput=e=>{rpmSel=+e.target.value; update();};
+$('#bPlay').onclick=e=>{ SIM.run=!SIM.run; e.target.textContent=SIM.run?'❚❚':'▶'; e.target.classList.toggle('on',SIM.run); };
+$('#tsS').oninput=e=>{ SIM.K=Math.round(Math.pow(10,+e.target.value)); $('#tsV').textContent='1:'+SIM.K; };
+$('#tsS').oninput({target:$('#tsS')});
+$$('#simBar .lb[data-l]').forEach(b=>b.onclick=()=>{ const k=b.dataset.l; SIM.L[k]=SIM.L[k]?0:1; b.classList.toggle('on',!!SIM.L[k]); });
+$('#bFlip').onclick=e=>{ SIM.flip=!SIM.flip; e.target.classList.toggle('on',SIM.flip); };
+$('#bZoom').onclick=e=>{ SIM.zoom=!SIM.zoom; e.target.classList.toggle('on',!!SIM.zoom); e.target.title=SIM.zoom?'mostra tutta la linea':'inquadra solo il silenziatore'; };
+$('#bRef').onclick=()=>{ REF={rpms:R.rpms.slice(),pow:R.pow.slice(),TL:R.n.TL.slice()}; $('#bRef').classList.add('on'); update(); };
+$('#bClrRef').onclick=()=>{ REF=null; $('#bRef').classList.remove('on'); update(); };
+$('#bJson').onclick=expJson;
+$('#bCsv').onclick=expCsv;
+$$('#tabs .btn').forEach(b=>b.onclick=()=>{
+  $$('#tabs .btn').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  document.body.className='tab-'+b.dataset.tab;
+  setTimeout(update,30);
+});
+if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){ SIM.run=false; $('#bPlay').textContent='▶'; }
+else $('#bPlay').classList.add('on');
+// chiudi alcuni gruppi all'avvio su mobile
+if(window.innerWidth<900) $$('.grp').forEach((g,i)=>{ if(i>0) g.classList.add('col'); });
+let rz; window.addEventListener('resize',()=>{clearTimeout(rz); rz=setTimeout(update,120);});
+window.addEventListener('orientationchange',()=>setTimeout(update,300));
+document.addEventListener('gesturestart',e=>e.preventDefault());
+try{ update(); }catch(e){ console.error('SIL·LAB update:',e); paintErr(e); }
+</script>
+</body>
+</html>
